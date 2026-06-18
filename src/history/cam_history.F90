@@ -227,9 +227,9 @@ CONTAINS
                   end if
                end do
             end do
-            call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
+            call hist_configs(file_idx)%define_file(logname, host, model_doi_url)
          end if
-         call hist_configs(file_idx)%write_time_dependent_variables(restart)
+         call hist_configs(file_idx)%write_time_dependent_variables()
          if (nstep == 0) then
              ! Reset samples if nstep0 was written
              call hist_configs(file_idx)%reset_samples()
@@ -687,6 +687,8 @@ CONTAINS
             cycle
          end if
          ! Field is active on this file - accumulate!
+         write(iulog,*) 'peverwhee - accumulate'
+         write(iulog,*) field_info%diag_name()
          call hist_field_accumulate(field_info, field_values, 1, logger=logger)
          if (masterproc) then
             call logger%output(iulog)
@@ -904,15 +906,26 @@ CONTAINS
    subroutine history_restart_init(restart_file)
       use cam_hist_restart, only: hist_restart_init
       use pio,              only: file_desc_t
+      ! Dummy variables
       type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
 
+      ! Set up history restart variables in the restart file
+      ! We can skip this if we have no output for this run
       if (max_num_fields > 0) then
          call hist_restart_init(restart_file, size(hist_configs), max_num_fields)
       end if
 
-      ! Create restart files for history tapes if necessary (.rhX.)
+      ! Create restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%define_restart_file(logname, host, model_doi_url)
+      end do
 
-      ! Add history restart variables to overall restart file (.r.)
    end subroutine history_restart_init
 
 !#######################################################################
@@ -920,14 +933,27 @@ CONTAINS
    subroutine history_restart_write(restart_file)
       use pio,              only: file_desc_t
       use cam_hist_restart, only: hist_restart_write
-!      use cam_hist_file, only: hist_file_restart_write
+      ! Dummy variables
       type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
 
       if (max_num_fields == 0) then
          ! Don't do anything if there aren't any history fields
          return
       end if
+
       call hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
+
+      ! Write restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%write_restart_file()
+         call hist_configs(config_idx)%close_restart_file()
+      end do
 
    end subroutine history_restart_write
 !#######################################################################

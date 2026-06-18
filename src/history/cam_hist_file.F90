@@ -28,6 +28,7 @@ module cam_hist_file
    integer,          parameter :: nl_gname_len = len(hist_nl_group_name)
    integer, public,  parameter :: instantaneous_file_index = 1
    integer, public,  parameter :: accumulated_file_index   = 2
+   integer, public,  parameter :: restart_file_index       = 3
    character(len=fieldname_suffix_len ) :: fieldname_suffix = '&IC' ! Suffix appended to field names for IC file
 
    logical, parameter                      :: PATCH_DEF = .true.
@@ -42,10 +43,13 @@ module cam_hist_file
    integer, parameter                      :: hfile_type_sat_track  =  3
    integer, parameter                      :: hfile_type_restart    =  4
 
+   character(len=*), parameter :: rh_filename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
+
    type :: hist_file_t
       ! History file configuration information
       character(len=vlen),           private :: volume = UNSET_C
       type(file_desc_t),             private :: hist_files(max_split_files) ! PIO file ids
+      type(file_desc_t),             private :: restart_file                ! PIO file id for restart file
       integer,                       private :: rl_kind = OUTPUT_DEF
       integer,                       private :: max_frames = UNSET_I
       integer,                       private :: output_freq_mult = UNSET_I
@@ -57,6 +61,8 @@ module cam_hist_file
       character(len=max_fldlen), allocatable, private :: field_names(:)
       character(len=3), allocatable, private :: accumulate_types(:)
       type(var_desc_t), allocatable, private :: file_varids(:,:)
+      type(var_desc_t), allocatable, private :: nacs_varids(:,:)
+      type(var_desc_t), allocatable, private :: varbuff_varids(:,:)
       integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
@@ -68,6 +74,7 @@ module cam_hist_file
       logical,                       private :: files_open = .false.
       type(interp_info_t), pointer,  private :: interp_info => NULL()
       character(len=CL), allocatable, private :: file_names(:)
+      character(len=CL), allocatable, private :: restart_file_name
       ! PIO IDs
       type(var_desc_t),              private :: timeid
       type(var_desc_t),              private :: dateid
@@ -96,6 +103,7 @@ module cam_hist_file
       procedure :: get_volume => config_volume
       procedure :: get_filenames => config_get_filenames
       procedure :: get_filename_spec => config_get_filename_spec
+      procedure :: get_restart_filename => config_get_restart_filename
       procedure :: get_last_month_written => config_get_last_month_written
       procedure :: get_last_year_written => config_get_last_year_written
       procedure :: precision => config_precision
@@ -127,6 +135,14 @@ module cam_hist_file
       ! Actions
       procedure :: reset        => config_reset
       procedure :: configure    => config_configure
+      procedure :: set_up_dimensions => config_set_up_dimensions
+      procedure :: define_dimensions => config_define_dimensions
+      procedure :: define_header_info => config_define_header_info
+      procedure :: define_instantaneous_header_info => config_define_instantaneous_header_info
+      procedure :: define_additional_header_info => config_define_additional_header_info
+      procedure :: define_fields => config_define_fields
+      procedure :: define_restart_fields => config_define_restart_fields
+      procedure :: write_invariant_header => config_write_invariant_header
       procedure :: print_config => config_print_config
       procedure :: set_beg_time => config_set_beg_time
       procedure :: set_end_time => config_set_end_time
@@ -136,9 +152,13 @@ module cam_hist_file
       procedure :: set_up_fields => config_set_up_fields
       procedure :: find_in_field_list => config_find_in_field_list
       procedure :: define_file => config_define_file
+      procedure :: define_restart_file => config_define_restart_file
       procedure :: write_time_dependent_variables => config_write_time_dependent_variables
+      procedure :: write_restart_file => config_write_restart_file
       procedure :: write_field => config_write_field
+      procedure :: write_restart_fields => config_write_restart_fields
       procedure :: close_files => config_close_files
+      procedure :: close_restart_file => config_close_restart_file
       procedure :: clear_buffers => config_clear_buffers
       procedure :: reset_samples => config_reset_samples
    end type hist_file_t
@@ -201,6 +221,9 @@ CONTAINS
            incomplete_ok=.false.)
       end do
 
+      this%restart_file_name = interpret_filename_spec(rh_filename_spec, &
+              unit=this%volume, incomplete_ok=.false.)
+
    end subroutine config_set_filenames
 
    ! ========================================================================
@@ -235,6 +258,18 @@ CONTAINS
       cfiles = this%file_names
 
    end function config_get_filenames
+
+   ! ========================================================================
+
+   function config_get_restart_filename(this) result(rhfile)
+      use cam_filenames,  only: interpret_filename_spec
+      ! Dummy arguments
+      class(hist_file_t), intent(in) :: this
+      character(len=CL)              :: rhfile
+
+      rhfile = this%restart_file_name
+
+   end function config_get_restart_filename
 
    ! ========================================================================
 
@@ -1157,24 +1192,16 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_define_file(this, restart, logname, host, model_doi_url)
-      use pio,                 only: PIO_CLOBBER, pio_file_is_open, pio_unlimited
-      use pio,                 only: pio_double, pio_def_var, pio_put_att, pio_int
-      use pio,                 only: PIO_GLOBAL, pio_char, pio_real, PIO_NOERR, pio_enddef
-      use pio,                 only: pio_put_var
-      use cam_pio_utils,       only: cam_pio_createfile, cam_pio_def_var
-      use cam_pio_utils,       only: cam_pio_def_dim, cam_pio_handle_error
+   subroutine config_define_file(this, logname, host, model_doi_url)
+      use pio,                 only: PIO_CLOBBER, pio_file_is_open
+      use pio,                 only: PIO_NOERR, pio_enddef
+      use cam_pio_utils,       only: cam_pio_createfile
       use cam_grid_support,    only: cam_grid_header_info_t, cam_grid_write_attr
-      use cam_grid_support,    only: cam_grid_write_var
-      use cam_history_support, only: write_hist_coord_attrs
       use cam_history_support, only: write_hist_coord_vars
       use cam_history_support, only: max_chars
       use shr_kind_mod,        only: r4 => shr_kind_r4
       use time_manager,        only: get_ref_date, timemgr_get_calendar_cf
       use time_manager,        only: get_step_size
-      use string_utils,        only: date2yyyymmdd, sec2hms, stringify
-      use cam_control_mod,     only: caseid
-      use cam_initfiles,       only: ncdata, bnd_topo
       use cam_abortutils,      only: check_allocate, endrun
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
@@ -1182,55 +1209,54 @@ CONTAINS
       ! Define the metadata for the file(s) for this volume
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
-      logical,            intent(in)    :: restart
       character(len=*),   intent(in)    :: logname
       character(len=*),   intent(in)    :: host
       character(len=*),   intent(in)    :: model_doi_url
 
       ! Local variables
       integer :: amode, ierr
-      integer :: grid_index, split_file_index, field_index, idx, jdx
-      integer :: dtime              ! timestep size
+      integer :: split_file_index, idx
       integer :: yr, mon, day       ! year, month, day components of a date
       integer :: nbsec              ! time of day component of base date [seconds]
       integer :: nbdate             ! base date in yyyymmdd format
       integer :: nsbase = 0         ! seconds component of base time
       integer :: ndbase = 0         ! days component of base time
-      integer :: ncreal             ! real data type for output
-      integer :: grd
-      integer :: mdimsize, num_hdims, fdims
+      integer :: num_hdims
+      integer, allocatable :: fdims(:)
       integer :: num_patches
       integer, allocatable :: mdims(:)
 
       logical                  :: is_satfile
       logical                  :: is_initfile
       logical                  :: varid_set
-      character(len=16)        :: time_per_freq
-      character(len=max_chars) :: str       ! character temporary
+      logical                  :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
-      character(len=max_chars) :: cell_methods ! For cell_methods attribute
-      character(len=max_chars) :: fname_tmp ! local copy of field name
-      character(len=CM)        :: errmsg
-      type(var_desc_t)         :: varid
       ! NetCDF dimensions
       integer :: timdim             ! unlimited dimension id
       integer :: bnddim             ! bounds dimension id
       integer :: chardim            ! character dimension id
-      integer :: dimenchar(2)       ! character dimension ids
-      integer :: nacsdims(2)        ! dimension ids for nacs (used in restart file)
-      integer :: max_mdims          ! maximum number of middle dimensions
-      integer :: max_hdims          ! maximum number of grid dimensions
 
       integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
-      integer,          allocatable    :: mdimids(:)
-      integer,          parameter :: max_netcdf_len = 256
+      integer,        allocatable :: mdimids(:)
       character(len=*), parameter :: subname = 'config_define_file: '
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
+
+      restart = .false.
+      split_file = .true.
+
+      ! Get date and calendar info
+      call get_ref_date(yr, mon, day, nbsec)
+      nbdate = yr*10000 + mon*100 + day
+      calendar = timemgr_get_calendar_cf()
       
+      ! v peverwhee - remove when patch output is set up
+      num_patches = 1
+      ! ^ peverwhee - remove when patch output is set up
+
       ! Log what we're doing
       if (masterproc) then
          if (this%has_accumulated) then
@@ -1257,339 +1283,32 @@ CONTAINS
 
       this%files_open = .true.
 
-      allocate(header_info(size(this%grids)), stat=ierr)
-      call check_allocate(ierr, subname, 'header_info',             &
-           file=__FILE__, line=__LINE__-1)
+      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, varid_set)
 
-      max_hdims = 0
-      do grid_index = 1, size(this%grids)
-         do split_file_index = 1, max_split_files
-            if (pio_file_is_open(this%hist_files(split_file_index))) then
-               call cam_grid_write_attr(this%hist_files(split_file_index), &
-                  this%grids(grid_index), header_info(grid_index),         &
-                  file_index=split_file_index)
-               max_hdims = max(max_hdims, header_info(grid_index)%num_hdims())
-            end if
-         end do
-      end do
-      ! Determine the maximum number of dimensions
-      max_mdims = 0
-      do field_index = 1, size(this%field_list)
-         max_mdims = max(max_mdims, size(this%field_list(field_index)%dimensions()))
-      end do
-      ! Allocate dimindex to the maximum possible dimensions (plus 1 for time)
-      allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr)
-      call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1)
-
-      call get_ref_date(yr, mon, day, nbsec)
-      nbdate = yr*10000 + mon*100 + day
-      calendar = timemgr_get_calendar_cf()
-      dtime = get_step_size()
-      ! v peverwhee - remove when patch output is set up
-      num_patches = 1
-      ! ^ peverwhee - remove when patch output is set up
-      varid_set = .true.
-      ! Allocate the varid array
-      if (.not. allocated(this%file_varids)) then
-         allocate(this%file_varids(size(this%field_list), num_patches), stat=ierr)
-         call check_allocate(ierr, subname, 'this%file_varids',             &
-              file=__FILE__, line=__LINE__-1)
-         varid_set = .false.
-      end if
-
-      ! Format frequency
-      write(time_per_freq,999) trim(this%output_freq_type), '_', this%output_freq_mult
-999   format(2a,i0)
-
+      allocate(fdims(size(this%field_list)))
       do split_file_index = 1, max_split_files
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
          end if
-         ! Define the unlimited time dim
-         call cam_pio_def_dim(this%hist_files(split_file_index), 'time', pio_unlimited, timdim)
-         call cam_pio_def_dim(this%hist_files(split_file_index), 'nbnd', 2, bnddim, existOK=.true.)
-         call cam_pio_def_dim(this%hist_files(split_file_index), 'chars', 8, chardim)
-         ! Populate the history coordinate (well, mdims anyway) attributes
-         ! This routine also allocates the mdimids array
-         call write_hist_coord_attrs(this%hist_files(split_file_index), bnddim, mdimids, restart)
-         ! Define time variable
-         ierr=pio_def_var (this%hist_files(split_file_index),'time',pio_double,(/timdim/),this%timeid)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to define "time" variable')
-         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'long_name', 'time')
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "time" variable')
-         str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
-         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'units', trim(str))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "units" attribtue to "time" variable')
-         ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'calendar', trim(calendar))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "calendar" attribute to "time" variable')
-
-         ! Define date variable
-         ierr=pio_def_var (this%hist_files(split_file_index),'date    ',pio_int,(/timdim/),this%dateid)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to define "date" variable')
-         str = 'current date (YYYYMMDD)'
-         ierr=pio_put_att (this%hist_files(split_file_index), this%dateid, 'long_name', trim(str))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "date" variable')
-
-         ! Define datesec variable
-         ierr=pio_def_var (this%hist_files(split_file_index),'datesec ',pio_int,(/timdim/), this%datesecid)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to define "datesec" variable')
-         str = 'current seconds of current date'
-         ierr=pio_put_att (this%hist_files(split_file_index), this%datesecid, 'long_name', trim(str))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "datesec" variable')
-
-         !
-         ! Character header information
-         !
-         str = 'CF-1.0'
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'Conventions', trim(str))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "Conventions" attribtue to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'source', 'CAM-SIMA')
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "source" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'case', caseid)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "case" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'logname',trim(logname))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "logname" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'host', trim(host))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "host" attribute to file')
-
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'initial_file', ncdata)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "initial_file" attribute to file')
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'topography_file', bnd_topo)
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "topography_file" attribute to file')
-         if (len_trim(model_doi_url) > 0) then
-            ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'model_doi_url', model_doi_url)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "model_doi_url" attribute to file')
-         end if
-
-         ierr=pio_put_att (this%hist_files(split_file_index), PIO_GLOBAL, 'time_period_freq', trim(time_per_freq))
-         call cam_pio_handle_error(ierr, 'config_define_file: failed to add "time_period_freq" attribute to file')
+         ! Define the file dimensions
+         call this%define_dimensions(this%hist_files(split_file_index), restart, timdim, bnddim, chardim, mdimids)
+         ! Define the header information
+         call this%define_header_info(this%hist_files(split_file_index), timdim, bnddim, chardim, nbsec, nbdate, &
+                 calendar, logname, host, model_doi_url)
 
          if (.not. is_satfile) then
-            ! Define time_bounds variable
-            ierr=pio_put_att (this%hist_files(split_file_index), this%timeid, 'bounds', 'time_bounds')
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "bounds" attribute to file')
-            ierr=pio_def_var (this%hist_files(split_file_index),'time_bounds',pio_double,(/bnddim,timdim/),this%tbndid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "time_bounds" variable')
-            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'long_name', 'time interval endpoints')
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "time_bounds" variable')
-            str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
-            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'units', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "units" attribute to "time_bounds" variable')
-            ierr=pio_put_att (this%hist_files(split_file_index), this%tbndid, 'calendar', trim(calendar))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "calendar" attribute to "time_bounds" variable')
-
-            !
-            ! Character
-            !
-            dimenchar(1) = chardim
-            dimenchar(2) = timdim
-            ierr=pio_def_var (this%hist_files(split_file_index),'date_written',pio_char,dimenchar,this%date_writtenid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "date_written" variable')
-            ierr=pio_def_var (this%hist_files(split_file_index),'time_written',pio_char,dimenchar,this%time_writtenid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "time_written" variable')
-
-            !
-            ! Integer header
-            !
-            ! Define base day variables
-            ierr=pio_def_var (this%hist_files(split_file_index),'ndbase',PIO_INT,this%ndbaseid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "ndbase" variable')
-            str = 'base day'
-            ierr=pio_put_att (this%hist_files(split_file_index), this%ndbaseid, 'long_name', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "ndbase" variable')
-
-            ierr=pio_def_var (this%hist_files(split_file_index),'nsbase',PIO_INT,this%nsbaseid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nsbase" variable')
-            str = 'seconds of base day'
-            ierr=pio_put_att (this%hist_files(split_file_index), this%nsbaseid, 'long_name', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "nsbase" variable')
-
-            ierr=pio_def_var (this%hist_files(split_file_index),'nbdate',PIO_INT,this%nbdateid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nbdate" variable')
-            str = 'base date (YYYYMMDD)'
-            ierr=pio_put_att (this%hist_files(split_file_index), this%nbdateid, 'long_name', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribtue to "nbdate" variable')
-
-            ierr=pio_def_var (this%hist_files(split_file_index),'nbsec',PIO_INT,this%nbsecid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nbsec" variable')
-            str = 'seconds of base date'
-            ierr=pio_put_att (this%hist_files(split_file_index), this%nbsecid, 'long_name', trim(str))
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "nbsec" variable')
-
-            ierr=pio_def_var (this%hist_files(split_file_index),'mdt',PIO_INT,this%mdtid)
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to define "mdt" variable')
-            ierr=pio_put_att (this%hist_files(split_file_index), this%mdtid, 'long_name', 'timestep')
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "mdt" variable')
-            ierr=pio_put_att (this%hist_files(split_file_index), this%mdtid, 'units', 's')
-            call cam_pio_handle_error(ierr, 'config_define_file: failed to add "units" attribute to "mdt" variable')
-
-            !
-            ! Create variables for model timing and header information
-            !
+            call this%define_additional_header_info(this%hist_files(split_file_index), bnddim, timdim, chardim, &
+                    nbsec, nbdate, calendar)
             if (split_file_index == instantaneous_file_index) then
-               ierr=pio_def_var (this%hist_files(split_file_index),'ndcur   ',pio_int,(/timdim/),this%ndcurid)
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to define "ndcur" variable')
-               str = 'current day (from base day)'
-               ierr=pio_put_att (this%hist_files(split_file_index), this%ndcurid, 'long_name', trim(str))
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "ndcur" variable')
-
-               ierr=pio_def_var (this%hist_files(split_file_index),'nscur   ',pio_int,(/timdim/),this%nscurid)
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nscur" variable')
-               str = 'current seconds of current day'
-               ierr=pio_put_att (this%hist_files(split_file_index), this%nscurid, 'long_name', trim(str))
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "nscur" variable')
-               ierr=pio_def_var (this%hist_files(split_file_index),'nsteph',pio_int,(/timdim/),this%nstephid)
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to define "nsteph" variable')
-               str = 'current timestep'
-               ierr=pio_put_att (this%hist_files(split_file_index), this%nstephid, 'long_name', trim(str))
-               call cam_pio_handle_error(ierr, 'config_define_file: failed to add "long_name" attribute to "nsteph" variable')
+               call this%define_instantaneous_header_info(this%hist_files(split_file_index), timdim)
             end if
 
          end if ! .not. satfile
 
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         !
          ! Create variables and attributes for field list
-         !
-         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         call this%define_fields(this%hist_files(split_file_index), split_file_index, split_file, restart, mdimids, &
+                   dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims)
 
-         do field_index = 1, size(this%field_list)
-            if (.not. is_satfile .and. .not. restart .and. .not. is_initfile) then
-               if (split_file_index == accumulated_file_index) then
-                  ! this is the accumulated file of a potentially split
-                  ! history tape - skip instantaneous fields
-                  if (this%field_list(field_index)%accumulate_type() == 'lst') then
-                     cycle
-                  end if
-               else
-                  ! this is the instantaneous file of a potentially split
-                  ! history tape - skip accumulated fields
-                  if (this%field_list(field_index)%accumulate_type() /= 'lst') then
-                     cycle
-                  end if
-               end if
-            end if
-
-            if (this%precision() == 'REAL32') then
-               ncreal = pio_real
-            else if (this%precision() == 'REAL64') then
-               ncreal = pio_double
-            end if
-            mdims = this%field_list(field_index)%dimensions()
-            mdimsize = size(mdims)
-            fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
-            ! Ensure that fname_tmp is not longer than the maximum length for a
-            !  netcdf file
-            if (len_trim(fname_tmp) > max_netcdf_len) then
-               ! Endrun if the name is too long
-               write(errmsg, *) 'config_define_file: variable name ', trim(fname_tmp), &
-                  ' too long for NetCDF file (len=', stringify((/len(trim(fname_tmp))/)), ' > ', &
-                  stringify((/max_netcdf_len/)), ')'
-               call endrun(errmsg, file=__FILE__, line=__LINE__)
-            end if
-            !
-            !  Create variables and atributes for fields written out as columns
-            !
-            !  Find appropriate grid in header_info
-            if (.not. allocated(header_info)) then
-               ! Safety check
-               call endrun('config_define_file: header_info not allocated', file=__FILE__, line=__LINE__)
-            end if
-            grd = -1
-            do idx = 1, size(header_info)
-              if (header_info(idx)%get_gridid() == this%field_list(field_index)%decomp()) then
-                 grd = idx
-                 exit
-              end if
-            end do
-            if (grd < 0) then
-               write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
-                  trim(fname_tmp)
-               call endrun('config_define_file: '//errmsg, file=__FILE__, line=__LINE__)
-            end if
-            num_hdims = header_info(grd)%num_hdims()
-            do idx = 1, num_hdims
-               dimindex(idx) = header_info(grd)%get_hdimid(idx)
-               nacsdims(idx) = header_info(grd)%get_hdimid(idx)
-            end do
-            do idx = 1, num_patches
-               varid = this%file_varids(field_index, idx)
-               ! Figure the dimension ID array for this field
-               ! We have defined the horizontal grid dimensions in dimindex
-               fdims = num_hdims
-               do jdx = 1, mdimsize
-                  fdims = fdims + 1
-                  dimindex(fdims) = mdimids(mdims(jdx))
-               end do
-               if(.not. restart) then
-                  ! Only add time dimension if this is not a restart history tape
-                  fdims = fdims + 1
-                  dimindex(fdims) = timdim
-               end if
-               ! peverwhee - TODO: enable patch output
-               ! Define the variable
-               call cam_pio_def_var(this%hist_files(split_file_index), trim(fname_tmp), ncreal,           &
-                    dimindex(1:fdims), varid)
-               if (.not. varid_set) then
-                  this%file_varids(field_index, idx) = varid
-               end if
-               if (mdimsize > 0) then
-                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'mdims', mdims(1:mdimsize))
-                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define mdims for '//trim(fname_tmp))
-               end if
-               str = this%field_list(field_index)%sampling_sequence()
-               if (len_trim(str) > 0) then
-                  ierr = pio_put_att(this%hist_files(split_file_index), varid, 'Sampling_Sequence', trim(str))
-                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define Sampling_Sequence for '//trim(fname_tmp))
-               end if
-               if (this%field_list(field_index)%flag_xyfill()) then
-                  ! Write _FillValue and missing_value attributes so that
-                  ! netCDF-aware tools (ncview, ncdump, etc.) recognise fill
-                  ! values.  The attribute type must match the variable type.
-                  if (ncreal == pio_double) then
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', this%field_list(field_index)%fill_value())
-                     call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', this%field_list(field_index)%fill_value())
-                     call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
-                  else
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, '_FillValue', real(this%field_list(field_index)%fill_value(), r4))
-                     call cam_pio_handle_error(ierr, subname//'cannot define _FillValue for '//trim(fname_tmp))
-                     ierr = pio_put_att(this%hist_files(split_file_index), varid, 'missing_value', real(this%field_list(field_index)%fill_value(), r4))
-                     call cam_pio_handle_error(ierr, subname//'cannot define missing_value for '//trim(fname_tmp))
-                  end if
-               end if
-               str = this%field_list(field_index)%units()
-               if (len_trim(str) > 0) then
-                  ierr=pio_put_att (this%hist_files(split_file_index), varid, 'units', trim(str))
-                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define units for '//trim(fname_tmp))
-               end if
-               str = this%field_list(field_index)%mixing_ratio()
-               if (len_trim(str) > 0) then
-                  ierr=pio_put_att (this%hist_files(split_file_index), varid, 'mixing_ratio', trim(str))
-                  call cam_pio_handle_error(ierr, 'config_define_file: cannot define mixing_ratio for '//trim(fname_tmp))
-               end if
-               str = this%field_list(field_index)%long_name()
-               ierr=pio_put_att (this%hist_files(split_file_index), varid, 'long_name', trim(str))
-               call cam_pio_handle_error(ierr, 'config_define_file: cannot define long_name for '//trim(fname_tmp))
-               ! Assign field attributes defining valid levels and averaging info
-               cell_methods = ''
-               if (len_trim(this%field_list(field_index)%cell_methods()) > 0) then
-                  if (len_trim(cell_methods) > 0) then
-                     cell_methods = trim(cell_methods)//' '//trim(this%field_list(field_index)%cell_methods())
-                  else
-                     cell_methods = trim(this%field_list(field_index)%cell_methods())
-                  end if
-               end if
-               ! Time cell methods is after field method because time averaging is
-               ! applied later (just before output) than field method which is applied
-               ! before outfld call.
-               call AvgflagToString(this%field_list(field_index)%accumulate_type(), str)
-               cell_methods = adjustl(trim(cell_methods)//' '//'time: '//str)
-               ierr = pio_put_att(this%hist_files(split_file_index), varid, 'cell_methods', trim(cell_methods))
-               call cam_pio_handle_error(ierr, 'config_define_file: cannot define cell_methods for '//trim(fname_tmp))
-            end do ! end loop over patches
-            deallocate(mdims)
-         end do ! end loop over fields
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
          if (ierr /= PIO_NOERR) then
@@ -1599,33 +1318,11 @@ CONTAINS
             write(iulog,*)'config_define_file: Successfully opened netcdf file '//trim(this%file_names(split_file_index))
          end if
 
-         !
          ! Write time-invariant portion of history header
-
          if (.not. is_satfile) then
-            do idx = 1, size(this%grids)
-               call cam_grid_write_var(this%hist_files(split_file_index), this%grids(idx), &
-                  file_index=split_file_index)
-            end do
-            ierr = pio_put_var(this%hist_files(split_file_index), this%mdtid, (/dtime/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put mdt')
-
-            !
-            ! Model date info
-            !
-            ierr = pio_put_var(this%hist_files(split_file_index), this%ndbaseid, (/ndbase/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put ndbase')
-            ierr = pio_put_var(this%hist_files(split_file_index), this%nsbaseid, (/nsbase/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nsbase')
-
-            ierr = pio_put_var(this%hist_files(split_file_index), this%nbdateid, (/nbdate/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbdate')
-            ierr = pio_put_var(this%hist_files(split_file_index), this%nbsecid, (/nbsec/))
-            call cam_pio_handle_error(ierr, 'config_define_file: cannot put nbsec')
+            call this%write_invariant_header(this%hist_files(split_file_index), split_file_index, &
+                    ndbase, nsbase, nbdate, nbsec, restart)
          end if
-
-         ! Write the mdim variable data
-         call write_hist_coord_vars(this%hist_files(split_file_index), restart)
 
       end do ! end loop over files
 
@@ -1636,11 +1333,705 @@ CONTAINS
          deallocate(header_info)
       end if
 
+      if (allocated(dimindex)) then
+         deallocate(dimindex)
+      end if
+
    end subroutine config_define_file
 
    ! ========================================================================
 
-   subroutine config_write_time_dependent_variables(this, restart)
+   subroutine config_define_restart_file(this, logname, host, model_doi_url)
+      use time_manager,        only: timemgr_get_calendar_cf, get_ref_date
+      use spmd_utils,          only: masterproc
+      use cam_logfile,         only: iulog
+      use cam_history_support, only: max_chars, write_hist_coord_vars
+      use cam_pio_utils,       only: cam_pio_createfile
+      use pio,                 only: pio_clobber, pio_noerr, pio_enddef
+      use cam_grid_support,    only: cam_grid_header_info_t
+      use cam_abortutils,      only: endrun
+      ! Define the metadata for the history restart file (rhX)
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      character(len=*),   intent(in)    :: logname
+      character(len=*),   intent(in)    :: host
+      character(len=*),   intent(in)    :: model_doi_url
+      ! Local variables
+      integer :: amode, ierr, idx
+      integer :: yr, mon, day
+      integer :: nbsec, nbdate
+      integer :: ndbase = 0
+      integer :: nsbase = 0
+      integer :: num_patches
+      integer :: num_hdims
+      integer, allocatable :: fdims(:)
+      integer :: timdim, bnddim, chardim
+      logical :: varid_set
+      logical :: restart, split_file
+      character(len=max_chars) :: calendar  ! Calendar type
+      integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
+      ! A structure to hold the horizontal dimension and coordinate info
+      type(cam_grid_header_info_t), allocatable :: header_info(:)
+      integer,        allocatable :: mdimids(:)
+
+      restart = .true.
+      split_file = .false.
+      ! Get date and calendar info
+      call get_ref_date(yr, mon, day, nbsec)
+      nbdate = yr*10000 + mon*100 + day
+      calendar = timemgr_get_calendar_cf()
+
+      ! v peverwhee - remove when patch output is set up
+      num_patches = 1
+      ! ^ peverwhee - remove when patch output is set up
+
+      ! Log what we're doing
+      if (masterproc) then
+         write(iulog,*) 'Opening history restart file to write, ', &
+                 trim(this%restart_file_name)
+      end if
+
+      amode = PIO_CLOBBER
+
+      ! Create the restart history file
+      call cam_pio_createfile(this%restart_file, this%restart_file_name, amode)
+
+      ! Deallocate file varids from history files (we don't need those anymore)
+      if (allocated(this%file_varids)) then
+         deallocate(this%file_varids)
+      end if
+
+      ! Set up data structures for dimension handling
+      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, varid_set)
+
+      ! Begin header definition
+      !-- Define the file dimensions
+      call this%define_dimensions(this%restart_file, restart, timdim, bnddim, chardim, mdimids)
+      !-- Define the header information
+      call this%define_header_info(this%restart_file, timdim, bnddim, chardim, nbsec, nbdate, &
+              calendar, logname, host, model_doi_url)
+      call this%define_instantaneous_header_info(this%restart_file, timdim)
+      call this%define_additional_header_info(this%restart_file, bnddim, timdim, chardim, &
+              nbsec, nbdate, calendar)
+      ! End header definition
+
+      ! Create variables and attributes for field list
+      allocate(fdims(size(this%field_list)))
+      call this%define_fields(this%restart_file, 1, split_file, restart, mdimids, &
+                dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims)
+      
+      ! Define additional restart fields
+      call this%define_restart_fields(num_patches, dimindex, num_hdims, fdims)
+
+      deallocate(mdimids)
+      ierr = pio_enddef(this%restart_file)
+      if (ierr /= PIO_NOERR) then
+         call endrun('config_define_restart_file: ERROR exiting define mode in PIO', file=__FILE__, line=__LINE__)
+      end if
+      if(masterproc) then
+         write(iulog,*)'config_define_restart_file: Successfully opened netcdf file '//trim(this%restart_file_name)
+      end if
+
+      ! Write time-invariant header info
+      call this%write_invariant_header(this%restart_file, restart_file_index, ndbase, nsbase, nbdate, nbsec, restart)
+
+      ! Clean up
+      if (allocated(header_info)) then
+         do idx = 1, size(header_info)
+            call header_info(idx)%deallocate()
+         end do
+         deallocate(header_info)
+      end if
+
+   end subroutine config_define_restart_file
+
+   ! ========================================================================
+
+   subroutine config_set_up_dimensions(this, num_patches, restart, header_info, dimindex, varid_set)
+      use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_attr
+      use cam_abortutils,   only: check_allocate
+      use pio,              only: pio_file_is_open
+      ! Dummy arguments
+      class(hist_file_t),                      intent(inout) :: this
+      integer,                                    intent(in) :: num_patches
+      logical,                                    intent(in) :: restart
+      type(cam_grid_header_info_t), allocatable, intent(out) :: header_info(:)
+      integer,                      allocatable, intent(out) :: dimindex(:)
+      logical,                                   intent(out) :: varid_set
+      ! Local variables
+      integer :: ierr
+      integer :: grid_index, field_index, split_file_index
+      integer :: max_hdims, max_mdims
+      character(len=512) :: errmsg
+      character(len=*), parameter :: subname = 'config_set_up_dimensions: '
+
+      allocate(header_info(size(this%grids)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'header_info',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+
+      max_hdims = 0
+      do grid_index = 1, size(this%grids)
+         if (restart) then
+            if (pio_file_is_open(this%restart_file)) then
+               call cam_grid_write_attr(this%restart_file, this%grids(grid_index), &
+                       header_info(grid_index), file_index=restart_file_index)
+            end if
+         else
+            do split_file_index = 1, max_split_files
+               if (pio_file_is_open(this%hist_files(split_file_index))) then
+                  call cam_grid_write_attr(this%hist_files(split_file_index), &
+                     this%grids(grid_index), header_info(grid_index),         &
+                     file_index=split_file_index)
+                  max_hdims = max(max_hdims, header_info(grid_index)%num_hdims())
+               end if
+            end do
+         end if
+      end do
+      ! Determine the maximum number of dimensions
+      max_mdims = 0
+      do field_index = 1, size(this%field_list)
+         max_mdims = max(max_mdims, size(this%field_list(field_index)%dimensions()))
+      end do
+      ! Allocate dimindex to the maximum possible dimensions (plus 1 for time)
+      allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1, &
+              errmsg=errmsg)
+
+      varid_set = .true.
+      ! Allocate the varid array
+      if (.not. allocated(this%file_varids)) then
+         allocate(this%file_varids(size(this%field_list), num_patches), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'this%file_varids',             &
+              file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+         varid_set = .false.
+      end if
+
+   end subroutine config_set_up_dimensions
+
+   ! ========================================================================
+
+   subroutine config_define_dimensions(this, hist_file, restart, timdim, &
+                   bnddim, chardim, mdimids)
+      use cam_pio_utils,       only: cam_pio_def_dim
+      use pio,                 only: pio_unlimited
+      use cam_history_support, only: write_hist_coord_attrs
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      type(file_desc_t),  intent(inout) :: hist_file
+      logical,            intent(in)    :: restart
+      integer,            intent(out)   :: timdim     ! unlimited dimension id
+      integer,            intent(out)   :: bnddim     ! bounds dimension id
+      integer,            intent(out)   :: chardim    ! character dimension id
+      integer, allocatable, intent(out) :: mdimids(:) ! mdim ids
+
+      ! Define the unlimited time dim
+      call cam_pio_def_dim(hist_file, 'time', pio_unlimited, timdim)
+      call cam_pio_def_dim(hist_file, 'nbnd', 2, bnddim, existOK=.true.)
+      call cam_pio_def_dim(hist_file, 'chars', 8, chardim)
+      ! Populate the history coordinate (well, mdims anyway) attributes
+      ! This routine also allocates the mdimids array
+      call write_hist_coord_attrs(hist_file, bnddim, mdimids, restart)
+
+   end subroutine config_define_dimensions
+
+   ! ========================================================================
+
+   subroutine config_define_header_info(this, hist_file, timdim, bnddim, chardim, &
+                   nbsec, nbdate, calendar, logname, host, model_doi_url)
+      use pio,                 only: pio_def_var, pio_double, pio_int, pio_put_att, PIO_GLOBAL
+      use cam_pio_utils,       only: cam_pio_handle_error
+      use string_utils,        only: date2yyyymmdd, sec2hms
+      use cam_history_support, only: max_chars
+      use cam_control_mod,     only: caseid
+      use cam_initfiles,       only: ncdata, bnd_topo
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      type(file_desc_t),  intent(inout) :: hist_file
+      integer,            intent(in)    :: timdim    ! unlimited dimension id
+      integer,            intent(in)    :: bnddim    ! bounds dimension id
+      integer,            intent(in)    :: chardim   ! character dimension id
+      integer,            intent(in)    :: nbsec     ! time of day component of base date [seconds]
+      integer,            intent(in)    :: nbdate    ! base date in yyyymmdd format
+      character(len=*),   intent(in)    :: calendar  ! Calendar type
+      character(len=*),   intent(in)    :: logname
+      character(len=*),   intent(in)    :: host
+      character(len=*),   intent(in)    :: model_doi_url
+      ! Local variables
+      integer :: ierr
+      character(len=max_chars) :: str       ! character temporary
+      character(len=16)        :: time_per_freq
+
+      ! Format frequency
+      write(time_per_freq,999) trim(this%output_freq_type), '_', this%output_freq_mult
+999   format(2a,i0)
+
+      ! Define time variable
+      ierr=pio_def_var (hist_file,'time',pio_double,(/timdim/),this%timeid)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to define "time" variable')
+      ierr=pio_put_att (hist_file, this%timeid, 'long_name', 'time')
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "long_name" attribute to "time" variable')
+      str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
+      ierr=pio_put_att (hist_file, this%timeid, 'units', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "units" attribtue to "time" variable')
+      ierr=pio_put_att (hist_file, this%timeid, 'calendar', trim(calendar))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "calendar" attribute to "time" variable')
+
+      ! Define date variable
+      ierr=pio_def_var (hist_file,'date    ',pio_int,(/timdim/),this%dateid)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to define "date" variable')
+      str = 'current date (YYYYMMDD)'
+      ierr=pio_put_att (hist_file, this%dateid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "long_name" attribute to "date" variable')
+
+      ! Define datesec variable
+      ierr=pio_def_var (hist_file,'datesec ',pio_int,(/timdim/), this%datesecid)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to define "datesec" variable')
+      str = 'current seconds of current date'
+      ierr=pio_put_att (hist_file, this%datesecid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "long_name" attribute to "datesec" variable')
+      !
+      ! Character header information
+      !
+      str = 'CF-1.0'
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'Conventions', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "Conventions" attribtue to file')
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'source', 'CAM-SIMA')
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "source" attribute to file')
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'case', caseid)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "case" attribute to file')
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'logname',trim(logname))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "logname" attribute to file')
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'host', trim(host))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "host" attribute to file')
+
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'initial_file', ncdata)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "initial_file" attribute to file')
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'topography_file', bnd_topo)
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "topography_file" attribute to file')
+      if (len_trim(model_doi_url) > 0) then
+         ierr=pio_put_att (hist_file, PIO_GLOBAL, 'model_doi_url', model_doi_url)
+         call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "model_doi_url" attribute to file')
+      end if
+      ierr=pio_put_att (hist_file, PIO_GLOBAL, 'time_period_freq', trim(time_per_freq))
+      call cam_pio_handle_error(ierr, 'config_define_header_info: failed to add "time_period_freq" attribute to file')
+   end subroutine config_define_header_info
+
+   ! ========================================================================
+
+   subroutine config_define_instantaneous_header_info(this, hist_file, timdim)
+      use pio,                 only: pio_def_var, pio_int, pio_put_att
+      use cam_pio_utils,       only: cam_pio_handle_error
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      type(file_desc_t),  intent(inout) :: hist_file
+      integer,            intent(in)    :: timdim    ! unlimited dimension id
+      ! Local variables
+      integer :: ierr
+      character(len=max_chars) :: str ! Temporary string
+
+      ierr=pio_def_var (hist_file,'ndcur   ',pio_int,(/timdim/),this%ndcurid)
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to define "ndcur" variable')
+      str = 'current day (from base day)'
+      ierr=pio_put_att (hist_file, this%ndcurid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to add "long_name" attribute to "ndcur" variable')
+
+      ierr=pio_def_var (hist_file,'nscur   ',pio_int,(/timdim/),this%nscurid)
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to define "nscur" variable')
+      str = 'current seconds of current day'
+      ierr=pio_put_att (hist_file, this%nscurid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to add "long_name" attribute to "nscur" variable')
+      ierr=pio_def_var (hist_file,'nsteph',pio_int,(/timdim/),this%nstephid)
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to define "nsteph" variable')
+      str = 'current timestep'
+      ierr=pio_put_att (hist_file, this%nstephid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_instantaneous_header_info: failed to add "long_name" attribute to "nsteph" variable')
+
+   end subroutine config_define_instantaneous_header_info
+
+   ! ========================================================================
+
+   subroutine config_define_additional_header_info(this, hist_file, bnddim, timdim, chardim, &
+                    nbsec, nbdate, calendar)
+      use pio,                 only: pio_def_var, pio_double, pio_put_att, pio_char, pio_int
+      use cam_pio_utils,       only: cam_pio_handle_error
+      use string_utils,        only: date2yyyymmdd, sec2hms
+      use cam_history_support, only: max_chars
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+      type(file_desc_t),  intent(inout) :: hist_file
+      integer,            intent(in)    :: timdim    ! unlimited dimension id
+      integer,            intent(in)    :: bnddim    ! bounds dimension id
+      integer,            intent(in)    :: chardim   ! character dimension id
+      integer,            intent(in)    :: nbsec     ! time of day component of base date [seconds]
+      integer,            intent(in)    :: nbdate    ! base date in yyyymmdd format
+      character(len=*),   intent(in)    :: calendar  ! Calendar type
+      ! Local variables
+      integer :: dimenchar(2), ierr
+      character(len=max_chars) :: str       ! character temporary
+
+      dimenchar(1) = chardim
+      dimenchar(2) = timdim
+      ! Define time_bounds variable
+      ierr=pio_put_att (hist_file, this%timeid, 'bounds', 'time_bounds')
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "bounds" attribute to file')
+      ierr=pio_def_var (hist_file,'time_bounds',pio_double,(/bnddim,timdim/),this%tbndid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "time_bounds" variable')
+      ierr=pio_put_att (hist_file, this%tbndid, 'long_name', 'time interval endpoints')
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "time_bounds" variable')
+      str = 'days since ' // date2yyyymmdd(nbdate) // ' ' // sec2hms(nbsec)
+      ierr=pio_put_att (hist_file, this%tbndid, 'units', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "units" attribute to "time_bounds" variable')
+      ierr=pio_put_att (hist_file, this%tbndid, 'calendar', trim(calendar))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "calendar" attribute to "time_bounds" variable')
+
+      !
+      ! Character
+      !
+      ierr=pio_def_var (hist_file,'date_written',pio_char,dimenchar,this%date_writtenid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "date_written" variable')
+      ierr=pio_def_var (hist_file,'time_written',pio_char,dimenchar,this%time_writtenid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "time_written" variable')
+      !
+      ! Integer header
+      !
+      ! Define base day variables
+      ierr=pio_def_var (hist_file,'ndbase',PIO_INT,this%ndbaseid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "ndbase" variable')
+      str = 'base day'
+      ierr=pio_put_att (hist_file, this%ndbaseid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "ndbase" variable')
+
+      ierr=pio_def_var (hist_file,'nsbase',PIO_INT,this%nsbaseid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nsbase" variable')
+      str = 'seconds of base day'
+      ierr=pio_put_att (hist_file, this%nsbaseid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "nsbase" variable')
+
+      ierr=pio_def_var (hist_file,'nbdate',PIO_INT,this%nbdateid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nbdate" variable')
+      str = 'base date (YYYYMMDD)'
+      ierr=pio_put_att (hist_file, this%nbdateid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribtue to "nbdate" variable')
+
+      ierr=pio_def_var (hist_file,'nbsec',PIO_INT,this%nbsecid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nbsec" variable')
+      str = 'seconds of base date'
+      ierr=pio_put_att (hist_file, this%nbsecid, 'long_name', trim(str))
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "nbsec" variable')
+
+      ierr=pio_def_var (hist_file,'mdt',PIO_INT,this%mdtid)
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "mdt" variable')
+      ierr=pio_put_att (hist_file, this%mdtid, 'long_name', 'timestep')
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "mdt" variable')
+      ierr=pio_put_att (hist_file, this%mdtid, 'units', 's')
+      call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "units" attribute to "mdt" variable')
+
+   end subroutine config_define_additional_header_info
+
+   ! ========================================================================
+
+   subroutine config_define_fields(this, hist_file, file_index, split_file, restart, mdimids, &
+                   dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims)
+      use string_utils,        only: stringify
+      use pio,                 only: pio_def_var, pio_double, pio_real, pio_int, pio_put_att
+      use cam_pio_utils,       only: cam_pio_handle_error, cam_pio_def_var
+      use cam_history_support, only: max_chars
+      use cam_abortutils,      only: endrun
+      use cam_grid_support,    only: cam_grid_header_info_t
+      use shr_kind_mod,        only: r4 => shr_kind_r4
+      ! Dummy arguments
+      class(hist_file_t),           intent(inout) :: this
+      type(file_desc_t),            intent(inout) :: hist_file
+      integer,                      intent(in)    :: file_index
+      logical,                      intent(in)    :: split_file
+      logical,                      intent(in)    :: restart
+      integer,                      intent(in)    :: mdimids(:)
+      integer,                      intent(inout) :: dimindex(:)
+      integer,                      intent(in)    :: timdim
+      integer,                      intent(in)    :: num_patches
+      logical,                      intent(in)    :: varid_set
+      type(cam_grid_header_info_t), allocatable, intent(in) :: header_info(:)
+      integer,                      intent(out)   :: num_hdims
+      integer,                      intent(out)   :: fdims(:)
+
+      ! Local variables
+      type(var_desc_t) :: varid
+      integer :: dimenchar(2)
+      integer :: ierr
+      integer :: field_index, idx, jdx
+      integer :: ncreal
+      integer :: grd
+      integer :: mdimsize
+      integer, allocatable :: mdims(:)
+      integer,   parameter :: max_netcdf_len = 256
+      integer              :: nacsdims(2)   ! dimension ids for nacs (used in restart file)
+      character(len=max_chars) :: str       ! character temporary
+      character(len=512)       :: errmsg
+      character(len=max_chars) :: fname_tmp ! local copy of field name
+      character(len=max_chars) :: cell_methods
+
+      do field_index = 1, size(this%field_list)
+         if (split_file) then
+            if (file_index == accumulated_file_index) then
+               ! this is the accumulated file of a potentially split
+               ! history tape - skip instantaneous fields
+               if (this%field_list(field_index)%accumulate_type() == 'lst') then
+                  cycle
+               end if
+            else
+               ! this is the instantaneous file of a potentially split
+               ! history tape - skip accumulated fields
+               if (this%field_list(field_index)%accumulate_type() /= 'lst') then
+                  cycle
+               end if
+            end if
+         end if
+
+         ! Don't write instantaneous fields to the restart history file
+         if (restart .and. this%field_list(field_index)%accumulate_type() == 'lst') then
+            cycle
+         end if
+
+         if (this%precision() == 'REAL32') then
+            ncreal = pio_real
+         else if (this%precision() == 'REAL64') then
+            ncreal = pio_double
+         end if
+         mdims = this%field_list(field_index)%dimensions()
+         mdimsize = size(mdims)
+         fname_tmp = strip_suffix(this%field_list(field_index)%diag_name())
+         ! Ensure that fname_tmp is not longer than the maximum length for a
+         !  netcdf file
+         if (len_trim(fname_tmp) > max_netcdf_len) then
+            ! Endrun if the name is too long
+            write(errmsg, *) 'config_define_fields: variable name ', trim(fname_tmp), &
+               ' too long for NetCDF file (len=', stringify((/len(trim(fname_tmp))/)), ' > ', &
+               stringify((/max_netcdf_len/)), ')'
+            call endrun(errmsg, file=__FILE__, line=__LINE__)
+         end if
+         !
+         !  Create variables and atributes for fields written out as columns
+         !
+         !  Find appropriate grid in header_info
+         if (.not. allocated(header_info)) then
+            ! Safety check
+            call endrun('config_define_fields: header_info not allocated', file=__FILE__, line=__LINE__)
+         end if
+         grd = -1
+         do idx = 1, size(header_info)
+           if (header_info(idx)%get_gridid() == this%field_list(field_index)%decomp()) then
+              grd = idx
+              exit
+           end if
+         end do
+         if (grd < 0) then
+            write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
+               trim(fname_tmp)
+            call endrun('config_define_fields: '//errmsg, file=__FILE__, line=__LINE__)
+         end if
+         num_hdims = header_info(grd)%num_hdims()
+         do idx = 1, num_hdims
+            dimindex(idx) = header_info(grd)%get_hdimid(idx)
+            if (restart) then
+                nacsdims(idx) = header_info(grd)%get_hdimid(idx)
+            end if
+         end do
+         do idx = 1, num_patches
+            varid = this%file_varids(field_index, idx)
+            ! Figure the dimension ID array for this field
+            ! We have defined the horizontal grid dimensions in dimindex
+            fdims(field_index) = num_hdims
+            do jdx = 1, mdimsize
+               fdims(field_index) = fdims(field_index) + 1
+               dimindex(fdims(field_index)) = mdimids(mdims(jdx))
+            end do
+            if(.not. restart) then
+               ! Only add time dimension if this is not a restart history tape
+               fdims(field_index) = fdims(field_index) + 1
+               dimindex(fdims(field_index)) = timdim
+            end if
+            ! peverwhee - TODO: enable patch output
+            ! Define the variable
+            call cam_pio_def_var(hist_file, trim(fname_tmp), ncreal,           &
+                 dimindex(1:fdims(field_index)), varid)
+            if (.not. varid_set) then
+               this%file_varids(field_index, idx) = varid
+            end if
+
+            if (mdimsize > 0) then
+               ierr = pio_put_att(hist_file, varid, 'mdims', mdims(1:mdimsize))
+               call cam_pio_handle_error(ierr, 'config_define_fields: cannot define mdims for '//trim(fname_tmp))
+            end if
+            str = this%field_list(field_index)%sampling_sequence()
+            if (len_trim(str) > 0) then
+               ierr = pio_put_att(hist_file, varid, 'Sampling_Sequence', trim(str))
+               call cam_pio_handle_error(ierr, 'config_define_fields: cannot define Sampling_Sequence for '//trim(fname_tmp))
+            end if
+            if (this%field_list(field_index)%flag_xyfill()) then
+               ! Write _FillValue and missing_value attributes so that
+               ! netCDF-aware tools (ncview, ncdump, etc.) recognise fill
+               ! values.  The attribute type must match the variable type.
+               if (ncreal == pio_double) then
+                  ierr = pio_put_att(hist_file, varid, '_FillValue', this%field_list(field_index)%fill_value())
+                  call cam_pio_handle_error(ierr, 'config_define_fields: cannot define _FillValue for '//trim(fname_tmp))
+                  ierr = pio_put_att(hist_file, varid, 'missing_value', this%field_list(field_index)%fill_value())
+                  call cam_pio_handle_error(ierr, 'config_define_fields: cannot define missing_value for '//trim(fname_tmp))
+               else
+                  ierr = pio_put_att(hist_file, varid, '_FillValue', real(this%field_list(field_index)%fill_value(), r4))
+                  call cam_pio_handle_error(ierr, 'config_define_fields: cannot define _FillValue for '//trim(fname_tmp))
+                  ierr = pio_put_att(hist_file, varid, 'missing_value', real(this%field_list(field_index)%fill_value(), r4))
+                  call cam_pio_handle_error(ierr, 'config_define_fields: cannot define missing_value for '//trim(fname_tmp))
+               end if
+            end if
+            str = this%field_list(field_index)%units()
+            if (len_trim(str) > 0) then
+               ierr=pio_put_att (hist_file, varid, 'units', trim(str))
+               call cam_pio_handle_error(ierr, 'config_define_fields: cannot define units for '//trim(fname_tmp))
+            end if
+            str = this%field_list(field_index)%mixing_ratio()
+            if (len_trim(str) > 0) then
+               ierr=pio_put_att (hist_file, varid, 'mixing_ratio', trim(str))
+               call cam_pio_handle_error(ierr, 'config_define_fields: cannot define mixing_ratio for '//trim(fname_tmp))
+            end if
+            str = this%field_list(field_index)%long_name()
+            ierr=pio_put_att (hist_file, varid, 'long_name', trim(str))
+            call cam_pio_handle_error(ierr, 'config_define_fields: cannot define long_name for '//trim(fname_tmp))
+            ! Assign field attributes defining valid levels and averaging info
+            cell_methods = ''
+            if (len_trim(this%field_list(field_index)%cell_methods()) > 0) then
+               if (len_trim(cell_methods) > 0) then
+                  cell_methods = trim(cell_methods)//' '//trim(this%field_list(field_index)%cell_methods())
+               else
+                  cell_methods = trim(this%field_list(field_index)%cell_methods())
+               end if
+            end if
+            ! Time cell methods is after field method because time averaging is
+            ! applied later (just before output) than field method which is applied
+            ! before outfld call.
+            call AvgflagToString(this%field_list(field_index)%accumulate_type(), str)
+            cell_methods = adjustl(trim(cell_methods)//' '//'time: '//str)
+            ierr = pio_put_att(hist_file, varid, 'cell_methods', trim(cell_methods))
+            call cam_pio_handle_error(ierr, 'config_define_fields: cannot define cell_methods for '//trim(fname_tmp))
+         end do ! end loop over patches
+         deallocate(mdims)
+      end do ! end loop over fields
+
+   end subroutine config_define_fields
+
+   ! ========================================================================
+
+   subroutine config_define_restart_fields(this, num_patches, dimindex, num_hdims, fdims)
+      use cam_history_support, only: max_chars
+      use cam_pio_utils,       only: cam_pio_def_var
+      use pio,                 only: pio_int, pio_double
+      use cam_abortutils,      only: endrun
+      class(hist_file_t), intent(inout) :: this
+      integer,               intent(in) :: num_patches
+      integer,               intent(in) :: dimindex(:)
+      integer,               intent(in) :: num_hdims
+      integer,               intent(in) :: fdims(:)
+      ! Local variables
+      integer :: ierr, field_index, idx
+      integer :: nstdev, stdev_index
+      character(len=512) :: errmsg
+      character(len=max_chars) :: str
+      type(var_desc_t) :: varid
+
+      ! Determine how many standard deviation fields we have
+      nstdev = 0
+      stdev_index = 1
+      do field_index = 1, size(this%field_list)
+         if (this%field_list(field_index)%accumulate_type() == 'var') then
+            nstdev = nstdev + 1
+         end if
+      end do
+
+      if (.not. allocated(this%nacs_varids)) then
+         allocate(this%nacs_varids(size(this%field_list), num_patches), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_define_restart_fields: failed to allocate this%nacs_varids; errmsg = '//trim(errmsg))
+         end if
+         allocate(this%varbuff_varids(nstdev, num_patches), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_define_restart_fields: failed to allocate this%varbuff_varids; errmsg = '//trim(errmsg))
+         end if
+      end if
+      do field_index = 1, size(this%field_list)
+         do idx = 1, num_patches
+            if (this%field_list(field_index)%accumulate_type() == 'lst') then
+               cycle
+            end if
+            ! Define "number of samples" variable per field
+            str = trim(this%field_list(field_index)%diag_name()) // '_nacs'
+            call cam_pio_def_var(this%restart_file, trim(str), pio_int,      &
+                     dimindex(1:num_hdims), varid)
+            this%nacs_varids(field_index, idx) = varid
+            ! Define standard deviation buffer variable where relevant
+            if (this%field_list(field_index)%accumulate_type() == 'var') then
+               str = trim(this%field_list(field_index)%diag_name()) // '_var_buffer'
+               call cam_pio_def_var(this%restart_file, trim(str), pio_double, &
+                     dimindex(1:fdims(field_index)), varid)
+               this%varbuff_varids(stdev_index, idx) = varid
+               stdev_index = stdev_index + 1
+            end if
+         end do
+      end do
+
+   end subroutine config_define_restart_fields
+
+   ! ========================================================================
+
+   subroutine config_write_invariant_header(this, hist_file, file_index, ndbase, &
+                    nsbase, nbdate, nbsec, restart)
+      use pio,                 only: pio_put_var
+      use cam_pio_utils,       only: cam_pio_handle_error
+      use cam_grid_support,    only: cam_grid_write_var
+      use time_manager,        only: get_step_size
+      use cam_history_support, only: write_hist_coord_vars
+      ! Dummy arguments
+      class(hist_file_t),           intent(inout) :: this
+      type(file_desc_t),            intent(inout) :: hist_file
+      integer,                      intent(in)    :: file_index
+      integer,                      intent(in)    :: ndbase
+      integer,                      intent(in)    :: nsbase
+      integer,                      intent(in)    :: nbdate
+      integer,                      intent(in)    :: nbsec
+      logical,                      intent(in)    :: restart
+      ! Local variables
+      integer :: idx, ierr
+      integer :: dtime
+
+      dtime = get_step_size()
+
+      do idx = 1, size(this%grids)
+         call cam_grid_write_var(hist_file, this%grids(idx), &
+            file_index=file_index)
+      end do
+      ierr = pio_put_var(hist_file, this%mdtid, (/dtime/))
+      call cam_pio_handle_error(ierr, 'config_write_invariant_header: cannot put mdt')
+
+      !
+      ! Model date info
+      !
+      ierr = pio_put_var(hist_file, this%ndbaseid, (/ndbase/))
+      call cam_pio_handle_error(ierr, 'config_write_invariant_header: cannot put ndbase')
+      ierr = pio_put_var(hist_file, this%nsbaseid, (/nsbase/))
+      call cam_pio_handle_error(ierr, 'config_write_invariant_header: cannot put nsbase')
+
+      ierr = pio_put_var(hist_file, this%nbdateid, (/nbdate/))
+      call cam_pio_handle_error(ierr, 'config_write_invariant_header: cannot put nbdate')
+      ierr = pio_put_var(hist_file, this%nbsecid, (/nbsec/))
+      call cam_pio_handle_error(ierr, 'config_write_invariant_header: cannot put nbsec')
+
+      ! Write the mdim variable data
+      call write_hist_coord_vars(hist_file, restart)
+
+   end subroutine config_write_invariant_header
+
+   ! ========================================================================
+
+   subroutine config_write_restart_file(this)
       use pio,           only: pio_put_var, pio_file_is_open
       use time_manager,  only: get_nstep, get_curr_date, get_curr_time
       use time_manager,  only: set_date_from_time_float, get_step_size
@@ -1651,7 +2042,100 @@ CONTAINS
       use cam_pio_utils, only: cam_pio_handle_error
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
-      logical,            intent(in)    :: restart
+      ! Local variables
+      integer :: ierr
+      integer :: field_index, var_buffer_idx
+      integer :: yr, mon, day    ! year, month, and day components of a date
+      integer :: nstep
+      integer :: ncdate
+      integer :: ncsec
+      integer :: ndcur
+      integer :: nscur
+      integer :: start, count1
+      integer :: startc(2)         ! start values required by nf_put_vara (character)
+      integer :: countc(2)         ! count values required by nf_put_vara (character)
+      real(r8) :: time             ! current (or midpoint) time
+      real(r8) :: time_interval(2) ! time interval boundaries
+      logical :: accumulate        ! flag for write_field to indicate whether to do accumulation or not
+      logical :: write_var_buffer
+      character(len=8) :: cdate    ! system date
+      character(len=8) :: ctime    ! system time
+
+      accumulate = .false.
+      nstep = get_nstep()
+      call get_curr_date(yr, mon, day, ncsec)
+      ncdate = yr*10000 + mon*100 + day
+      call get_curr_time(ndcur, nscur)
+      time = ndcur + nscur/86400._r8
+      time_interval(1) = this%beg_time
+      time_interval(2) = time
+
+      start = 1
+      count1 = 1
+      startc(1) = 1
+      startc(2) = start
+      countc(2) = 1
+
+      call datetime (cdate, ctime)
+     
+      ierr = pio_put_var (this%restart_file,this%ndcurid,(/start/),(/count1/),(/ndcur/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ndcur" variable')
+      ierr = pio_put_var (this%restart_file,this%nscurid,(/start/),(/count1/),(/nscur/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "nscur" variable')
+      ierr = pio_put_var (this%restart_file,this%nstephid,(/start/),(/count1/),(/nstep/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "nstephid" variable')
+
+      ierr = pio_put_var (this%restart_file,this%dateid,(/start/),(/count1/),(/ncdate/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncdate" variable')
+      ierr = pio_put_var (this%restart_file,this%datesecid,(/start/),(/count1/),(/ncsec/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncsec" variable')
+      countc(1) = 2
+
+      ierr=pio_put_var (this%restart_file, this%timeid, (/start/),(/count1/),(/time/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write instantaneous "time" variable')
+      ierr=pio_put_var (this%restart_file, this%tbndid, startc, countc, time_interval)
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "time_bounds" variable')
+      countc(1) = 8
+      ierr = pio_put_var (this%restart_file, this%date_writtenid, startc, countc, (/cdate/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "cdate" variable')
+      ierr = pio_put_var (this%restart_file, this%time_writtenid, startc, countc, (/ctime/))
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ctime" variable')
+
+      var_buffer_idx = 0
+
+      do field_index = 1, size(this%field_list)
+         if (this%field_list(field_index)%accumulate_type() == 'lst') then
+            cycle
+         end if
+         call this%write_field(this%restart_file, this%field_list(field_index), start, field_index, &
+            this%precision(), accumulate)
+         if (this%field_list(field_index)%accumulate_type() == 'var') then
+            write_var_buffer = .true.
+            var_buffer_idx = var_buffer_idx + 1
+         else
+            write_var_buffer = .false.
+         end if
+         call this%write_restart_fields(this%restart_file, this%field_list(field_index), field_index, write_var_buffer, &
+            var_buffer_idx)
+         ! Clear the buffers
+         call this%field_list(field_index)%clear_buffers()
+      end do
+
+   end subroutine config_write_restart_file
+
+   ! ========================================================================
+
+   subroutine config_write_time_dependent_variables(this)
+      use pio,           only: pio_put_var, pio_file_is_open
+      use time_manager,  only: get_nstep, get_curr_date, get_curr_time
+      use time_manager,  only: set_date_from_time_float, get_step_size
+      use datetime_mod,  only: datetime
+      use spmd_utils,    only: masterproc
+      use cam_logfile,   only: iulog
+      use perf_mod,      only: t_startf, t_stopf
+      use cam_pio_utils, only: cam_pio_handle_error
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
 
       ! Local variables
       integer :: yr, mon, day      ! year, month, and day components of a date
@@ -1668,10 +2152,12 @@ CONTAINS
       integer :: start, count1
       integer :: startc(2)          ! start values required by nf_put_vara (character)
       integer :: countc(2)          ! count values required by nf_put_vara (character)
+      logical :: accumulate         ! flag for write_field to indicate whether to do accumulation or not
       logical :: is_initfile, is_satfile
       character(len=8) :: cdate  ! system date
       character(len=8) :: ctime  ! system time
 
+      accumulate = .true.
       nstep = get_nstep()
       call get_curr_date(yr, mon, day, ncsec(instantaneous_file_index))
       ncdate(instantaneous_file_index) = yr*10000 + mon*100 + day
@@ -1696,7 +2182,7 @@ CONTAINS
       startc(2) = start
       countc(2) = 1
 
-      if(.not.restart) this%beg_time = time  ! update beginning time of next interval
+      this%beg_time = time  ! update beginning time of next interval
       call datetime (cdate, ctime)
 
       ! peverwhee - TODO handle composed fields
@@ -1728,7 +2214,7 @@ CONTAINS
          ierr = pio_put_var (this%hist_files(split_file_index),this%datesecid,(/start/),(/count1/),(/ncsec(split_file_index)/))
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ncsec" variable')
          countc(1) = 2
-         if (split_file_index == accumulated_file_index .and. .not. restart .and. .not. is_initfile) then
+         if (split_file_index == accumulated_file_index .and. .not. is_initfile) then
             ! accumulated tape - time is midpoint of time_bounds
 
             ierr=pio_put_var (this%hist_files(split_file_index), this%timeid, (/start/),(/count1/), &
@@ -1750,14 +2236,16 @@ CONTAINS
             ! we may have a history split, conditionally skip fields that are
             ! for the other file
             if ((this%field_list(field_idx)%accumulate_type() .eq. 'lst') .and. &
-               split_file_index == accumulated_file_index .and. .not. restart) then
+               split_file_index == accumulated_file_index) then
                cycle
             else if ((this%field_list(field_idx)%accumulate_type() .ne. 'lst') .and. &
-               split_file_index == instantaneous_file_index .and. .not. restart) then
+               split_file_index == instantaneous_file_index) then
                cycle
             end if
-            call this%write_field(this%field_list(field_idx), split_file_index, restart, start, field_idx, &
-               this%precision())
+            call this%write_field(this%hist_files(split_file_index), this%field_list(field_idx), start, field_idx, &
+               this%precision(), accumulate)
+            ! Clear the buffers
+            call this%field_list(field_idx)%clear_buffers()
          end do
       end do
       call t_stopf  ('write_field')
@@ -1766,10 +2254,11 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_write_field(this, field, split_file_index, restart, &
-      sample_index, field_index, field_precision)
+   subroutine config_write_field(this, hist_file, field, sample_index, field_index, field_precision, &
+                   accumulate)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
       use hist_api,            only: hist_field_norm_value
+      use hist_api,            only: hist_field_value
       use cam_grid_support,    only: cam_grid_write_dist_array
       use cam_abortutils,      only: check_allocate, endrun
       use hist_field,          only: hist_field_info_t
@@ -1778,12 +2267,12 @@ CONTAINS
       use cam_logfile,         only: iulog
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
+      type(file_desc_t),       intent(inout) :: hist_file
       type(hist_field_info_t), intent(inout) :: field
-      integer,                 intent(in)    :: split_file_index
-      logical,                 intent(in)    :: restart
       integer,                 intent(in)    :: sample_index
       integer,                 intent(in)    :: field_index
       character(len=*),        intent(in)    :: field_precision
+      logical,                 intent(in)    :: accumulate
 
       ! Local variables
       integer, allocatable           :: field_shape(:) ! Field file dim sizes
@@ -1829,42 +2318,130 @@ CONTAINS
 
       do patch_idx = 1, num_patches
          varid = this%file_varids(field_index, patch_idx)
-         call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
+         call pio_setframe(hist_file, varid, int(sample_index,kind=PIO_OFFSET_KIND))
          if (frank == 1) then
-            call hist_field_norm_value(field, field_data(:,1), logger=errors)
+            if (accumulate) then
+               call hist_field_norm_value(field, field_data(:,1), logger=errors)
+            else
+               call hist_field_value(field, field_data(:,1), logger=errors)
+            end if
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
                write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
                call endrun(errmsg)
             end if
             if (trim(field_precision) == 'REAL32') then
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, (/dim_sizes(1)/), &
                     field_shape, real(field_data(:,1), r4), varid)
             else
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data(:,1), varid)
             end if
          else
-            call hist_field_norm_value(field, field_data, logger=errors)
+            if (accumulate) then
+               call hist_field_norm_value(field, field_data, logger=errors)
+            else
+               call hist_field_value(field, field_data, logger=errors)
+            end if
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
                write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
                call endrun(errmsg)
             end if
             if (trim(field_precision) == 'REAL32') then
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
                     field_shape, real(field_data, r4), varid)
             else
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data, varid)
             end if
          end if
       end do
 
-      ! Clear the buffers after writing
-      call field%clear_buffers(logger=errors)
-
    end subroutine config_write_field
+
+   ! ========================================================================
+
+   subroutine config_write_restart_fields(this, hist_file, field, field_index, write_var_buffer, &
+                   var_buff_idx)
+      use hist_field,       only: hist_field_info_t
+      use hist_api,         only: hist_field_samples
+      use hist_api,         only: hist_field_var_buffer
+      use cam_abortutils,   only: check_allocate
+      use pio,              only: var_desc_t
+      use cam_grid_support, only: cam_grid_write_dist_array
+      ! Dummy arguments
+      class(hist_file_t),      intent(inout) :: this
+      type(file_desc_t),       intent(inout) :: hist_file
+      type(hist_field_info_t), intent(inout) :: field
+      integer,                 intent(in)    :: field_index
+      integer,                 intent(in)    :: var_buff_idx
+      logical,                 intent(in)    :: write_var_buffer
+      ! Local variables
+      integer, allocatable :: num_samples(:)
+      integer, allocatable :: beg_dims(:)
+      integer, allocatable :: end_dims(:)
+      integer, allocatable :: dimind(:)
+      integer, allocatable :: dim_sizes(:)
+      integer, allocatable :: field_shape(:)
+      real(r8), allocatable :: var_buffer(:,:)
+      type(var_desc_t)     :: varid
+      integer              :: idx, patch_index
+      integer              :: field_decomp
+      integer              :: num_patches, ierr, rank
+      character(len=512)   :: errmsg
+      character(len=*), parameter :: subname = 'config_write_restart_fields: '
+
+      beg_dims = field%beg_dims()
+      end_dims = field%end_dims()
+      field_shape = field%shape()
+      rank = size(field_shape)
+
+      allocate(num_samples(end_dims(1) - beg_dims(1) + 1), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'num_samples', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+
+      if (rank == 1) then
+         allocate(var_buffer(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'var_buffer', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+      else
+         allocate(var_buffer(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'var_buffer', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+      end if
+
+      ! Shape of array
+      dimind = field%dimensions()
+
+      allocate(dim_sizes(size(beg_dims)), stat=ierr)
+      call check_allocate(ierr, subname, 'dim_sizes', file=__FILE__, line=__LINE__-1)
+      do idx = 1, size(beg_dims)
+         dim_sizes(idx) = end_dims(idx) - beg_dims(idx) + 1
+      end do
+
+      field_decomp = field%decomp()
+
+      num_patches = 1
+
+      do patch_index = 1, num_patches
+         varid = this%nacs_varids(field_index, patch_index)
+         call hist_field_samples(field, num_samples)
+         call cam_grid_write_dist_array(hist_file, field_decomp, (/dim_sizes(1)/), &
+                    (/field_shape(1)/), num_samples, varid)
+         if (write_var_buffer) then
+            varid = this%varbuff_varids(var_buff_idx, patch_index)
+            if (rank == 1) then
+               call hist_field_var_buffer(field, var_buffer(:,1))
+               call cam_grid_write_dist_array(hist_file, field_decomp, (/dim_sizes(1)/), &
+                       (/field_shape(1)/), var_buffer(:,1), varid)
+            else
+               call hist_field_var_buffer(field, var_buffer)
+               call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:rank), &
+                       field_shape, var_buffer, varid)
+            end if
+         end if
+      end do
+
+      
+   end subroutine config_write_restart_fields
 
    ! ========================================================================
 
@@ -1879,16 +2456,16 @@ CONTAINS
       ! Local variables
       integer :: split_file_index
 
-      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
-                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
-         deallocate(this%file_varids)
-      end if
+!      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
+!                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
+!         deallocate(this%file_varids)
+!      end if
 
       do split_file_index = 1, max_split_files
          if (pio_file_is_open(this%hist_files(split_file_index))) then
             if (masterproc) then
                write(iulog,*)'config_close_files: nf_close(', trim(this%volume),')=',&
-                  this%file_names(split_file_index)
+                  trim(this%file_names(split_file_index))
             end if
             call cam_pio_closefile(this%hist_files(split_file_index))
          end if
@@ -1900,6 +2477,26 @@ CONTAINS
       this%files_open = .false.
 
    end subroutine config_close_files
+
+   ! ========================================================================
+
+   subroutine config_close_restart_file(this)
+      use cam_pio_utils, only: cam_pio_closefile
+      use pio,           only: pio_file_is_open
+      use spmd_utils,    only: masterproc
+      use cam_logfile,   only: iulog
+      ! Dummy arguments
+      class(hist_file_t), intent(inout) :: this
+
+      if (pio_file_is_open(this%restart_file)) then
+         if (masterproc) then
+            write(iulog,*) 'config_close_restart_file: nf_close(', trim(this%volume), ')=', &
+                    trim(this%restart_file_name)
+         end if
+         call cam_pio_closefile(this%restart_file)
+      end if
+
+   end subroutine config_close_restart_file
 
    ! ========================================================================
 

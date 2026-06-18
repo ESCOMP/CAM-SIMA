@@ -31,7 +31,7 @@ module cam_hist_restart
     !
     !   The size of these parameters should match the assignments in restart_vars_setnames and restart_dims_setnames below
     !
-    integer, parameter :: num_restart_vars = 20
+    integer, parameter :: num_restart_vars = 21
     integer, parameter :: num_restart_dims =  9
     type(restart_variable_t)  :: restart_vars(num_restart_vars)
     type(restart_dimension_t) :: restart_dims(num_restart_dims)
@@ -120,7 +120,9 @@ CONTAINS
       character(len=max_chars) :: long_name(max_num_fields, size(hist_configs))
       character(len=max_chars) :: cell_methods(max_num_fields, size(hist_configs))
       character(len=max_chars) :: units(max_num_fields, size(hist_configs))
+      character(len=max_chars) :: volume(size(hist_configs))
       character(len=max_hcoordname_len) :: dim_names(registeredmdims)
+      character(len=max_string_len) :: restart_file_paths(size(hist_configs))
       real(r8) :: beg_time(size(hist_configs))
       real(r8) :: fill_value(max_num_fields, size(hist_configs))
       logical :: has_accum
@@ -136,6 +138,7 @@ CONTAINS
       fill_flag = 0
       fill_value = 0
       dimensions = 0
+      restart_file_paths = ''
       ! Compile all the necessary info for the restart file from the hist_configs array
       do idx = 1, size(hist_configs)
           ! Grab the field list
@@ -145,7 +148,9 @@ CONTAINS
           ! Determine whether or not there will be an rh file
           if (hist_configs(idx)%has_accumulated_fields() .and. .not. just_written(idx)) then
              has_rh_int(idx) = 1
+             restart_file_paths(idx) = hist_configs(idx)%get_restart_filename()
           end if
+          volume(idx) = hist_configs(idx)%get_volume()
           ! Get the output frequency
           output_freq(idx) = hist_configs(idx)%output_freq()
           ! Get the number of samples written to the hist file
@@ -189,7 +194,9 @@ CONTAINS
       do idx = 1, num_restart_vars
          select case(trim(restart_vars(idx)%var_name))
          case ('has_rh_file')
-            ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, has_rh_int)            
+            ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, has_rh_int)
+         case ('volume')
+            ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, volume)
          case ('output_frequency')
             ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, output_freq)
          case ('field_list')
@@ -226,8 +233,8 @@ CONTAINS
             ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, dimensions)
          case ('dimension_names')
             ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, dim_names)
-         case ('history_restart_path')
-            ! PEVERWHEE Needs accumulated fields to properly implement
+         case ('rh_file_path')
+            ierr = pio_put_var(restart_file, restart_vars(idx)%vdesc, restart_file_paths)
          case default
          end select
          if (ierr /= 0) then
@@ -248,6 +255,13 @@ CONTAINS
 
       rvar_index = rvar_index + 1
       restart_vars(rvar_index)%var_name = 'output_frequency'
+      restart_vars(rvar_index)%var_type = pio_char
+      restart_vars(rvar_index)%number_of_dimensions = 2
+      restart_vars(rvar_index)%dimension_ids(1) = max_chars_dim_ind
+      restart_vars(rvar_index)%dimension_ids(2) = num_configs_dim_ind
+
+      rvar_index = rvar_index + 1
+      restart_vars(rvar_index)%var_name = 'volume'
       restart_vars(rvar_index)%var_type = pio_char
       restart_vars(rvar_index)%number_of_dimensions = 2
       restart_vars(rvar_index)%dimension_ids(1) = max_chars_dim_ind
@@ -382,7 +396,7 @@ CONTAINS
       restart_vars(rvar_index)%dimension_ids(2) = registeredmdims_dim_ind
 
       rvar_index = rvar_index + 1
-      restart_vars(rvar_index)%var_name = 'history_restart_path'
+      restart_vars(rvar_index)%var_name = 'rh_file_path'
       restart_vars(rvar_index)%var_type = pio_char
       restart_vars(rvar_index)%number_of_dimensions = 2
       restart_vars(rvar_index)%dimension_ids(1) = max_string_len_dim_ind

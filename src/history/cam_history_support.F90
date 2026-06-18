@@ -174,8 +174,6 @@ module cam_history_support
      if (ierr /= 0) then
         call endrun('get_hist_coord_names: failed to allocate mdimnames; errmsg = '//trim(errmsg))
      end if
-     write(iulog,*) "peverwhee - num hist coords"
-     write(iulog,*) registeredmdims
      do idx = 1, registeredmdims
         mdimnames(idx) = hist_coords(idx)%name
      end do
