@@ -8,3 +8,8 @@ ncdata_check_err = .true.
 min_difference = 2e-15
 
 do_beljaars = .true.
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:DRAGBLJ,TAUBLJX,TAUBLJY
+hist_precision;h1: REAL64
