@@ -687,8 +687,6 @@ CONTAINS
             cycle
          end if
          ! Field is active on this file - accumulate!
-         write(iulog,*) 'peverwhee - accumulate'
-         write(iulog,*) field_info%diag_name()
          call hist_field_accumulate(field_info, field_values, 1, logger=logger)
          if (masterproc) then
             call logger%output(iulog)
