@@ -179,6 +179,8 @@ CONTAINS
                write_history = .true.
             else
                write_history = .false.
+               ! Zero out the history buffers so nothing gets accumulated from nstep0
+               call hist_configs(file_idx)%clear_buffers()
             end if
          end if
          if (.not. write_history) then
@@ -211,6 +213,10 @@ CONTAINS
             call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
          end if
          call hist_configs(file_idx)%write_time_dependent_variables(restart)
+         if (nstep == 0) then
+             ! Reset samples if nstep0 was written
+             call hist_configs(file_idx)%reset_samples()
+         end if
       end do
 
    end subroutine history_write_files
@@ -376,9 +382,10 @@ CONTAINS
 !===========================================================================
 
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
-      avgflag, units, gridname, flag_xyfill, mixing_ratio)
+      avgflag, units, gridname, flag_xyfill, fill_value, mixing_ratio)
       use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
       use cam_abortutils,      only: endrun, check_allocate
+      use shr_kind_mod,        only: r8 => shr_kind_r8
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list
@@ -399,6 +406,7 @@ CONTAINS
       character(len=*), intent(in) :: units      ! units of fname (max_chars)
       character(len=*), optional, intent(in) :: gridname
       logical,          optional, intent(in) :: flag_xyfill
+      real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
 
       !
@@ -424,14 +432,14 @@ CONTAINS
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
-            gridname=gridname, flag_xyfill=flag_xyfill, mixing_ratio=mixing_ratio)
+            gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio)
     
    end subroutine history_add_field_1d
 
 !===========================================================================
 
    subroutine history_add_field_nd(diagnostic_name, standard_name, dimnames, avgflag, &
-      units, gridname, flag_xyfill, mixing_ratio)
+      units, gridname, flag_xyfill, fill_value, mixing_ratio)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list - generic; called from
@@ -447,7 +455,7 @@ CONTAINS
       use cam_grid_support,    only: cam_grid_dimensions
       use cam_grid_support,    only: cam_grid_id, cam_grid_is_zonal
       use cam_grid_support,    only: cam_grid_get_array_bounds
-      use cam_history_support, only: lookup_hist_coord_indices
+      use cam_history_support, only: lookup_hist_coord_indices, fillvalue
       use cam_history_support, only: hist_coord_find_levels, hist_coords
       use cam_history_support, only: max_fldlen=>max_fieldname_len, max_chars, fieldname_len
       use cam_hist_file,       only: strip_suffix
@@ -455,6 +463,7 @@ CONTAINS
       use cam_abortutils,      only: endrun, check_allocate
       use spmd_utils,          only: masterproc
       use string_utils,        only: stringify
+      use shr_kind_mod,        only: r8 => shr_kind_r8
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name
@@ -463,6 +472,7 @@ CONTAINS
       character(len=*), intent(in) :: units      ! units of fname (max_chars)
       character(len=*), optional, intent(in) :: gridname
       logical,          optional, intent(in) :: flag_xyfill
+      real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
 
       ! Local variables
@@ -482,6 +492,7 @@ CONTAINS
       character(len=max_fldlen)         :: cell_methods
       character(len=3)                  :: mixing_ratio_loc
       character(len=*), parameter       :: subname = 'history_add_field_nd: '
+      real(r8)                          :: fill_value_local
 
       if (size(hist_configs) > 0) then
          if (hist_configs(1)%file_is_setup()) then
@@ -539,6 +550,12 @@ CONTAINS
              call endrun('history_add_field_nd: '//trim(errmsg))
       end if
 
+      if (present(fill_value)) then
+         fill_value_local = fill_value
+      else
+         fill_value_local = fillvalue
+      end if
+
       ! Indicate if some field pre-processing occurred (e.g., zonal mean)
       if (cam_grid_is_zonal(grid_decomp)) then
          call cam_grid_get_coord_names(grid_decomp, coord_name, errmsg)
@@ -593,7 +610,8 @@ CONTAINS
             else
                field_ptr%next => hist_new_field(diagnostic_name, &
                   standard_name, standard_name, units, 'real', grid_decomp, &
-                  mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio_loc, &
+                  mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
+                  mixing_ratio=mixing_ratio_loc, &
                   dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
                   flag_xyfill=flag_xyfill)
                exit
@@ -602,7 +620,8 @@ CONTAINS
       else
          possible_field_list_head => hist_new_field(diagnostic_name, &
             standard_name, standard_name, units, 'real', grid_decomp,   &
-            mdim_indices, avgflag, num_levels, field_shape, mixing_ratio=mixing_ratio_loc, &
+            mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
+            mixing_ratio=mixing_ratio_loc, &
             dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
             flag_xyfill=flag_xyfill)
       end if
@@ -652,6 +671,10 @@ CONTAINS
          call hist_field_accumulate(field_info, field_values, 1, logger=logger)
          if (masterproc) then
             call logger%output(iulog)
+            if (logger%num_errors() > 0) then
+               write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
+               call endrun(errmsg)
+            end if
          end if
             
       end do
@@ -699,6 +722,10 @@ CONTAINS
          call hist_field_accumulate(field_info, field_values, 1, logger=logger)
          if (masterproc) then
             call logger%output(iulog)
+            if (logger%num_errors() > 0) then
+               write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
+               call endrun(errmsg)
+            end if
          end if
       end do
 
@@ -743,6 +770,10 @@ CONTAINS
          !call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
          !if (masterproc) then
          !   call logger%output(iulog)
+         !   if (logger%num_errors() > 0) then
+         !      write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
+         !      call endrun(errmsg)
+         !   end if
          !end if
             
       end do
@@ -812,7 +843,7 @@ CONTAINS
          full = .false.
          num_samples = hist_configs(file_idx)%get_num_samples()
          max_frames = hist_configs(file_idx)%max_frame()
-         if (mod(num_samples, max_frames) == 0 .and. num_samples > 0) then
+         if (nstep == 0 .or. (mod(num_samples, max_frames) == 0 .and. num_samples > 0)) then
             full = .true.
          end if
          if ((full .or. (last_timestep .and. num_samples >= 1)) .and. &
@@ -841,7 +872,6 @@ CONTAINS
                write(iulog,9004)
             end if
          end if
-         call hist_configs(file_idx)%clear_buffers()
       end do
 9003  format('    Output at NSTEP     = ',i10,/, &
              '    Number of time samples on this file = ',i10,/, &

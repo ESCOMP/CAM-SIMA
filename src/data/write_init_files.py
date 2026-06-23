@@ -430,7 +430,14 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
             # Add this variable to the ic_names dictionary
             ic_names[stdname] = [locname]
         # end if
-    # end if
+    # end for
+    # Also check registry constituents for longer IC names
+    for const in registry_constituents:
+        if const in ic_names:
+            max_loclen = max(max_loclen,
+                             max(len(x) for x in ic_names[const]))
+        # end if
+    # end for
     outfile.write(f"integer, public, parameter :: ic_name_len = {max_loclen}",
                   1)
 
