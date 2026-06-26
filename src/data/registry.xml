@@ -2093,14 +2093,6 @@
       <initial_value>273.15_kind_phys</initial_value>
     </variable>
     <!-- Variables for "bl_mynn" physics scheme -->
-    <variable local_name="ozone"
-              standard_name="ozone_mixing_ratio_wrt_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" kind="kind_phys"
-              constituent="true" advected="true">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>mpascp_ozone</ic_file_input_names>
-    </variable>
     <variable local_name="nc"
               standard_name="mass_number_concentration_of_cloud_liquid_water_particles_in_dry_air"
               units="kg-1" type="real" kind="kind_phys"
