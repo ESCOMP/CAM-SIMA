@@ -209,7 +209,7 @@ contains
   ! return aerosol bin size weights for a given bin
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_arr(self, bin_ndx, ncol, nlev, species_type, use_preexisting_ice, wght)
-    use cam_constituents, only: const_get_index
+    use physics_types, only: dgncur_a
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
@@ -222,8 +222,6 @@ contains
     character(len=aero_name_len) :: modetype
     real(r8) :: sigmag_aitken
     integer :: i,k
-    integer :: idx_dgnum
-    character(len=64) :: cname
 
     if (self%list_idx_ /= 0) then
        call endrun('modal_aerosol_state::icenuc_size_wght_arr: only valid for climate list (list_idx=0)')
@@ -243,18 +241,16 @@ contains
           if ( use_preexisting_ice ) then
              wght(:ncol,:) = 1._r8
           else
-             ! The CAM DGNUM pbuf field (i,k,<bin_ndx>) is replaced by dgnum_m<bin_ndx> in SIMA.
-             ! It should be registered by the aerosol model.
-             ! If not found, the model will endrun when calling this subroutine.
+             ! Dry number mode diameter (dgncur_a, the climate-list registry
+             ! field) is computed by the CCPPized modal_aero_calcsize scheme;
+             ! in CAM this is the DGNUM pbuf field.
              call rad_aer_get_mode_props(0, bin_ndx, sigmag=sigmag_aitken)
-             write(cname, '(a,i2.2)') 'dgnum_m', bin_ndx
-             call const_get_index(trim(cname), idx_dgnum)
              do k = 1, nlev
                 do i = 1, ncol
-                   if (self%host_%constituents(i,k,idx_dgnum) > 0._r8) then
+                   if (dgncur_a(i,k,bin_ndx) > 0._r8) then
                       ! only allow so4 with D>0.1 um in ice nucleation
                       wght(i,k) = max(0._r8,(0.5_r8 - 0.5_r8* &
-                           erf(log(0.1e-6_r8 / self%host_%constituents(i,k,idx_dgnum)) / &
+                           erf(log(0.1e-6_r8 / dgncur_a(i,k,bin_ndx)) / &
                            (2._r8**0.5_r8*log(sigmag_aitken)))  ))
                    end if
                 end do
@@ -277,7 +273,7 @@ contains
   ! return aerosol bin size weights for a given bin, column and vertical layer
   !------------------------------------------------------------------------------
   subroutine icenuc_size_wght_val(self, bin_ndx, col_ndx, lyr_ndx, species_type, use_preexisting_ice, wght)
-    use cam_constituents, only: const_get_index
+    use physics_types, only: dgncur_a
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
@@ -289,8 +285,6 @@ contains
 
     character(len=aero_name_len) :: modetype
     real(r8) :: sigmag_aitken
-    integer :: idx_dgnum
-    character(len=64) :: cname
 
     if (self%list_idx_ /= 0) then
        call endrun('modal_aerosol_state::icenuc_size_wght_val: only valid for climate list (list_idx=0)')
@@ -311,13 +305,11 @@ contains
              wght = 1._r8
           else
              call rad_aer_get_mode_props(0, bin_ndx, sigmag=sigmag_aitken)
-             write(cname, '(a,i2.2)') 'dgnum_m', bin_ndx
-             call const_get_index(trim(cname), idx_dgnum)
 
-             if (self%host_%constituents(col_ndx, lyr_ndx, idx_dgnum) > 0._r8) then
+             if (dgncur_a(col_ndx, lyr_ndx, bin_ndx) > 0._r8) then
                 ! only allow so4 with D>0.1 um in ice nucleation
                 wght = max(0._r8,(0.5_r8 - 0.5_r8* &
-                     erf(log(0.1e-6_r8 / self%host_%constituents(col_ndx, lyr_ndx, idx_dgnum)) / &
+                     erf(log(0.1e-6_r8 / dgncur_a(col_ndx, lyr_ndx, bin_ndx)) / &
                      (2._r8**0.5_r8*log(sigmag_aitken)))  ))
              end if
           endif
@@ -460,14 +452,13 @@ contains
   ! diagnostic lists recompute via modal_aero_calcsize/wateruptake.
   !
   ! CAM-SIMA: for the climate list, DGNUMWET and QAERWAT are retrieved from
-  ! non-advected CCPP constituents dgnumwet_m<bin_ndx>, qaerwat_m<bin_ndx).
-  ! These must be registered by the CCPPized modal water uptake scheme.
-  ! const_get_index will endrun if they are not found.
+  ! the registry fields dgncur_awet and qaerwat_aer, written in place by the
+  ! CCPPized modal_aero_wateruptake scheme.
   ! Diagnostic-list recomputation is not yet available (it requires the eventual
   ! CCPPized schemes)
   !------------------------------------------------------------------------------
   subroutine water_uptake(self, aero_props, bin_idx, ncol, nlev, dgnumwet, qaerwat)
-    use cam_constituents, only: const_get_index
+    use physics_types, only: dgncur_awet, qaerwat_aer
 
     class(modal_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props
@@ -477,19 +468,11 @@ contains
     real(r8),intent(out) :: dgnumwet(ncol,nlev) ! aerosol wet diameter (m)
     real(r8),intent(out) :: qaerwat(ncol,nlev)  ! aerosol water concentration (g/g)
 
-    integer :: idx_wet, idx_qaw
-    character(len=64) :: cname
-
     if (self%list_idx_ == 0) then
-       ! Climate list: retrieve pre-computed fields from constituents
-       ! by the modal water uptake CCPPized scheme.
-       write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
-       call const_get_index(trim(cname), idx_wet)
-       dgnumwet(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_wet)
-
-       write(cname, '(a,i2.2)') 'qaerwat_m', bin_idx
-       call const_get_index(trim(cname), idx_qaw)
-       qaerwat(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_qaw)
+       ! Climate list: retrieve pre-computed wet diameter and aerosol water
+       ! (registry fields written by the CCPPized modal_aero_wateruptake scheme).
+       dgnumwet(:ncol,:nlev) = dgncur_awet(:ncol,:nlev,bin_idx)
+       qaerwat (:ncol,:nlev) = qaerwat_aer(:ncol,:nlev,bin_idx)
     else
        ! Diagnostic lists: recomputation requires modal_aero_calcsize and
        ! modal_aero_wateruptake, which are not yet CCPPized.
@@ -582,7 +565,7 @@ contains
   ! aerosol wet diameter for a given mode
   !------------------------------------------------------------------------------
   function wet_diameter(self, bin_idx, ncol, nlev) result(diam)
-    use cam_constituents, only: const_get_index
+    use physics_types, only: dgncur_awet
 
     class(modal_aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_idx   ! bin number
@@ -591,12 +574,7 @@ contains
 
     real(r8) :: diam(ncol,nlev)
 
-    integer :: idx_wet
-    character(len=64) :: cname
-
-    write(cname, '(a,i2.2)') 'dgnumwet_m', bin_idx
-    call const_get_index(trim(cname), idx_wet)
-    diam(:ncol,:nlev) = self%host_%constituents(:ncol,:nlev,idx_wet)
+    diam(:ncol,:nlev) = dgncur_awet(:ncol,:nlev,bin_idx)
 
   end function wet_diameter
 

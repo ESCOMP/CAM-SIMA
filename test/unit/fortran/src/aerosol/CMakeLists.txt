@@ -116,6 +116,7 @@ add_pfunit_ctest(test_insoluble_aerosol_optics
 add_library(modal_aero_testlib
     ${AEROSOL_SRC}/modal_aerosol_properties_mod.F90
     ${AEROSOL_SRC}/modal_aerosol_state_mod.F90
+    mock_physics_types.F90
     modal_test_helpers.F90
 )
 target_link_libraries(modal_aero_testlib PUBLIC bulk_aero_testlib)

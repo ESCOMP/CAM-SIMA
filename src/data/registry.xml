@@ -1550,6 +1550,124 @@
            coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
     </variable>
 
+    <!-- Modal aerosol persistent state -->
+    <variable local_name="nmodes_aero"
+              standard_name="number_of_aerosol_modes"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>number of aerosol modes (set by mam_mode_metadata_init)</long_name>
+      <initial_value>4</initial_value>
+    </variable>
+    <variable local_name="dgncur_a"
+              standard_name="dry_number_mode_diameter_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>dry number mode diameter of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dgncur_awet"
+              standard_name="wet_number_mode_diameter_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>wet number mode diameter of modal aerosol (from previous timestep)</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="hygro_aer"
+              standard_name="volume_weighted_hygroscopicity_of_modal_aerosol"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>volume-weighted hygroscopicity of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dryvol_aer"
+              standard_name="single_particle_dry_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean dry volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dryrad_aer"
+              standard_name="dry_volume_mean_radius_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>dry volume mean radius of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="drymass_aer"
+              standard_name="single_particle_dry_mass_of_modal_aerosol"
+              units="kg" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean dry mass of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="so4dryvol_aer"
+              standard_name="single_particle_sulfate_dry_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean sulfate dry volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="naer_mmr"
+              standard_name="aerosol_number_mixing_ratio_of_modal_aerosol"
+              units="kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>aerosol number mixing ratio per mode</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wetrad_aer"
+              standard_name="wet_radius_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>wet radius of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wetvol_aer"
+              standard_name="single_particle_wet_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean wet volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wtrvol_aer"
+              standard_name="single_particle_water_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean water volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="qaerwat_aer"
+              standard_name="aerosol_water_mixing_ratio_of_modal_aerosol"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>aerosol water mass mixing ratio per mode</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="sulfeq_aer"
+              standard_name="equilibrium_h2so4_mixing_ratio_of_modal_aerosol"
+              units="mol mol-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>H2SO4 equilibrium mixing ratio of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="do_strat_sulfate"
+              standard_name="flag_for_stratospheric_sulfate_treatment"
+              units="flag" type="logical">
+      <long_name>flag for stratospheric sulfate equilibrium treatment in modal aerosol</long_name>
+      <initial_value>.false.</initial_value>
+    </variable>
+
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
