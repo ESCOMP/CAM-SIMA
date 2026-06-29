@@ -111,12 +111,42 @@ pFUnit tests live at `test/unit-test/tests/<path>/test_<module>.pf` mirroring th
 - Defined by `cime_config/testdefs/testlist_cam.xml`
 - Run **only on Derecho or Izumi** (NCAR clusters, human-accessible)
 - Full suite runs dozens of science configurations for a few timesteps / simulated hours and checks for bit-for-bit reproducibility
-- Takes approximately 5 hours
-- **This is not a lightweight tool.** The human contributor runs regression
-  tests after work is substantially complete
+- Takes approximately 5 hours for CAM and an hour for SIMA, so it is not a lightweight tool and should be used sparingly, when work is substantially complete.
 
 If you are running on Derecho/Izumi with the user's permission, regression tests become accessible; otherwise stop at unit tests and hand off.
 
-### Snapshot testing (CCPPization)
+### Snapshot testing and null dycore
 
-When porting physics from CAM to atmospheric_physics, snapshots captured from a CAM run are replayed through a CAM-SIMA null-dycore case to verify bit-for-bit identity of the ported scheme. See `docs/conversion/create-snapshots.md` and `docs/conversion/run-cam-sima.md`.
+Snapshot testing validates that a CCPP-ported physics parameterization in CAM-SIMA produces bit-for-bit identical results to the original CAM implementation. The workflow has two sides: CAM generates snapshot files, and CAM-SIMA consumes them via the null dycore.
+
+#### How it works
+
+1. **CAM generates snapshots.** A CAM run captures the physics state (state variables, constituents, physics buffer fields) into NetCDF files at specific points in the physics timestep. Each parameterization being tested gets a "before" and "after" snapshot - the state immediately before and immediately after the parameterization runs.
+2. **CAM-SIMA reads the "before" snapshot.** A CAM-SIMA case is created with `CAM_CONFIG_OPTS="--dycore none --physics-suites test_sdf_name"`. The null dycore reads `ncdata` (the "before" snapshot) to initialize CAM-SIMA grid and state, matching the snapshot's resolution.
+3. **CAM-SIMA runs the test suite.** A test SDF specifies only the parameterization(s) being validated. CAM-SIMA runs this suite starting from the "before" state.
+4. **CAM-SIMA compares against the "after" snapshot.** The `physics_check_data` routine (in `src/physics/utils/physics_data.F90`) compares the resulting state against the "after" snapshot file specified by `ncdata_check`. Comparison uses absolute differences when values are small and relative differences otherwise, controlled by `min_difference` and `min_relative_value` thresholds.
+5. **State is refreshed every timestep.** The null dycore re-reads state from `ncdata` at each timestep — there is no prognostic integration or continuity of state across timesteps. Each timestep is an independent before→run→compare cycle.
+
+#### Key configuration
+
+| Setting | Where | Purpose |
+|-|-|-|
+| `ncdata` | `user_nl_cam` | Path to the "before" snapshot file |
+| `ncdata_check` | `user_nl_cam` | Path to the "after" snapshot file; **its presence triggers snapshot comparison mode** |
+| `ic_file_input_names` | `src/data/registry.xml` | Maps registry variable standard names to the variable names used in the snapshot NetCDF file (e.g., mapping to `"T"` for temperature). Required for any state variable (including constituents) that needs to be read from the snapshot |
+| `cam_take_snapshot_before` / `cam_take_snapshot_after` | CAM `user_nl_cam` | Name of the parameterization to snapshot (e.g., `"radiation_tend"`, `"convect_deep_tend"`, or `"user_set"` for custom placement) |
+| `cam_snapshot_before_num` / `cam_snapshot_after_num` | CAM `user_nl_cam` | History tape number to write the before/after snapshot data to |
+
+#### Null dycore (dyn/none) is not exclusively for snapshots
+
+The null dycore is designed as a general-purpose physics testbed. Do not assume it is always running snapshot tests. The presence of a non-empty `ncdata_check` is what activates the snapshot comparison pathway (checked by `physics_data_init`: `if (len_trim(ncdata_check) > 0)`). Currently, only CAM generates snapshots. In the future, CAM-SIMA would generate and consume its own snapshot files.
+
+#### Caveats
+
+- **False passes from unapplied tendencies.** The "after" comparison only checks state variables that were *mutated* during the test suite. If tendencies are computed but never applied to state, the variable appears unchanged and is skipped — producing a false PASS. Set `debug_output` to a level `>= DEBUGOUT_INFO (1)` to enable verbose mode, which prints exactly which variables were compared and their average values.
+- **Scalar variables.** Scalar (non-array) variables cannot be read from the snapshot file. They must be initialized directly in the scheme (`intent(out)`) or marked `access="protected"` in the registry.
+- **First timestep is skipped.** CAM does not write snapshot data on the first model timestep (fields may be incomplete). Snapshot comparison in CAM-SIMA also accounts for this.
+
+More details in the CAM-SIMA docs: `docs/conversion/create-snapshots.md` and `docs/conversion/run-cam-sima.md`.
+
+
