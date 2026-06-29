@@ -835,7 +835,7 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
         else:
             #If not, then check cache to see if actual
             #"restart_physics.py" was modified:
-            do_gen_restart = build_cache.init_write_mismatch(gen_restart_file)
+            do_gen_restart = build_cache.restart_write_mismatch(gen_restart_file)
     else:
         #If no directory exists, then one will need
         # to create new routines:

@@ -213,6 +213,7 @@ class BuildCacheCAM:
         # Set empty values sure to trigger processing
         self.__gen_reg_file = None
         self.__gen_init_file = None
+        self.__gen_restart_file = None
         self.__registry_files = {}
         self.__dycore = None
         self.__sdfs = {}
@@ -241,6 +242,9 @@ class BuildCacheCAM:
                         elif item.tag == 'generate_init_file':
                             new_entry = new_entry_from_xml(item)
                             self.__gen_init_file = new_entry
+                        elif item.tag == 'generate_restart_file':
+                            new_entry = new_entry_from_xml(item)
+                            self.__gen_restart_file = new_entry
                         elif item.tag == 'registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
@@ -409,6 +413,9 @@ class BuildCacheCAM:
         new_xml_entry(registry, 'generate_registry_file',
                       self.__gen_reg_file.file_path,
                       self.__gen_reg_file.file_hash)
+        new_xml_entry(registry, 'generate_restart_file',
+                      self.__gen_restart_file.file_path,
+                      self.__gen_restart_file.file_hash)
         for rfile in self.__registry_files.values():
             new_xml_entry(registry, 'registry_file',
                           rfile.file_path, rfile.file_hash)
@@ -621,6 +628,22 @@ class BuildCacheCAM:
         mismatch = self.__gen_init_file.hash_mismatch(gen_init_file)
 
         #Return mismatch logical:
+        return mismatch
+
+    def restart_write_mismatch(self, gen_restart_file):
+        """
+        Determine if the restart_files writer (write_restart_files.py)
+            differs from the data stored in our cache. Return True
+            if the data differs.
+        """
+
+        # Initialize variable
+        mismatch = False
+
+        # Check file hash to see if mis-match exists:
+        mismatch = self.__gen_restart_file.hash_mismatch(gen_restart_file)
+
+        # Return mismatch logical:
         return mismatch
 
     def scheme_nl_metadata(self):
