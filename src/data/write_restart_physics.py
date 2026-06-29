@@ -337,6 +337,12 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     outfile.write("integer                          :: constituent_idx", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
 
+    # Just exit if we don't have any variables!
+    if len(required_vars) == 0 and len(constituent_dimmed_vars) == 0:
+        outfile.write("end subroutine restart_physics_write", 1)
+        return
+    # end if
+
     outfile.comment("Grab physics grid", 2)
     outfile.write("grid_decomp = cam_grid_id('physgrid')", 2)
     outfile.write("dims(1) = columns_on_task", 2)
@@ -515,7 +521,10 @@ def gather_required_restart_variables(all_req_vars, registry_constituents, resta
 def write_use_statements(outfile, use_stmts, indent):
     """Output Fortran module use (import) statements listed in <use_stmts>.
     """
-
+    # Don't do anything if we don't have use statements!
+    if len(use_stmts) == 0:
+        return
+    # end if
     # The plus one is for a comma
     max_modname = max(len(x[0]) for x in use_stmts) + 1
     # max_modspace is the max chars of the module plus other 'use' statement
