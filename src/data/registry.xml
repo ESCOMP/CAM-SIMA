@@ -2094,7 +2094,7 @@
     </variable>
     <!-- Variables for "bl_mynn" physics scheme -->
     <variable local_name="nc"
-              standard_name="mass_number_concentration_of_cloud_liquid_water_particles_in_dry_air"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_dry_air"
               units="kg-1" type="real" kind="kind_phys"
               constituent="true" advected="true">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
