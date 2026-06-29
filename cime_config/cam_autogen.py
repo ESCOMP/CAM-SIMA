@@ -358,6 +358,68 @@ def _update_genccpp_dir(utility_files, genccpp_dir):
     # end for
 
 ###############################################################################
+def _set_rrtmgp_dependencies(dependency_files, gpu_flag):
+###############################################################################
+    """
+    Modify the list of files that physics schemes depend on
+    (as provided by the CCPP) so that the correct RRTMGP
+    dependencies exist for either CPUs or GPUs.
+
+    This function returns a modified list with either the
+    CPU or GPU RRTMGP dependencies, but not both.
+
+    >>> in_files = ['/some/path/file.F90','/some/rte-kernels/rrtmgp.F90', \
+                    '/some/rte-kernels/accel/rrtmgp.F90', \
+                    '/some/rte-kernels/mo_rte_solver_kernels.F90', \
+                    '/some/rte-kernels/accel/mo_rte_solver_kernels.F90', \
+                    '/some/other/path/file.F90', \
+                    '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90', \
+                    '/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90', ]
+    >>> _set_rrtmgp_dependencies(in_files, False)
+    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
+'/some/rte-kernels/accel/rrtmgp.F90', '/some/rte-kernels/mo_rte_solver_kernels.F90', \
+'/some/other/path/file.F90', '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90']
+
+    >>> _set_rrtmgp_dependencies(in_files, True)
+    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
+'/some/rte-kernels/accel/rrtmgp.F90', \
+'/some/rte-kernels/accel/mo_rte_solver_kernels.F90', '/some/other/path/file.F90', \
+'/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90']
+    """
+
+    # Create new list of CCPP-dependent files:
+    new_dependency_files = []
+
+    # List of directory strings that indicate
+    # RRTMGP dependencies:
+    rrtmgp_subdirs = ['rte-kernels', 'rrtmgp-kernels']
+
+    # List of RRTMGP files that differ between CPUs and GPUs:
+    rrtmgp_files = ['mo_rte_solver_kernels.F90',
+                    'mo_optical_props_kernels.F90',
+                    'mo_gas_optics_rrtmgp_kernels.F90']
+
+
+    for file_path in dependency_files:
+        if any(subdir in file_path for subdir in rrtmgp_subdirs):
+            if any(rfile in file_path for rfile in rrtmgp_files):
+                if (gpu_flag and 'accel' in file_path):
+                    #If GPU-enabled and is "accelerated", include it:
+                    new_dependency_files.append(file_path)
+                elif (not gpu_flag and 'accel' not in file_path):
+                    #If CPU-only and not "accelerated", include it:
+                    new_dependency_files.append(file_path)
+            else:
+                #Not a hardware-dependent file, so include it:
+                new_dependency_files.append(file_path)
+        else:
+            #Not an RRTMGP file, so include it:
+            new_dependency_files.append(file_path)
+
+    # Return newly-modified dependency files:
+    return new_dependency_files
+
+###############################################################################
 def generate_registry(data_search, build_cache, atm_root, bldroot,
                       source_mods_dir, dycore, gen_fort_indent):
 ###############################################################################
@@ -420,7 +482,8 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
                             phys_suites_str, atm_root, bldroot,
-                            reg_dir, reg_files, source_mods_dir, force):
+                            reg_dir, reg_files, source_mods_dir,
+                            gpu_flag, force):
 ###############################################################################
     """
     Generate the source for the configured physics suites,
@@ -664,8 +727,6 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         build_cache.update_ccpp(sdfs, scheme_files, host_files, xml_files,
                                 scheme_nl_meta_files, nl_groups, create_nl_file,
                                 preproc_cache_str, kind_types)
-        ##XXgoldyXX: v Temporary fix: Copy CCPP Framework source code into
-        ##XXgoldyXX: v   generated code directory
         request = DatatableReport("utility_files")
         ufiles_str = datatable_report(cap_output_file, request, ";")
         utility_files = ufiles_str.split(';')
@@ -674,8 +735,15 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         dep_str = datatable_report(cap_output_file, request, ";")
         if len(dep_str) > 0:
             dependency_files = dep_str.split(';')
+            # If using RRTMGP in the physics suite, then modify
+            # the provided dependency files list to use the correct
+            # CPU or GPU RRTMGP dependencies:
+            if any("rrtmgp_" in scheme_name for scheme_name in scheme_names):
+                dependency_files = _set_rrtmgp_dependencies(dependency_files,
+                                                            gpu_flag)
+
+            # Copy dependencies files into CCPP build directory
             _update_genccpp_dir(dependency_files, genccpp_dir)
-        ##XXgoldyXX: ^ Temporary fix:
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
@@ -695,7 +763,7 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     and/or script).
     """
 
-    #Add new directory to build path:
+    # Add new directory to build path:
     init_dir = os.path.join(bldroot, "phys_init")
     # Use this for cache check
     gen_init_file = os.path.join(_REG_GEN_DIR, "write_init_files.py")
@@ -706,11 +774,11 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         if force_ccpp or force_init:
             do_gen_init = True
         else:
-            #If not, then check cache to see if actual
-            #"write_init_files.py" was modified:
+            # If not, then check cache to see if actual
+            # "write_init_files.py" was modified:
             do_gen_init = build_cache.init_write_mismatch(gen_init_file)
     else:
-        #If no directory exists, then one will need
+        # If no directory exists, then one will need
         # to create new routines:
         os.mkdir(init_dir)
         do_gen_init = True

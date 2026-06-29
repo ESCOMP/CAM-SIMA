@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<entry_id_pg version="0.1">
+<entry_id_pg version="2.0">
 
 <!-- Analytic Initial Conditions (ICs) for Dycore testing  -->
 
@@ -24,6 +24,9 @@
       <value phys_suite="held_suarez_1994">held_suarez_1994</value>
       <value phys_suite="kessler">moist_baroclinic_wave_dcmip2016</value>
       <value phys_suite="tj2016">moist_baroclinic_wave_dcmip2016</value>
+      <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
+      <!-- Temporarily using analytic initial condition during development -->
+      <value phys_suite="convection_permitting">moist_baroclinic_wave_dcmip2016</value>
     </values>
   </entry>
 

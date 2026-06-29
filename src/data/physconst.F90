@@ -10,6 +10,7 @@ module physconst
    use shr_const_mod,  only: shr_const_mwwv
    use shr_const_mod,  only: shr_const_latice
    use shr_const_mod,  only: shr_const_latvap
+   use shr_const_mod,  only: shr_const_latsub
    use shr_const_mod,  only: shr_const_cpdair
    use shr_const_mod,  only: shr_const_rhofw
    use shr_const_mod,  only: shr_const_cpwv
@@ -45,13 +46,14 @@ module physconst
    !! \htmlinclude physconst.html
    ! Constants based off share code or defined in physconst
    real(kind_phys), public, parameter :: avogad      = real(shr_const_avogad, kind_phys)     ! Avogadro's number (molecules kmole-1)
-   real(kind_phys), public, parameter :: boltz       = real(shr_const_boltz, kind_phys)      ! Boltzman's constant (J K-1 molecule-1)
+   real(kind_phys), public, parameter :: boltz       = real(shr_const_boltz, kind_phys)      ! Boltzmann's constant (J K-1)
    real(kind_phys), public, parameter :: cday        = real(shr_const_cday, kind_phys)       ! sec in calendar day (seconds)
    real(kind_phys), public, parameter :: cpliq       = real(shr_const_cpfw, kind_phys)       ! specific heat of fresh h2o (J K-1 kg-1)
    real(kind_phys), public, parameter :: cpice       = real(shr_const_cpice, kind_phys)      ! specific heat of ice (J K-1 kg-1)
    real(kind_phys), public, parameter :: karman      = real(shr_const_karman, kind_phys)     ! Von Karman constant
    real(kind_phys), public, parameter :: latice      = real(shr_const_latice, kind_phys)     ! Latent heat of fusion (J kg-1)
    real(kind_phys), public, parameter :: latvap      = real(shr_const_latvap, kind_phys)     ! Latent heat of vaporization (J kg-1)
+   real(kind_phys), public, parameter :: latsub      = real(shr_const_latsub, kind_phys)     ! Latent heat of sublimation (J kg-1)
    real(kind_phys), public, parameter :: pi          = real(shr_const_pi, kind_phys)         ! 3.14...
    real(kind_phys), public, protected :: pstd        = real(shr_const_pstd, kind_phys)       ! Standard pressure (Pascals)
    real(kind_phys), public, protected :: pref        = 1.0e5_kind_phys                       ! Reference surface pressure (Pascals)

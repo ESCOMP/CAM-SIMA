@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Variables for registry source file, physics_types_ddt
 !!
@@ -48,7 +47,7 @@ module physics_types_ddt
   public :: allocate_physics_types_ddt_fields
   public :: physics_types_ddt_tstep_init
 
-CONTAINS
+contains
 
   subroutine allocate_physics_types_ddt_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
@@ -98,9 +97,9 @@ CONTAINS
     allocate(cappav(horizontal_dimension, reference_pressure))
     if (set_init_val) then
       cappav = rair/cpair
-      call                                                                                        &
-           mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
-
+      call &
+          mark_as_initialized( &
+          'composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
     end if
     if (set_init_val) then
       phys_state%ncol = 0

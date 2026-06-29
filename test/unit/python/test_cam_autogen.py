@@ -586,7 +586,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         gen_results = generate_physics_suites(self.test_cache, "UNSET", "cam", "simple",
                                               _CAM_ROOT_DIR, self.test_bldroot,
                                               self.test_reg_dir, [],
-                                              self.test_src_mods_dir, False)
+                                              self.test_src_mods_dir, False, False)
 
         #Due to the presence of a "dict_values" dictview object which needs
         #to be treated in a special way, the tuples will need to be iterated
@@ -628,7 +628,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
             _ = generate_physics_suites(self.test_cache, "UNSET", "cam", "missing",
                                         _CAM_ROOT_DIR, self.test_bldroot,
                                         self.test_reg_dir, [],
-                                        self.test_src_mods_dir, False)
+                                        self.test_src_mods_dir, False, False)
         #End with
 
         #Check that error message matches what's expected:
@@ -656,7 +656,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
             _ = generate_physics_suites(self.test_cache, "UNSET", "cam", "simple",
                                         _CAM_ROOT_DIR, self.test_bldroot,
                                         self.test_reg_dir, [],
-                                        self.test_src_mods_dir, False)
+                                        self.test_src_mods_dir, False, False)
         #End with
 
         #Check that error message matches what's expected:

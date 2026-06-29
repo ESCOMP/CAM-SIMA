@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<entry_id_pg version="0.1">
+<entry_id_pg version="2.0">
 
 <!-- Physconst Namelist Variables -->
 <!-- the following namelist variables do not have default values since the defaults are pulled from shr_cnst_mod in the code -->
@@ -15,6 +15,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">9.79764</value>
     </values>
   </entry>
   <entry id="user_defined_sday">
@@ -27,6 +28,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">86164.10063718943</value>
     </values>
   </entry>
   <entry id="user_defined_mwh2o">
@@ -39,6 +41,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">18.01618112892741</value>
     </values>
   </entry>
   <entry id="user_defined_cpwv">
@@ -51,6 +54,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">1.846e3</value>
     </values>
   </entry>
   <entry id="user_defined_cpair">
@@ -75,6 +79,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">28.96623324623746</value>
     </values>
   </entry>
   <entry id="user_defined_rearth">
@@ -87,6 +92,7 @@
     </desc>
     <values>
       <value>0.0</value>
+      <value aquaplanet="1" phys_suite="cam4">6.37100e6</value>
     </values>
   </entry>
   <entry id="user_defined_tmelt">

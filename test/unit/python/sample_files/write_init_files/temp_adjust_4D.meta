@@ -30,6 +30,13 @@
   type = real
   kind = kind_phys
   intent = in
+[ eddy_len ]
+  standard_name = eddy_length_scale
+  units = m
+  dimensions = (horizontal_loop_extent, vertical_layer_dimension, timestep_for_physics, vertical_layer_dimension)
+  type = real
+  kind = kind_phys
+  intent = in
 [ timestep ]
   standard_name = timestep_for_physics
   long_name = time step

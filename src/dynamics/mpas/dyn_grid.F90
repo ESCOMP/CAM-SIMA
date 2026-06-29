@@ -19,7 +19,6 @@ module dyn_grid
 
     public :: dyn_grid_id
     public :: dyn_grid_name
-    public :: dyn_inquire_mesh_dimensions
     public :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
     public :: ncells_global, nedges_global, nvertices_global, ncells_max, nedges_max
     public :: sphere_radius
@@ -28,10 +27,6 @@ module dyn_grid
         module subroutine model_grid_init()
             implicit none
         end subroutine model_grid_init
-
-        module subroutine dyn_inquire_mesh_dimensions()
-            implicit none
-        end subroutine dyn_inquire_mesh_dimensions
 
         module pure function dyn_grid_id(name)
             implicit none

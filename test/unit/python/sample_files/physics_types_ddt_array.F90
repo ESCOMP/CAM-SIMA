@@ -10,7 +10,6 @@
 ! IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 !>
 !! @brief Auto-generated Variables for registry source file, physics_types_ddt_array
 !!
@@ -49,7 +48,7 @@ module physics_types_ddt_array
   public :: allocate_physics_types_ddt_array_fields
   public :: physics_types_ddt_array_tstep_init
 
-CONTAINS
+contains
 
   subroutine allocate_physics_types_ddt_array_fields(set_init_val_in, reallocate_in)
     use shr_infnan_mod,   only: nan => shr_infnan_nan, assignment(=)
@@ -118,8 +117,8 @@ CONTAINS
         call endrun(subname//": phys_state%q is already associated, cannot allocate")
       end if
     end if
-    allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension,                         &
-         number_of_constituents))
+    allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension, &
+        number_of_constituents))
     if (set_init_val) then
       phys_state%q = nan
     end if

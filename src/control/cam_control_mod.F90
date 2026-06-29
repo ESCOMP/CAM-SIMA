@@ -101,7 +101,6 @@ CONTAINS
    !---------------------------------------------------------------------------
 
    subroutine cam_ctrl_set_orbit(eccen_in, obliqr_in, lambm0_in, mvelpp_in)
-      use phys_vars_init_check, only: mark_as_initialized
 
       real(r8), intent(in) :: eccen_in
       real(r8), intent(in) :: obliqr_in

@@ -17,6 +17,8 @@ module radiation_namelist
   !> \section arg_table_radiation_namelist Argument Table
   !! \htmlinclude arg_table_radiation_namelist.html
   !!
+  integer, public, protected :: nswbands = -1   ! # of shortwave bands [count]
+  integer, public, protected :: nlwbands = -1   ! # of longwave bands [count]
   integer, public, protected :: iradsw = -1     ! freq. of shortwave radiation calc in time steps (positive)
                                                 ! or hours (negative).
   integer, public, protected :: iradlw = -1     ! frequency of longwave rad. calc. in time steps (positive)
@@ -59,7 +61,8 @@ contains
     character(len=shr_kind_cm)   :: errmsg
     integer                      :: dtime
 
-    namelist /radiation_nl/ iradsw, iradlw, irad_always, use_rad_uniform_angle, &
+    namelist /radiation_nl/ nswbands, nlwbands, &
+                            iradsw, iradlw, irad_always, use_rad_uniform_angle, &
                             rad_uniform_angle
 
     errmsg = ''
@@ -77,6 +80,16 @@ contains
     end if
 
     ! Broadcast namelist variable
+    call mpi_bcast(nswbands, 1, mpi_integer, masterprocid, mpicom, ierr)
+    if (ierr /= 0) then
+       call endrun(sub//": FATAL: mpi_bcast: nswbands",                     &
+            file=__FILE__, line=__LINE__)
+    end if
+    call mpi_bcast(nlwbands, 1, mpi_integer, masterprocid, mpicom, ierr)
+    if (ierr /= 0) then
+       call endrun(sub//": FATAL: mpi_bcast: nlwbands",                     &
+            file=__FILE__, line=__LINE__)
+    end if
     call mpi_bcast(use_rad_uniform_angle, 1, mpi_logical, masterprocid, mpicom, ierr)
     if (ierr /= 0) then
        call endrun(sub//": FATAL: mpi_bcast: use_rad_uniform_angle",      &
@@ -119,6 +132,9 @@ contains
     !-----------------------------------------------------------------------
 
     if (masterproc) then
+       write(iulog,*) 'Radiation scheme parameters:'
+       write(iulog,*) 'Number of shortwave bands: ', nswbands
+       write(iulog,*) 'Number of longwave bands: ', nlwbands
        write(iulog,*) 'RRTMGP radiation scheme parameters:'
        write(iulog,10) iradsw, iradlw, irad_always, use_rad_uniform_angle
     end if

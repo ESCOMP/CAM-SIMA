@@ -1,0 +1,96 @@
+name: Build and run CAM-SIMA on CIRRUS
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - development
+  pull_request:
+    branches:
+      - development
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-run-on-CIRRUS:
+    name: Run ${{ matrix.image }} on ${{ matrix.runner }}
+    env:
+      TMP_DIR: tmp
+      TMP_OUTPUT: case_output.log
+    strategy:
+      fail-fast: false
+      matrix:
+        test_type: [ SMS_Ln2 ]
+        compset: [ FPHYStest ]
+        res: [ ne3pg3_ne3pg3_mg37 ]
+        test_config: [ outfrq_rrtmgp_cirrus_gpu ]
+        image: [ ubuntu24.04_nvhpc25.7_openmpi5.0.8_cuda12.9:e9f55f1 ]
+        include:
+          - image: ubuntu24.04_nvhpc25.7_openmpi5.0.8_cuda12.9:e9f55f1
+            runner: gha-runner-gpu-camsima
+            compiler: nvhpc
+    runs-on: ${{ matrix.runner }}
+    environment: CI-tests-on-CIRRUS
+    container:
+      image: hub.k8s.ucar.edu/cam-sima/${{ matrix.image }}
+      options: ${{ matrix.runner == 'gha-runner-gpu-camsima' && '--gpus all' }}
+      env:
+        NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      credentials:
+        username: ${{ secrets.hub_user || 'dummy-user' }}
+        password: ${{ secrets.hub_password || 'dummy-password' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout push code
+        uses: actions/checkout@v6
+
+      - name: Set up some git configurations
+        run: |
+          git config --global user.email "example_user@example.com"
+          git config --global user.name "example_user"
+
+      - name: Checkout individual components
+        run: |
+          ./bin/git-fleximod -C "${GITHUB_WORKSPACE}" update
+
+      - name: Build and run ${{ matrix.test_type }} test of ${{ matrix.compset }} at ${{ matrix.res }} resolution
+        run: |
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PIO/lib:$NETCDF_FORTRAN_PATH/lib:$NETCDF_C_PATH/lib:$LAPACK/lib:$LAPACK/lib64:$PNETCDF/lib"
+          if [ "${{ matrix.runner }}" = "gha-runner-gpu-camsima" ]; then
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_ROOT/lib64:$CUDA_ROOT/lib64/stubs"
+          fi
+          cd cime/scripts
+          ./create_test "${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}" --output-root "/$TMP_DIR/ci_test" --no-batch 2>&1 | tee "$TMP_OUTPUT"
+
+      - name: Check the test PASS/FAIL status
+        if: always()
+        run: |
+          cd /$TMP_DIR/ci_test
+          STATUS_OUTPUT=$(./cs.status.*)
+          echo "$STATUS_OUTPUT"
+          OVERALL_STATUS=$(echo "$STATUS_OUTPUT" | grep -oP 'Overall:\s*\K\w+')
+          if [ "$OVERALL_STATUS" = "PASS" ]; then
+            echo "Test passed"
+          else
+            echo "Test FAILED (Overall status: ${OVERALL_STATUS:-not found})"
+            exit 123
+          fi
+
+      - name: Upload logs to GitHub artifacts when the CI test fails
+        if: failure() 
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs.${{ matrix.test_type }}.${{ matrix.compset }}.${{ matrix.compiler }}.${{ matrix.runner }}
+          path: |
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/atm.bldlog*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/bld/cesm.bldlog*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/cesm.log*
+            /"$TMP_DIR"/ci_test/"${{ matrix.test_type }}.${{ matrix.res }}.${{ matrix.compset }}.cirrus_${{ matrix.compiler }}.cam-${{ matrix.test_config }}.*"/run/atm.log*
+          retention-days: 7

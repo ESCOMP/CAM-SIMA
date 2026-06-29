@@ -117,7 +117,7 @@ class HistConfigTest(unittest.TestCase):
         self._test_config(hconfig, 'h1', 'REAL32', 30, (14, 'hours'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         self.assertTrue('h3' in hist_configs, msg="'h3' not in hist_configs")
         hconfig = hist_configs['h3']
-        self._test_config(hconfig, 'h3', 'REAL64', 24, (2, 'nsteps'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
+        self._test_config(hconfig, 'h3', 'REAL64', 24, (1, 'nsteps'), 'history', '.false.', '%c.cam.%u%f.%y-%m-%d-%s.nc', '%c.cam.r%u.%y-%m-%d-%s.nc')
         _LOGGER.setLevel(logging.DEBUG)
         # Write out the namelist file
         with open(out_source, 'w', encoding='utf-8') as nl_file:
@@ -188,13 +188,14 @@ class HistConfigTest(unittest.TestCase):
             # Read in file:
             file_lines = old_file.readlines()
             # Edit to add bad lines
-            file_lines[8] = ""
+            file_lines[8] = "hist_add_inst_fields;h3: T\n"
             file_lines[9] = "hist_remove_fields;h0:\n"
             file_lines[10] = "hist_output_frequency;h0: 1+nmonths\n"
             file_lines[11] = "hist_precision;h0: REAL34\n"
             file_lines[13] = "hist_add_inst_fields;h3: T&U&V\n"
             file_lines[16] = "hist_max_frames;h3: -24\n"
             file_lines[17] = "hist_write_nstep0;h3: treu\n"
+            file_lines[18] = "hist_add_avg_fields;h3: T\n"
         # end with
 
         # Create a new modified version of the file with the bad entries
@@ -215,7 +216,8 @@ class HistConfigTest(unittest.TestCase):
                            "Found invalid identifiers",
                            "T&U&V, at",
                            "Attempt to set max frames to '-24', must be a positive integer, at",
-                           "hist_write_nstep0 must be one of .false., .true., f, false, t, true, at"]
+                           "hist_write_nstep0 must be one of .false., .true., f, false, t, true, at",
+                           "Field, 'T' already in instantaneous fields for hist volume, h3. Cannot also add to average fields for the same volume, at"]
 
         # Check error messages are as expected
         for index, errmsg in enumerate(exception_split):
