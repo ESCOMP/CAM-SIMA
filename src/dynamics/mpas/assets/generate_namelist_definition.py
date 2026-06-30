@@ -5,6 +5,7 @@ Generate XML namelist definition file for MPAS dynamical core in CAM-SIMA.
 '''
 
 import argparse
+import re
 import textwrap
 import xml.etree.ElementTree as ET
 
@@ -14,6 +15,7 @@ EXCLUDED_NAMELIST_GROUP = [
     'assimilation',
     'iau',
     'limited_area',
+    'musica',
     'physics',
     'restart'
 ]
@@ -101,7 +103,7 @@ def parse_argument() -> argparse.Namespace:
         default=None,
         type=str,
         required=False,
-        help='XML schema for CAM-SIMA namelist definition file.',
+        help='XML schema (i.e., entry_id_pg.xsd) for CAM-SIMA namelist definition file.',
         dest='nml_xsd'
     )
 
@@ -193,13 +195,21 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
             group_element.text = transform_name(namelist_group.attrib['name'].strip().lower())
 
             # The `type` element.
+            # The `units` element.
             # The `values` element and its containing `value` element.
             type_text = namelist_option.attrib['type'].strip().lower()
+            if 'units' in namelist_option.attrib and namelist_option.attrib['units'].strip() not in ('', '-'):
+                # Filter out illegal characters in accordance with the `entry_id_pg.xsd` XML schema.
+                units_text = re.sub('[^-+A-Za-z0-9 ]', '', namelist_option.attrib['units'].strip())
+            else:
+                units_text = 'none'
             value_text = namelist_option.attrib['default_value']
 
             # Do some sanitization.
             if type_text.startswith('ch'):
                 type_text = 'char*256'
+                # The units of a Fortran character variable is customarily 'none' in accordance with the ESM Standard Names.
+                units_text = 'none'
                 value_text = value_text.strip()
 
                 if not value_text.isascii():
@@ -209,6 +219,8 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
                 value_text = canonicalize_int(value_text)
             elif type_text.startswith('lo'):
                 type_text = 'logical'
+                # The units of a Fortran logical variable is customarily 'flag' in accordance with the ESM Standard Names.
+                units_text = 'flag'
                 value_text = value_text.strip().lower()
 
                 if value_text.startswith(('t', '.t')):
@@ -225,6 +237,9 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
 
             type_element = ET.SubElement(entry_element, 'type')
             type_element.text = type_text
+
+            units_element = ET.SubElement(entry_element, 'units')
+            units_element.text = units_text
 
             values_element = ET.SubElement(entry_element, 'values')
 
