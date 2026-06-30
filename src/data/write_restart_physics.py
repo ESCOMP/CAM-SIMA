@@ -117,11 +117,11 @@ def write_restart_physics(cap_database, ic_names, registry_constituents,
 
         # Write the restart init subroutine
         outfile.blank_line()
-        dim_use_stmts = write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
+        dim_use_stmts, dims = write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
 
         # Write the restart write subroutine
         outfile.blank_line()
-        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars, dim_use_stmts)
+        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dims)
 
         # Write the restart read subroutine
         outfile.blank_line()
@@ -181,11 +181,13 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
 
     # Gather up dimension imports
     dim_use_stmts = []
+    dims = []
     for key, value in dim_use_stmt_dict.items():
         imports = []
         dim_use_stmt = []
         for var_import in value:
             imports.append(f"{var_import}")
+            dims.append(f"{var_import}")
         # end for
         dim_use_stmt.append(key)
         dim_use_stmt.append(imports)
@@ -299,9 +301,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     # end if
 
     outfile.write("end subroutine restart_physics_init", 1)
-    return dim_use_stmts
+    return dim_use_stmts, dims
 
-def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars, dim_use_stmts):
+def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dims):
     """
     Write the 'write' routine for the physics restart variables. This
     routine writes the physics fields to the restart (cam.r) file
@@ -317,6 +319,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
     write_use_statements(outfile, use_stmts, 2)
     write_use_statements(outfile, dim_use_stmts, 2)
+
     for var in used_vars:
         outfile.write(f"use physics_types, only: {var}", 2)
     # end for
@@ -330,7 +333,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     outfile.blank_line()
 
     outfile.comment("Local variables", 2)
-    outfile.write("integer                          :: dims(2)",   2)
+    outfile.write(f"integer                         :: dims({len(dims)})", 2)
     outfile.write("integer                          :: grid_decomp", 2)
     outfile.write("integer                          :: grid_dims(2)", 2)
     outfile.write("integer                          :: field_shape(2)", 2)
@@ -345,8 +348,11 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
     outfile.comment("Grab physics grid", 2)
     outfile.write("grid_decomp = cam_grid_id('physgrid')", 2)
-    outfile.write("dims(1) = columns_on_task", 2)
-    outfile.write("dims(2) = pver", 2)
+    dim_index = 1
+    for dim in dims:
+        outfile.write(f"dims({dim_index}) = {dim}", 2)
+        dim_index = dim_index + 1
+    # end if
     outfile.comment("Write required restart variables to the restart file", 2)
     for key, value in required_vars.items():
         desc_name = f"{value['diag_name'].lower()}_desc"
