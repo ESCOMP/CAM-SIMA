@@ -2092,5 +2092,60 @@
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>273.15_kind_phys</initial_value>
     </variable>
+    <!-- Variables for "bl_mynn" physics scheme -->
+    <variable local_name="nc"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nc</ic_file_input_names>
+    </variable>
+    <variable local_name="ni"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_ni</ic_file_input_names>
+    </variable>
+    <variable local_name="nwfa"
+              standard_name="mass_number_concentration_of_hygroscopic_aerosols_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nwfa</ic_file_input_names>
+    </variable>
+    <variable local_name="nifa"
+              standard_name="mass_number_concentration_of_nonhygroscopic_ice_nucleating_aerosols_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nifa</ic_file_input_names>
+    </variable>
+    <variable local_name="nbca"
+              standard_name="mass_number_concentration_of_hydrophobic_black_carbon_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nbca</ic_file_input_names>
+    </variable>
+    <variable local_name="uoce"
+              standard_name="surface_eastward_sea_water_velocity"
+              units="m s-1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="voce"
+              standard_name="surface_northward_sea_water_velocity"
+              units="m s-1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
   </file>
 </registry>
