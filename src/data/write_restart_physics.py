@@ -5,7 +5,6 @@ information and writing (restart_physics.F90).
 """
 
 # Python library import statements:
-from collections import OrderedDict
 import os.path
 
 # CCPP Framework import statements
@@ -39,9 +38,8 @@ _MAX_LINE_LEN = 200
 #Main function
 ##############
 
-def write_restart_physics(cap_database, ic_names, registry_constituents,
-                     restart_vars, outdir, file_find_func, source_paths, indent, logger,
-                     phys_restart_filename=None):
+def write_restart_physics(cap_database, registry_constituents, restart_vars,
+                     outdir, indent, logger, phys_restart_filename=None):
 
     """
     Create restart_physics.F90 using a database created
@@ -104,11 +102,11 @@ def write_restart_physics(cap_database, ic_names, registry_constituents,
 
         outfile.blank_line()
         outfile.comment("Private module data", 0)
-        for key, value in required_restart_vars.items():
+        for _, value in required_restart_vars.items():
             outfile.write(f"type(var_desc_t) :: {value['diag_name'].lower()}_desc", 1)
         # end for
 
-        for key, value in constituent_dimmed_vars.items():
+        for _, value in constituent_dimmed_vars.items():
             outfile.write(f"type(var_desc_t), allocatable :: {value['diag_name'].lower()}_desc(:)", 1)
         # end for
 
@@ -228,16 +226,18 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
             if dimensions_dict[dimname]['index'] < 0:
                 outfile.comment(f"Define potentially new dimension '{dimname}'", 2)
                 if dimname == 'horizontal_dimension':
-                   dim_loc_name = 'ncol'
-                   dimsize = 'num_global_phys_cols'
+                    dim_loc_name = 'ncol'
+                    dimsize = 'num_global_phys_cols'
                 elif dimname == 'vertical_layer_dimension':
-                   dim_loc_name = 'lev'
-                   dimsize = 'pver'
+                    dim_loc_name = 'lev'
+                    dimsize = 'pver'
                 elif dimname == 'vertical_interface_dimension':
-                   dim_loc_name = 'ilev'
-                   dimsize = 'pverp'
+                    dim_loc_name = 'ilev'
+                    dimsize = 'pverp'
                 else:
-                   dim_loc_name = dimensions_dict[dimname]['local_name']
+                    dim_loc_name = dimensions_dict[dimname]['local_name']
+                    dimsize = dim_loc_name
+                # end if
                 outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2) # grab use statements for phys variables for nonstandard dimensions!
                 dimensions_dict[dimname]['index'] = dim_index
                 dim_index = dim_index + 1
@@ -266,16 +266,16 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
                     if dimensions_dict[dimname]['index'] < 0:
                         outfile.comment(f"Define potentially new dimension '{dimname}'", 2)
                         if dimname == 'horizontal_dimension':
-                           dim_loc_name = 'ncol'
-                           dimsize = 'num_global_phys_cols'
+                            dim_loc_name = 'ncol'
+                            dimsize = 'num_global_phys_cols'
                         elif dimname == 'vertical_layer_dimension':
-                           dim_loc_name = 'lev'
-                           dimsize = 'pver'
+                            dim_loc_name = 'lev'
+                            dimsize = 'pver'
                         elif dimname == 'vertical_interface_dimension':
-                           dim_loc_name = 'ilev'
-                           dimsize = 'pverp'
+                            dim_loc_name = 'ilev'
+                            dimsize = 'pverp'
                         else:
-                           dim_loc_name = dimensions_dict[dimname]['local_name']
+                            dim_loc_name = dimensions_dict[dimname]['local_name']
                         # end if
                         outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2) # grab use statements for phys variables for nonstandard dimensions!
                         dimensions_dict[dimname]['index'] = dim_index
@@ -390,6 +390,10 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
 def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, used_vars):
     outfile.write("subroutine restart_physics_read()", 1)
+    """
+    Write the 'read' routine for the physics restart variables. This
+    routine reads the physics fields from the restart (cam.r) file
+    """
     outfile.write("end subroutine restart_physics_read", 1)
 
 #################

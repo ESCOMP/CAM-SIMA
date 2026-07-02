@@ -844,9 +844,8 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
     # End if
     if do_gen_restart:
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_restart_physics(cap_database, ic_names, registry_constituents,
-                                       restart_vars, restart_dir, _find_file, 
-                                       source_paths, gen_fort_indent, _LOGGER)
+        retmsg = write_restart_physics(cap_database, registry_constituents, restart_vars, 
+                                       restart_dir, gen_fort_indent, _LOGGER)
         
         #Check that script ran properly
         if retmsg:
