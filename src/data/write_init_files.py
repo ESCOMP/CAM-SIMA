@@ -1510,7 +1510,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks
     # allows us to not enumerate all needed constituents from snapshots in the
     # registry, yet allow reading their values from CAM snapshots.
-    outfile.write("call check_field(file, [character(len=std_name_len) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
+    outfile.write("call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
     outfile.write("if (diff_found) then", 4)
     outfile.write("overall_diff_found = .true.", 5)
     outfile.write("end if", 4)
