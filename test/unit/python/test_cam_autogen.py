@@ -140,6 +140,12 @@ class FakeBuildCache:
 
         return []
 
+    def restart_vars(self):
+
+        """Fake version of 'restart_vars' property."""
+
+        return []
+
     def scheme_nl_metadata(self):
 
         """Fake version of 'scheme_nl_metadata' property."""
@@ -523,7 +529,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         test_data_search = [os.path.join(_CAM_ROOT_DIR, "src", "data")]
 
         #Set expected output tuple:
-        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [], [])
+        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [], [], [])
 
         #Run registry generation function:
         gen_results = generate_registry(test_data_search, self.test_cache, _CAM_ROOT_DIR,

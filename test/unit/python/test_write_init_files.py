@@ -238,7 +238,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, constituents, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, constituents, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                           _SRC_MOD_DIR, _CAM_ROOT,
                                           loglevel=logging.ERROR,
                                           error_on_no_validate=True)
@@ -321,7 +321,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, _, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
                                                           _SRC_MOD_DIR, _CAM_ROOT,
                                                           loglevel=logging.ERROR,
                                                           error_on_no_validate=True)
@@ -486,7 +486,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -655,7 +655,7 @@ class WriteInitTest(unittest.TestCase):
         remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -730,7 +730,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -807,7 +807,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -963,7 +963,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -1044,7 +1044,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                             _SRC_MOD_DIR, _CAM_ROOT,
                                             loglevel=logging.ERROR,
                                             error_on_no_validate=True)
@@ -1368,7 +1368,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, constituents, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, constituents, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
                                           _SRC_MOD_DIR, _CAM_ROOT,
                                           loglevel=logging.ERROR,
                                           error_on_no_validate=True)
