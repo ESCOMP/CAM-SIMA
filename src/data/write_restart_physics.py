@@ -51,7 +51,7 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -98,7 +98,7 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
         all_req_vars = in_vars + out_vars
         # Grab the required variables that are also restart variables
         host_dict = cap_database.host_model_dict()
-        required_restart_vars, constituent_dimmed_vars, used_vars = gather_required_restart_variables(all_req_vars, constituent_set, restart_vars, host_dict)
+        required_restart_vars, constituent_dimmed_vars, used_vars = gather_required_restart_variables(all_req_vars, restart_vars, host_dict)
 
         outfile.blank_line()
         outfile.comment("Private module data", 0)
@@ -123,9 +123,11 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
 
         # Write the restart read subroutine
         outfile.blank_line()
-        write_restart_physics_read(outfile, required_restart_vars, constituent_dimmed_vars, used_vars)
+        write_restart_physics_read(outfile)
 
     # end with
+
+    return retmsg
 
 def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, host_dict):
     """
@@ -143,12 +145,12 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     for _, value in required_vars.items():
         for dimension in value['dims']:
             dim_name = dimension.split(':')[1]
-            if dim_name not in dimensions_dict.keys():
+            if dim_name not in dimensions_dict:
                 var = host_dict.find_variable(dim_name)
                 dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1}
                 num_dimensions = num_dimensions + 1
                 # Add dimension to use statement dictionary
-                if var.source.name not in dim_use_stmt_dict.keys():
+                if var.source.name not in dim_use_stmt_dict:
                     dim_use_stmt_dict[var.source.name] = set()
                 # end if
                 dim_use_stmt_dict[var.source.name].add(var.get_prop_value('local_name'))
@@ -158,12 +160,12 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     for _, value in constituent_dimmed_vars.items():
         for dimension in value['dims']:
             dim_name = dimension.split(':')[1]
-            if dim_name not in dimensions_dict.keys() and dim_name != 'number_of_ccpp_constituents':
+            if dim_name not in dimensions_dict and dim_name != 'number_of_ccpp_constituents':
                 var = host_dict.find_variable(dim_name)
                 dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1}
                 num_dimensions = num_dimensions + 1
                 # Add dimension to use statement dictionary
-                if var.source.name not in dim_use_stmt_dict.keys():
+                if var.source.name not in dim_use_stmt_dict:
                     dim_use_stmt_dict[var.source.name] = set()
                 # end if
                 dim_use_stmt_dict[var.source.name].add(var.get_prop_value('local_name'))
@@ -388,12 +390,12 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     # end if
     outfile.write("end subroutine restart_physics_write", 1)
 
-def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, used_vars):
-    outfile.write("subroutine restart_physics_read()", 1)
+def write_restart_physics_read(outfile):
     """
     Write the 'read' routine for the physics restart variables. This
     routine reads the physics fields from the restart (cam.r) file
     """
+    outfile.write("subroutine restart_physics_read()", 1)
     outfile.write("end subroutine restart_physics_read", 1)
 
 #################
@@ -495,10 +497,10 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
         retmsg = f"Error: Missing required host variables: {mvlist}"
     # end if
     # Return the required variables as a list
-    return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
+    return list(in_vars.values()), list(out_vars.values()), retmsg
 
 ##############################################################################
-def gather_required_restart_variables(all_req_vars, registry_constituents, restart_vars, host_dict):
+def gather_required_restart_variables(all_req_vars, restart_vars, host_dict):
     """
     Return lists of the required restart non-constituent variables, and the required
     restart constituent variables
@@ -512,7 +514,7 @@ def gather_required_restart_variables(all_req_vars, registry_constituents, resta
         stdname = required_var.get_prop_value('standard_name')
         local_name = required_var.call_string(host_dict)
         used_var = required_var.var.get_prop_value('local_name')
-        if stdname in restart_vars.keys():
+        if stdname in restart_vars:
             diagnostic_name = restart_vars[stdname]
             used_vars.add(used_var)
             dimensions = required_var.get_dimensions()
