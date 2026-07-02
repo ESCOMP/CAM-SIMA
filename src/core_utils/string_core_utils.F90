@@ -12,6 +12,8 @@ module string_core_utils
     public :: increment_string           ! Increment a string whose ending characters are digits.
     public :: last_non_digit             ! Get position of last non-digit in the input string.
     public :: get_last_significant_char  ! Get position of last significant (non-blank, non-null) character in string.
+    public :: core_glob_match            ! Match a string against a '*'-wildcard glob pattern.
+    public :: core_glob_list_excluded    ! First-match-wins exclusion decision over an ordered glob pattern list ('!' keeps).
 
     interface tokenize
         module procedure tokenize_into_first_last
@@ -404,5 +406,94 @@ contains
         get_last_significant_char = n
 
     end function get_last_significant_char
+
+    !> Match `string` against a glob `pattern` in which `*` matches any run of
+    !> characters, including an empty one; every other character, including `?`,
+    !> matches only itself. Trailing blanks in both arguments are not significant
+    !> (leading and embedded blanks are). An empty pattern matches only an empty
+    !> string. (2026-07-02)
+    pure logical function core_glob_match(string, pattern) result(is_match)
+        character(len=*), intent(in) :: string
+        character(len=*), intent(in) :: pattern
+
+        integer :: ls, lp   ! significant lengths of string/pattern
+        integer :: s, p     ! current positions in string/pattern
+        integer :: star_p   ! position of the most recent '*' in pattern (0 = none seen)
+        integer :: star_s   ! string position currently tried as that star's first unmatched character
+
+        ls = len_trim(string)
+        lp = len_trim(pattern)
+
+        s = 1
+        p = 1
+        star_p = 0
+        star_s = 0
+
+        do while (s <= ls)
+            if (p <= lp) then
+                if (pattern(p:p) == '*') then
+                    ! Record the star and first try matching it to nothing
+                    star_p = p
+                    star_s = s
+                    p = p + 1
+                    cycle
+                else if (pattern(p:p) == string(s:s)) then
+                    p = p + 1
+                    s = s + 1
+                    cycle
+                end if
+            end if
+            ! Mismatch: backtrack to the most recent star and extend its match
+            ! by one character; with no star to extend, the match fails.
+            if (star_p > 0) then
+                star_s = star_s + 1
+                s = star_s
+                p = star_p + 1
+            else
+                is_match = .false.
+                return
+            end if
+        end do
+
+        ! String fully consumed; the pattern matches if only stars remain
+        do while (p <= lp)
+            if (pattern(p:p) /= '*') exit
+            p = p + 1
+        end do
+        is_match = (p > lp)
+
+    end function core_glob_match
+
+    !> Decide whether `name` is excluded by an ordered list of glob `patterns`
+    !> (see `core_glob_match`). Patterns are evaluated in order and the FIRST
+    !> pattern whose glob matches decides: a pattern with a leading `!` keeps
+    !> the name (not excluded), any other pattern excludes it. A name matching
+    !> no pattern is not excluded; blank patterns are skipped, so fixed-size
+    !> namelist arrays can be passed directly. This enables gitignore-style
+    !> lists such as ['!aero_post*', 'aero_*'], which excludes the `aero_`
+    !> names except those beginning with `aero_post`. (2026-07-02)
+    pure logical function core_glob_list_excluded(name, patterns) result(excluded)
+        character(len=*), intent(in) :: name
+        character(len=*), intent(in) :: patterns(:)
+
+        integer :: i
+
+        excluded = .false.
+        do i = 1, size(patterns)
+            if (len_trim(patterns(i)) == 0) cycle
+            if (patterns(i)(1:1) == '!') then
+                if (core_glob_match(name, patterns(i)(2:))) then
+                    ! Keep-verb: a match means the name stays compared
+                    return
+                end if
+            else
+                if (core_glob_match(name, patterns(i))) then
+                    excluded = .true.
+                    return
+                end if
+            end if
+        end do
+
+    end function core_glob_list_excluded
 
 end module string_core_utils

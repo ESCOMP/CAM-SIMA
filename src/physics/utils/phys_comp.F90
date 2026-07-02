@@ -31,6 +31,11 @@ module phys_comp
    character(len=SHR_KIND_CS) :: suite_parts_expect(2) = (/"physics_before_coupler", "physics_after_coupler "/)
    character(len=SHR_KIND_CS), allocatable :: suite_parts(:)
    logical                                 :: ncdata_check_err = .false.
+   ! ncdata_check_exclude: ordered glob patterns excluding rows from the
+   ! ncdata_check comparison; first match wins, a leading '!' keeps a
+   ! matching row (see set_check_field_exclusions in physics_data)
+   integer, parameter                      :: max_check_exclude = 200
+   character(len=SHR_KIND_CL)              :: ncdata_check_exclude(max_check_exclude)
    character(len=SHR_KIND_CL)              :: cam_physics_mesh = unset_str
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_before = unset_str
    character(len=SHR_KIND_CS)              :: cam_take_snapshot_after = unset_str
@@ -50,6 +55,7 @@ CONTAINS
       use cam_abortutils,  only: endrun
       use cam_initfiles,   only: unset_path_str
       use cam_ccpp_cap,    only: ccpp_physics_suite_list
+      use physics_data,    only: set_check_field_exclusions
 
       ! filepath for file containing namelist input
       character(len=*), intent(in) :: nlfilename
@@ -62,7 +68,7 @@ CONTAINS
 
       namelist /physics_nl/ ncdata_check, min_difference, min_relative_value,&
          cam_take_snapshot_before, cam_take_snapshot_after, cam_physics_mesh,&
-         physics_suite, ncdata_check_err
+         physics_suite, ncdata_check_err, ncdata_check_exclude
 
       ! Initialize namelist variables to invalid values
       min_difference           = HUGE(1.0_kind_phys)
@@ -73,6 +79,7 @@ CONTAINS
       ncdata_check             = unset_path_str
       physics_suite            = unset_str
       ncdata_check_err         = .false.
+      ncdata_check_exclude(:)  = ''
 
       ! Read namelist
       if (masterproc) then
@@ -104,6 +111,12 @@ CONTAINS
         mpi_character, masterprocid, mpicom, ierr)
       call mpi_bcast(ncdata_check_err, 1, mpi_logical, masterprocid,       &
         mpicom, ierr)
+      call mpi_bcast(ncdata_check_exclude,                                 &
+        len(ncdata_check_exclude(1))*max_check_exclude, mpi_character,     &
+        masterprocid, mpicom, ierr)
+
+      ! Store the check-exclusion patterns for use by check_field
+      call set_check_field_exclusions(ncdata_check_exclude)
 
       ! Check that the listed physics suite is actually present
       ! in the CCPP physics suite list:
@@ -134,6 +147,15 @@ CONTAINS
                min_difference
             write(iulog,*) 'Value Under Which Absolute Difference Calculated: ', &
                min_relative_value
+            if (any(len_trim(ncdata_check_exclude) > 0)) then
+               write(iulog,*) '    Rows excluded from the check by pattern ', &
+                  '(first match wins, ''!'' keeps):'
+               do i = 1, max_check_exclude
+                  if (len_trim(ncdata_check_exclude(i)) > 0) then
+                     write(iulog,*) '      ', trim(ncdata_check_exclude(i))
+                  end if
+               end do
+            end if
          else
             write(iulog,*) '  Physics data check will not be performed'
          end if

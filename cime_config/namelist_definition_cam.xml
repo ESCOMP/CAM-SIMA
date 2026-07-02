@@ -206,6 +206,39 @@
       <value>.false.</value>
     </values>
   </entry>
+  <entry id="ncdata_check_exclude">
+    <type>char*256(200)</type>
+    <category>initial_conditions</category>
+    <group>physics_nl</group>
+    <desc>
+      Ordered list of glob patterns ('*' matches any run of characters)
+      excluding variables from the `{{ hilight }}ncdata_check{{ closehilight }}`
+      comparison, matched against the name each row is reported under in the
+      physics check output (for constituent-dimensioned variables, the
+      per-constituent file variable name).
+
+      gitignore-style keep is supported:
+      A pattern with a leading '!' keeps (still compares) the name, any other pattern excludes it;
+      names matching no pattern are compared.
+      The first pattern that matches a name decides.
+
+      Example: '!aerochem_vmr_post*', 'aerochem_vmr_*' excludes the aerochem_vmr rows except the aerochem_vmr_post* ones.
+
+      Excluded rows are listed in the check output and are not silently dropped.
+
+      This is intended to be used in conjunction with ncdata_check_err=.true. in testmods to exclude any expected
+      differences (i.e., where some variables are not to be compared against this snapshot) by design,
+      this would allow for a hard pass/fail test despite such expected differences.
+
+      Such exclusions should be annotated with a reason next to the ncdata_check_exclude
+      clause in the testmod user_nl_cam.
+
+      Default: '' (no exclusions)
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
   <entry id="min_difference">
     <type>real</type>
     <category>diagnostics</category>
