@@ -62,12 +62,16 @@ contains
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_ndep_mod      , only : shr_ndep_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
+    use drydep_coupling   , only : drydep_coupling_set_nflds
 
     character(len=*), parameter :: nl_file_name = 'drv_flds_in'
 
     ! read mediator fields options
     call shr_ndep_readnl(nl_file_name, ndep_nflds)
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
+    ! Mirror the dry deposition field count for physics; registry fields
+    ! dimensioned by it are allocated later, during physics initialization
+    call drydep_coupling_set_nflds(drydep_nflds)
     call shr_megan_readnl(nl_file_name, megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
@@ -693,9 +697,6 @@ contains
     end if
 #endif
 
-#if 0
-! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species)
-! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -706,7 +707,6 @@ contains
           end do
        end do
     end if
-#endif
 
 #if 0
 ! Commented out until water isotopes or carbon cycle fluxes are implemented in CAM-SIMA
