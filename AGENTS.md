@@ -2,7 +2,15 @@
 
 This file applies to work in the **CAM-SIMA** ("host model") and **atmospheric_physics** (CCPP-compliant physics schemes, submoduled at `src/physics/ncar_ccpp`). atmospheric_physics is submoduled into CAM-SIMA but must remain portable — it contains the science codebase for physics parameterizations and is also shared with **CAM**, the production atmospheric component of CESM.
 
-Full conversion and usage documentation is hosted at https://escomp.github.io/CAM-SIMA-docs/ (separate `CAM-SIMA-docs` repo; not checked out alongside the code).
+Full conversion and usage documentation is hosted at https://escomp.github.io/CAM-SIMA-docs/ (separate `CAM-SIMA-docs` repo; not checked out alongside the code). Scheme-side conventions and portability rules live in atmospheric_physics' own `AGENTS.md` (at `src/physics/ncar_ccpp/AGENTS.md` when the submodule is checked out).
+
+## If you remember nothing else
+
+1. **Never hand-edit generated files**. Modify the generator inputs instead (see [the table below](#auto-generated-code-by-the-cam-sima-host-model-or-ccpp-framework)).
+2. **Code under `src/physics/ncar_ccpp` stays portable**: no host-model `use` statements in schemes.
+3. **Every PR states its answer impact.** The default for ports, refactors, and cleanups is bit-for-bit: do not reorder floating-point arithmetic, change parenthesization, or "simplify" expressions as a side effect of other work.
+4. **Never invent CCPP standard names silently** — reuse blessed names and flag any new name in the PR (see [Standard names](#ccpp-standard-names)).
+5. **Full builds and regression tests run only on NCAR clusters** (Derecho/Izumi). Unless the user says they are on one, verify with unit tests and hand off.
 
 ## AI disclosure
 
@@ -27,6 +35,7 @@ The **atmospheric_physics** portable CCPP physics:
 - **Exception:** `schemes/sima_diagnostics/` is a non-portable directory centralizing CAM-SIMA-specific history output. Code outside `sima_diagnostics/` that calls `cam_history` routines is a bug.
 - If a scheme under `atmospheric_physics` depends on a CAM-SIMA host side quantity, it receives it as a subroutine argument threaded through via standard names, not via a `use` statement to a CAM module.
 - Is intended to be portable to any CCPP-enabled host model.
+- Scheme conventions, portability rules, and scheme-side exemplars: see its own `AGENTS.md` and `Code-style.md` (the latter applies to CAM-SIMA host Fortran as well).
 
 ### Other key differences
 
@@ -48,26 +57,21 @@ Learn the current conventions in the following files, which may be preferred ove
 * Host-side registry: `src/data/registry.xml`
 * Host-side metadata: `src/data/physconst.meta`, `src/physics/utils/physics_grid.meta`
 * Host-side input of gridded/decomposed files threaded to CCPP scheme: `src/physics/utils/gravity_wave_drag_ridge_read.{F90,meta}`
-* Minimal CCPP scheme: `atmospheric_physics/schemes/cloud_fraction/convective_cloud_cover.F90`.
-* Scheme with namelist XML: `atmospheric_physics/schemes/vertical_diffusion/vertical_diffusion_sponge_layer.{F90,meta}`, `atmospheric_physics/schemes/vertical_diffusion/vertical_diffusion_sponge_layer_namelist.xml`.
-* Test (i.e., single physics scheme) SDFs are located in `atmospheric_physics/test/test_suites`; production (i.e., CAM4, CAM5, CAM7) SDFs are located in `atmospheric_physics/suites`.
+* Scheme-side exemplars (minimal scheme, namelist XML, diagnostics, SDF locations): see atmospheric_physics `AGENTS.md`.
 
-## Key CCPP scheme conventions
+## CCPP standard names
 
-- Subroutine names are `<scheme_name>_<phase>`; generally, the module name is the scheme name, although one file may contain multiple schemes (e.g., `physics_tendency_updaters.F90`).
-- Valid phases: `register`, `init`, `timestep_init`, `run`, `timestep_final`, `final`. All phases are optional.
-- Every phase subroutine has `errmsg` and `errflg` (or `errcode`) as `intent(out)`.
-- Two required Doxygen lines precede each subroutine. Current form uses the `arg_table_` prefix on the html:
-  ```
-  !> \section arg_table_<scheme>_<phase> Argument Table
-  !! \htmlinclude arg_table_<scheme>_<phase>.html
-  ```
-  Older schemes omit the `arg_table_` prefix on the html file but you should use the new convention.
-- Explicit module-level `save` is not needed. Module-level variables have implicit `SAVE` per the Fortran standard. Recent refactors have been removing redundant explicit `save` statements.
-- Do not initialize local variables on declaration lines (invokes implicit `SAVE`, which is not thread-safe). Initialize in the executable section.
-- Place `use` statements at module level only for symbols needed by module-level declarations; all other `use` statements go inside the `subroutine` scope.
-- Every CCPP scheme subroutine argument must have a corresponding entry in the companion `.meta` file with a valid standard name. A mismatch between the Fortran arguments and the `.meta` entries is the most common source of capgen errors.
-- Constituent registration (declaring advected or non-advected constituents) happens in the `_register` phase, not `_init`. The `_register` phase runs before `_init` and before constituent indices are available.
+The standard name is the interface: the CCPP framework connects host variables and scheme arguments by exact standard-name match, and every entry in a `.meta` file (host or scheme) requires one.
+
+- **Reuse before coining.** Search `src/data/registry.xml` and recently converted schemes under `src/physics/ncar_ccpp` for current, blessed usage. The official dictionary ([ESCOMP/CCPPStandardNames](https://github.com/ESCOMP/CCPPStandardNames)) is authoritative but lags current usage.
+- If a new name is unavoidable, follow the naming patterns of existing names and **flag it explicitly in the PR description** for CAM SE review. Units must be consistent with existing usage.
+- The horizontal dimension standard name depends on phase: `horizontal_dimension` in non-`run` phases (and in host-side metadata), `horizontal_loop_extent` in the `run` phase.
+- Vertical dimensions: `vertical_layer_dimension` (layers) and `vertical_interface_dimension` (interfaces).
+- `errmsg`/`errflg` are `ccpp_error_message`/`ccpp_error_code`.
+
+## Code style
+
+Fortran style rules (which apply to host code too) are distilled in atmospheric_physics `Code-style.md`; the full standards are at https://escomp.github.io/CAM-SIMA-docs/development/cam-coding-standards/. Python must pass pylint (see [Testing](#testing)) and follow the black code style.
 
 ## Variable persistence: registry vs CCPP framework
 
@@ -78,6 +82,7 @@ Learn the current conventions in the following files, which may be preferred ove
 
 - **CAM-SIMA** PRs target `development`; **atmospheric_physics** PRs target `main` (its `development` branch is deprecated). Branch from a personal fork — never push branches under `ESCOMP`.
 - Feature branches are squash-merged into the target branch. Do not add `simaX_YY_ZZZ` version tags to commit subjects (as seen in `git log`); those are applied only at release time, and only when regression tests change answers.
+- **Every PR states whether it changes answers.** Bit-for-bit is the default expectation for ports, refactors, and cleanups — and it is what snapshot and regression testing verify. An intentional answer change needs scientific justification in the PR; an accidental one (reordered arithmetic, changed parenthesization, a "simplified" expression) is a bug.
 
 ## CIME build system, not CMake
 
@@ -108,9 +113,10 @@ These files live under `$CASE/bld/atm/obj/` and are regenerated every build and 
 | CAM-SIMA Python unit tests | `pytest test/unit/` | Fast; covers build scripts |
 | CAM-SIMA pylint | `pylint --rcfile=test/.pylintrc <files>` | Must score ≥ 9.5 |
 | CAM-SIMA Fortran unit tests | `cmake -S test/unit/fortran -B build/unit-tests -DCAM_SIMA_ENABLE_TESTS=ON -DCMAKE_PREFIX_PATH=<pfunit>/build/installed && cd build/unit-tests && make && ctest` | Requires pFUnit and OpenMP C support (Linux/HPC; macOS default clang lacks OpenMP C) |
-| atmospheric_physics pFUnit | `cmake -DCMAKE_PREFIX_PATH=<pfunit>/build/installed -DATMOSPHERIC_PHYSICS_ENABLE_TESTS=ON -S ./test/unit-test -B ./build && cd build && make && ctest -V` | |
 
-pFUnit tests live at `test/unit-test/tests/<path>/test_<module>.pf` mirroring the scheme location.
+atmospheric_physics scheme unit tests (pFUnit) run from that repo — see its `AGENTS.md`.
+
+Some Python tests (e.g., `test/unit/python/test_write_init_files.py`) compare generated Fortran against reference files with `filecmp` and will fail whenever generator output legitimately changes. To update: run the test, inspect the newly generated files under `test/unit/python/tmp/` to verify they are correct, then copy them over the corresponding references in `test/unit/python/sample_files/`.
 
 ### What you cannot run (CIME regression tests)
 
