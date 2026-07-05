@@ -409,7 +409,8 @@ contains
   subroutine get(self, bin_ndx, species_ndx, density, hygro, spec_mw, &
                  spectype, specname, specmorph, refindex_sw, refindex_lw, num_to_mass_aer, &
                  dryrad)
-    use cam_abortutils, only: endrun
+    use cam_abortutils,   only: endrun
+    use cam_constituents, only: const_get_index, const_molec_weight
 
     class(modal_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx             ! bin index
@@ -425,12 +426,22 @@ contains
     real(r8), optional, intent(out) :: num_to_mass_aer ! ratio of number to mass concentration
     real(r8), optional, intent(out) :: dryrad  ! dry radius (m)
 
+    character(len=aero_name_len) :: lcl_specname
+    integer :: cnst_idx
+
     call rad_aer_get_props(self%list_idx_, bin_ndx, species_ndx, &
                                 density_aer=density, hygro_aer=hygro, spectype=spectype, &
                                 refindex_aer_sw=refindex_sw, refindex_aer_lw=refindex_lw)
 
     if (present(spec_mw)) then
-       call endrun('modal_aerosol_properties_mod%get: spec_mw not implemented (requires specmw_amode)')
+       ! Species molar mass (CAM specmw_amode, g mol-1). CAM reads specmw_amode
+       ! = cnst_mw for the interstitial constituent of this (mode, species); the
+       ! SIMA equivalent resolves that constituent and reads its registered
+       ! molar_mass. const_molec_weight returns kg mol-1; *1e3 -> g mol-1 matches
+       ! CAM cnst_mw (and mam_mode_metadata's specmw_amode_arr) bitwise.
+       call rad_aer_get_info(self%list_idx_, bin_ndx, species_ndx, spec_name=lcl_specname)
+       call const_get_index(lcl_specname, cnst_idx, abort=.true.)
+       spec_mw = const_molec_weight(cnst_idx) * 1.0e3_r8
     end if
 
     if (present(specname)) then
