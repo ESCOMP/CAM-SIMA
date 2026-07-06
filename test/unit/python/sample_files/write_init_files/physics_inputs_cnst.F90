@@ -36,6 +36,7 @@ contains
       use physics_data,              only: read_constituent_dimensioned_field
       use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                only: kind_phys
+      use string_utils,              only: to_lower, to_upper
       use phys_vars_init_check_cnst, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_logfile,               only: iulog
@@ -181,25 +182,31 @@ contains
          var_found = .false.
          ! Check if constituent standard name in registered SIMA standard names list:
          call const_props(constituent_idx)%standard_name(std_name)
-         if(any(phys_var_stdnames == trim(std_name))) then
+         ! Find array index to extract correct input names
+         ! (case-insensitive: see find_input_name_idx):
+         const_input_idx = -1
+         do n=1, phys_var_num
+            if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then
+               const_input_idx = n
+               exit
+            end if
+         end do
+         if(const_input_idx > 0) then
             ! Don't read the variable in if it's already initialized
             if (is_initialized(std_name)) then
                cycle
             end if
-            ! Find array index to extract correct input names:
-            do n=1, phys_var_num
-               if(trim(phys_var_stdnames(n)) == trim(std_name)) then
-                  const_input_idx = n
-                  exit
-               end if
-            end do
             call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
                 mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          else
             ! If not in standard names list, then attempt constituent name
-            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:
-            call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', &
-                timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.
+            ! Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,
+            ! so also try the all-upper and all-lower case spellings of the constituent name:
+            call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), &
+                to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), &
+                'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+                mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          end if
          if(.not. var_found) then
             constituent_has_default = .false.
@@ -229,6 +236,7 @@ contains
       use cam_ccpp_cap,              only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use cam_constituents,          only: const_get_index
       use ccpp_kinds,                only: kind_phys
+      use string_utils,              only: to_lower, to_upper
       use cam_logfile,               only: iulog
       use spmd_utils,                only: masterproc
       use phys_vars_init_check,      only: is_read_from_file
@@ -358,14 +366,16 @@ contains
       do constituent_idx = 1, size(const_props)
          ! Check if constituent standard name in registered SIMA standard names list:
          call const_props(constituent_idx)%standard_name(std_name)
-         if(any(phys_var_stdnames == std_name)) then
-            ! Find array index to extract correct input names:
-            do n=1, phys_var_num
-               if(trim(phys_var_stdnames(n)) == trim(std_name)) then
-                  const_input_idx = n
-                  exit
-               end if
-            end do
+         ! Find array index to extract correct input names
+         ! (case-insensitive: see find_input_name_idx):
+         const_input_idx = -1
+         do n=1, phys_var_num
+            if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then
+               const_input_idx = n
+               exit
+            end if
+         end do
+         if(const_input_idx > 0) then
             call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, &
                 min_difference, min_relative_value, is_first, diff_found)
             if (diff_found) then
@@ -373,9 +383,13 @@ contains
             end if
          else
             ! If not in standard names list, then attempt constituent name
-            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:
-            call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, &
-                field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)
+            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.
+            ! Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,
+            ! so also try the all-upper and all-lower case spellings of the constituent name:
+            call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), &
+                'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), &
+                'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, &
+                min_relative_value, is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if
