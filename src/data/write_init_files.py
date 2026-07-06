@@ -132,7 +132,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -306,7 +306,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
     return missing_vars
 
 ##############################################################################
-def gather_ccpp_req_vars(cap_database, registry_constituents):
+def gather_ccpp_req_vars(cap_database):
     """
     Generate a list of host-model and constituent variables
     required by the CCPP physics suites potentially being used
@@ -329,11 +329,6 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
     # Host model dictionary
     host_dict = cap_database.host_model_dict()
 
-    # Case-insensitive registry-constituent lookup: capgen normalizes scheme
-    # standard names to lowercase, while registry declarations keep their
-    # authored case (e.g. 'CO2'), and standard names are case-insensitive.
-    registry_constituents_ci = {c.lower() for c in registry_constituents}
-
     # Create CCPP datatable required variables-listing object:
     # XXgoldyXX: Choose only some phases here?
     for phase in CCPP_STATE_MACH.transitions():
@@ -345,10 +340,21 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
                 (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
-                    #Add variable to constituent set:
                     constituent_vars.add(stdname)
-                    #Add variable to required variable list if it's not a registry constituent
-                    if stdname.lower() not in registry_constituents_ci:
+                    if cvar.get_prop_value('advected'):
+                        # Advected constituents are allocated/registered by the
+                        # constituents object and read via the runtime
+                        # constituent loop (registry ic_file_input_names or
+                        # the cnst_/pbuf_ fallback).  Do NOT add them to the
+                        # host-variable list: that gives them a
+                        # phys_var_stdnames row keyed to the scheme's local
+                        # name, which never matches a CAM snapshot field and
+                        # would pre-empt the fallback.
+                        pass
+                    else:
+                        # Constituent-related but not advected (e.g. tendency
+                        # variables): these are read as regular host variables,
+                        # not through the constituent loop.
                         in_vars[stdname] = cvar
                     # end if
                 else:
@@ -477,11 +483,9 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
 
     # Create the correct number (<ic_name_num>) of initial-value strings
     #    for each variable with the proper length, <stdname_max_len>:
-    # Case-insensitive: see gather_ccpp_req_vars
-    registry_constituents_ci = {c.lower() for c in registry_constituents}
     for hvar in host_vars:
         var_stdname = hvar.get_prop_value('standard_name')
-        if var_stdname.lower() in registry_constituents_ci:
+        if var_stdname in registry_constituents:
             # skip registry constituents; we'll tackle these after
             continue
         # end if
