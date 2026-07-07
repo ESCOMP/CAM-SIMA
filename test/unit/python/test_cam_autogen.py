@@ -382,8 +382,8 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         """Check that "_find_metadata_files" works properly if given the proper inputs."""
 
         #Copy test files into test SourceMods directory:
-        test_meta = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.meta")
-        test_src = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.F90")
+        test_meta = os.path.join(self.test_suite_path, "shared", "temp_adjust.meta")
+        test_src = os.path.join(self.test_suite_path, "shared", "temp_adjust.F90")
 
         shutil.copy2(test_meta, self.test_src_mods_dir)
         shutil.copy2(test_src, self.test_src_mods_dir)
@@ -574,9 +574,9 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         """Check that "generate_physics_suites" works properly if given the proper inputs"""
 
         #Copy test files into test SourceMods directory:
-        test_suite = os.path.join(self.test_suite_path, "write_init_files", "suite_simple.xml")
-        test_meta  = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.meta")
-        test_src  = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.F90")
+        test_suite = os.path.join(self.test_suite_path, "shared", "suite_simple.xml")
+        test_meta  = os.path.join(self.test_suite_path, "shared", "temp_adjust.meta")
+        test_src  = os.path.join(self.test_suite_path, "shared", "temp_adjust.F90")
 
         shutil.copy2(test_suite, self.test_src_mods_dir)
         shutil.copy2(test_meta, self.test_src_mods_dir)

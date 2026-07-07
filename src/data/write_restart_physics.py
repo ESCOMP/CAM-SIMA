@@ -182,16 +182,13 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     # Gather up dimension imports
     dim_use_stmts = []
     dims = []
-    for key, value in dim_use_stmt_dict.items():
+    for key in sorted(dim_use_stmt_dict):
         imports = []
-        dim_use_stmt = []
-        for var_import in value:
-            imports.append(f"{var_import}")
-            dims.append(f"{var_import}")
+        for var_import in sorted(dim_use_stmt_dict[key]):
+            imports.append(var_import)
+            dims.append(var_import)
         # end for
-        dim_use_stmt.append(key)
-        dim_use_stmt.append(imports)
-        dim_use_stmts.append(dim_use_stmt)
+        dim_use_stmts.append([key, imports])
     # end for
 
     # Output required, registered Fortran module use statements:
@@ -322,7 +319,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     write_use_statements(outfile, use_stmts, 2)
     write_use_statements(outfile, dim_use_stmts, 2)
 
-    for var in used_vars:
+    for var in sorted(used_vars):
         outfile.write(f"use physics_types, only: {var}", 2)
     # end for
 
@@ -451,7 +448,6 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
     in_vars = {}
     out_vars = {}
     missing_vars = set()
-    constituent_vars = set()
     retmsg = ""
     # Host model dictionary
     host_dict = cap_database.host_model_dict()
@@ -467,8 +463,6 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
                 (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
-                    #Add variable to constituent set:
-                    constituent_vars.add(stdname)
                     #Add variable to required variable list if it's not a registry constituent
                     if stdname not in registry_constituents:
                         in_vars[stdname] = cvar

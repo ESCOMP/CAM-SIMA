@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<suite name="simple_suite" version="1.0">
+  <group name="physics">
+    <scheme>temp_adjust</scheme>
+  </group>
+</suite>

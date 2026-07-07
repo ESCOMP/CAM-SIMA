@@ -579,6 +579,10 @@ class Variable(VarBase):
         self.__def_dims_str = ""
         for attrib in var_node:
             if attrib.tag == 'dimensions':
+                if not attrib.text:
+                    emsg = f"Variable '{local_name}' cannot be a restart variable without any dimensions."
+                    raise CCPPError(emsg)
+                # end if
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
                 def_dims = [] # Dims used for variable declarations
                 for dim in my_dimensions:
