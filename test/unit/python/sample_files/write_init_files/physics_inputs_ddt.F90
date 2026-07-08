@@ -196,9 +196,10 @@ contains
             call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
                 mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          else
-            ! If not in standard names list, then just use constituent name as input file name:
-            call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., &
-                error_on_not_found=.false., var_found=var_found)
+            ! If not in standard names list, then attempt constituent name
+            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:
+            call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', &
+                timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          end if
          if(.not. var_found) then
             constituent_has_default = .false.
@@ -371,9 +372,10 @@ contains
                overall_diff_found = .true.
             end if
          else
-            ! If not in standard names list, then just use constituent name as input file name:
-            call check_field(file, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, &
-                is_first, diff_found)
+            ! If not in standard names list, then attempt constituent name
+            ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:
+            call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, &
+                field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if
