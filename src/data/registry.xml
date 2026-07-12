@@ -765,7 +765,7 @@
               standard_name="surface_upward_dust_fluxes_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
+      <dimensions>horizontal_dimension dust_size_bin_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
     </variable>
@@ -1496,6 +1496,18 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
+    </variable>
+
+    <!-- Aerosol model properties -->
+    <variable local_name="ndust"
+              standard_name="dust_size_bin_dimension"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>number of dust size bins used in aerosol model</long_name>
+      <initial_value>4</initial_value>
+      <!-- this is not runtime configurable, and
+           not even easily compile-time configurable, because the assumption that
+           there are four dust bins is deeply embedded in the microphysics and
+           coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
     </variable>
 
     <!-- Gravity wave variables - need to be kept in the CAM registry -->

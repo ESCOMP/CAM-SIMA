@@ -651,19 +651,6 @@ contains
        end if
     end if
 
-    ! dry deposition fluxes from land
-    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (exists) then
-       if ( associated(cam_in%dstflx) ) then
-          do i = 1, columns_on_task
-             do n = 1, size(fldptr2d, dim=1)
-                cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
-             end do
-          end do
-       end if
-    end if
-
     ! MEGAN VOC emis fluxes from land
     call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -704,6 +691,17 @@ contains
        do i = 1, columns_on_task
           do n = 1, size(fldptr2d, dim=1)
              cam_in%depvel(i,n) = fldptr2d(n,i)
+          end do
+       end do
+    end if
+
+    ! dust emission fluxes from land
+    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          do n = 1, size(fldptr2d, dim=1)
+             cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
           end do
        end do
     end if
