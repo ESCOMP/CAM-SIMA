@@ -565,6 +565,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use dimensions_mod,     only: ksponge_end, kmvis_ref, kmcnd_ref,rho_ref,km_sponge_factor
    use dimensions_mod,     only: cnst_name_gll, cnst_longname_gll, use_cslam
    use dimensions_mod,     only: irecons_tracer_lev, irecons_tracer, kord_tr, kord_tr_cslam
+   use dimensions_mod,     only: qmin_cslam
    use prim_driver_mod,    only: prim_init2
    use se_dyn_time_mod,    only: time_at
    use control_mod,        only: runtype, nu_top, molecular_diff
@@ -682,6 +683,17 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      kord_tr_cslam(:) = vert_remap_tracer_alg
+
+     allocate(qmin_cslam(ntrac), stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'qmin_cslam(ntrac)', &
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+     ! CSLAM indexes its tracers 1:ntrac (advected constituents only), while
+     ! const_qmin takes a constituent index, so translate here rather than
+     ! inside the dycore.
+     do m = 1, ntrac
+       qmin_cslam(m) = const_qmin(advected_constituent_index(m))
+     end do
    end if
 
    do m=1,qsize
@@ -701,7 +713,14 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
        ! note that in this case qsize = thermodynamic_active_species_num
        !
        thermodynamic_active_species_idx_dycore(m) = m
-       kord_tr_cslam(thermodynamic_active_species_idx(m)) = vert_remap_uvTq_alg
+       ! kord_tr_cslam is in CSLAM tracer index space (1:ntrac), so map this
+       ! species constituent index into it instead of indexing it directly.
+       do mfound = 1, ntrac
+         if (advected_constituent_index(mfound) == thermodynamic_active_species_idx(m)) then
+           kord_tr_cslam(mfound) = vert_remap_uvTq_alg
+           exit
+         end if
+       end do
        kord_tr(m)                                 = vert_remap_uvTq_alg
        cnst_name_gll    (m)                       = const_name    (thermodynamic_active_species_idx(m))
        cnst_longname_gll(m)                       = const_longname(thermodynamic_active_species_idx(m))

@@ -52,6 +52,11 @@ module dimensions_mod
 
   integer, allocatable, public :: kord_tr(:), kord_tr_cslam(:)
 
+  ! Minimum mixing ratio of each CSLAM tracer, in CSLAM tracer index space
+  ! (1:ntrac, advected constituents only).
+  ! The mapping is done in dyn_comp from the host constituent index space.
+  real(r8), allocatable, public :: qmin_cslam(:)
+
   real(r8), allocatable, public :: nu_scale_top(:) ! scaling of del2 viscosity in sponge layer (initialized in dyn_comp)
   real(r8), allocatable, public :: nu_lev(:)       ! level dependent del4 (u,v) damping
   real(r8), allocatable, public :: nu_t_lev(:)     ! level dependent del4 T damping
