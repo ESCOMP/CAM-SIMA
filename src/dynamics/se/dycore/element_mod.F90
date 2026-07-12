@@ -401,7 +401,7 @@ contains
 
     ! Allocate the SE element arrays using the pre-calculated SE dimensions
 
-    use dimensions_mod, only: nc, nlev, nlevp, qsize_d, ntrac
+    use dimensions_mod, only: nc, nlev, nlevp, qsize_d, ntrac, use_cslam
 
     !Dummy arguments:
     type(element_t), intent(inout) :: elem(:)
@@ -438,9 +438,19 @@ contains
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Tracer mass
-      allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret, errmsg=errmsg)
-      call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,2)', &
-                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      ! With CSLAM the tracers are advected on the fvm grid and the GLL Qdp is
+      ! only refreshed from it, so Qdp does not time-rotate and a single
+      ! timelevel is allocated.
+      ! TimeLevel_Qdp pins n0/np1 to 1 when use_cslam = .true.:
+      if (use_cslam) then
+        allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,1), stat=iret, errmsg=errmsg)
+        call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,1)', &
+                            file=__FILE__, line=__LINE__, errmsg=errmsg)
+      else
+        allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,2), stat=iret, errmsg=errmsg)
+        call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,2)', &
+                            file=__FILE__, line=__LINE__, errmsg=errmsg)
+      end if
 
       !--------------------------
 
