@@ -110,16 +110,18 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
             outfile.write(f"type(var_desc_t), allocatable :: {value['diag_name'].lower()}_desc(:)", 1)
         # end for
 
+        outfile.write("type(var_desc_t), allocatable :: cnst_desc(:)", 1)
+
         # Add "contains" statement:
         outfile.end_module_header()
 
         # Write the restart init subroutine
         outfile.blank_line()
-        dim_use_stmts, dims = write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
+        dim_use_stmts, dimensions_dict = write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
 
         # Write the restart write subroutine
         outfile.blank_line()
-        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dims)
+        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dimensions_dict)
 
         # Write the restart read subroutine
         outfile.blank_line()
@@ -138,16 +140,21 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("subroutine restart_physics_init(file, errmsg, errflg)", 1)
 
     dimensions_dict = {}
-    num_dimensions = 0
+    num_dimensions = 2
     dim_use_stmt_dict = {}
+    excluded_dims = ['horizontal_loop_extent']
+
+    # First add default dimensions (ncol, lev) - needed for constituent handling regardless of other fields
+    dimensions_dict['horizontal_dimension'] = {'local_name': 'ncol', 'index': 1, 'size': 'num_global_phys_cols', 'import': 'columns_on_task'}
+    dimensions_dict['vertical_layer_dimension'] = {'local_name': 'lev', 'index': 2, 'size': 'pver', 'import': 'pver'}
 
     # Find all unique dimensions
     for _, value in required_vars.items():
         for dimension in value['dims']:
             dim_name = dimension.split(':')[1]
-            if dim_name not in dimensions_dict:
+            if dim_name not in dimensions_dict and dim_name not in excluded_dims:
                 var = host_dict.find_variable(dim_name)
-                dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1}
+                dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1, 'size':'', 'import': var.get_prop_value('local_name')}
                 num_dimensions = num_dimensions + 1
                 # Add dimension to use statement dictionary
                 if var.source.name not in dim_use_stmt_dict:
@@ -160,9 +167,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     for _, value in constituent_dimmed_vars.items():
         for dimension in value['dims']:
             dim_name = dimension.split(':')[1]
-            if dim_name not in dimensions_dict and dim_name != 'number_of_ccpp_constituents':
+            if dim_name not in dimensions_dict and dim_name not in excluded_dims and dim_name != 'number_of_ccpp_constituents':
                 var = host_dict.find_variable(dim_name)
-                dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1}
+                dimensions_dict[dim_name] = {'local_name': var.get_prop_value('local_name'), 'index': -1, 'size':'', 'import': var.get_prop_value('local_name')}
                 num_dimensions = num_dimensions + 1
                 # Add dimension to use statement dictionary
                 if var.source.name not in dim_use_stmt_dict:
@@ -175,18 +182,16 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
 
     static_use_stmts = [["pio", ["file_desc_t", "pio_double"]],
                  ["cam_pio_utils", ["cam_pio_def_dim", "cam_pio_def_var"]],
-                 ["cam_ccpp_cap", ["cam_model_const_properties"]],
+                 ["cam_ccpp_cap", ["cam_model_const_properties", "cam_constituents_array"]],
                  ["physics_grid", ["num_global_phys_cols"]],
                  ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]]]
 
     # Gather up dimension imports
-    dim_use_stmts = []
-    dims = []
+    dim_use_stmts = [['vert_coord', ['pver']], ['physics_grid', ['columns_on_task']]]
     for key in sorted(dim_use_stmt_dict):
         imports = []
         for var_import in sorted(dim_use_stmt_dict[key]):
             imports.append(var_import)
-            dims.append(var_import)
         # end for
         dim_use_stmts.append([key, imports])
     # end for
@@ -203,6 +208,8 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.comment("Local variables", 2)
     outfile.write("integer, allocatable :: dimids(:)", 2)
     outfile.write("integer :: constituent_idx", 2)
+    outfile.write("integer :: nonadvected_idx", 2)
+    outfile.write("logical :: advected", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
     outfile.write("character(len=256) :: const_diag_name", 2)
 
@@ -215,34 +222,36 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("return", 3)
     outfile.write("end if", 2)
 
-    dim_index = 1
+    # Define static dimensions
+    outfile.write(f"call cam_pio_def_dim(file, 'ncol', num_global_phys_cols, dimids(1), existOK=.true.)", 2)
+    outfile.write(f"call cam_pio_def_dim(file, 'lev', pver, dimids(2), existOK=.true.)", 2)
 
-    outfile.comment("Define required restart variables on the restart file", 2)
+    # Start at 3; index=1 is ncol, index=2 is lev
+    dim_index = 3
     for key, value in required_vars.items():
         hdimids = []
         for dimension in value['dims']:
             dimname = dimension.split(':')[1]
             if dimensions_dict[dimname]['index'] < 0:
                 outfile.comment(f"Define potentially new dimension '{dimname}'", 2)
-                if dimname == 'horizontal_dimension':
-                    dim_loc_name = 'ncol'
-                    dimsize = 'num_global_phys_cols'
-                elif dimname == 'vertical_layer_dimension':
-                    dim_loc_name = 'lev'
-                    dimsize = 'pver'
-                elif dimname == 'vertical_interface_dimension':
-                    dim_loc_name = 'ilev'
-                    dimsize = 'pverp'
-                else:
+                if dimname == 'vertical_interface_dimension':
+                    dimensions_dict[dimname]['local_name'] = 'ilev'
+                    dimensions_dict[dimname]['size'] = 'pverp'
+                    dimensions_dict[dimname]['index'] = dim_index
+                    dim_index = dim_index + 1
+                # Skip ncol, pver; handled by default
+                elif dimname not in ('horizontal_dimension', 'vertical_dimension'):
                     dim_loc_name = dimensions_dict[dimname]['local_name']
-                    dimsize = dim_loc_name
+                    dimensions_dict[dimname]['size'] = dim_loc_name
+                    dimensions_dict[dimname]['index'] = dim_index
+                    dim_index = dim_index + 1
                 # end if
-                outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2) # grab use statements for phys variables for nonstandard dimensions!
-                dimensions_dict[dimname]['index'] = dim_index
-                dim_index = dim_index + 1
+                outfile.write(f"call cam_pio_def_dim(file, '{dimensions_dict[dimname]['local_name']}', {dimensions_dict[dimname]['size']}, dimids({dimensions_dict[dimname]['index']}), existOK=.true.)", 2)
             # end if
             hdimids.append(dimensions_dict[dimname]['index'])
         # end for
+        outfile.blank_line()
+        outfile.comment("Define required restart variables on the restart file", 2)
         desc_name = f"{value['diag_name'].lower()}_desc"
         dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
         outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}', pio_double, (/{dimids_array}/), {desc_name}, existOK=.false.)", 2)
@@ -276,7 +285,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
                         else:
                             dim_loc_name = dimensions_dict[dimname]['local_name']
                         # end if
-                        outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2) # grab use statements for phys variables for nonstandard dimensions!
+                        outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2)
                         dimensions_dict[dimname]['index'] = dim_index
                         dim_index = dim_index + 1
                     # end if
@@ -299,10 +308,29 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
         # end for
     # end if
 
-    outfile.write("end subroutine restart_physics_init", 1)
-    return dim_use_stmts, dims
+    # Handle non-advected constituent variables
+    outfile.blank_line()
+    outfile.comment(f"Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
+    outfile.comment("Allocate cnst_desc to total size of constituents array; some will be unused", 2)
+    outfile.write("allocate(cnst_desc(size(const_props)))", 2)
+    outfile.write("nonadvected_idx = 1", 2)
+    hdimids = []
+    hdimids.append(dimensions_dict['horizontal_dimension']['index'])
+    hdimids.append(dimensions_dict['vertical_layer_dimension']['index'])
+    dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
+    outfile.write("do constituent_idx = 1, size(const_props)", 2)
+    outfile.write("call const_props(constituent_idx)%is_advected(advected)", 3)
+    outfile.write("if (.not. advected) then", 3)
+    outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 4)
+    outfile.write(f"call cam_pio_def_var(file, trim(const_diag_name), pio_double, (/{dimids_array}/), cnst_desc(nonadvected_idx), existOK=.false.)", 4)
+    outfile.write("nonadvected_idx = nonadvected_idx + 1", 4)
+    outfile.write("end if", 3)
+    outfile.write("end do", 2)
 
-def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dims):
+    outfile.write("end subroutine restart_physics_init", 1)
+    return dim_use_stmts, dimensions_dict
+
+def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars, dim_use_stmts, dimensions_dict):
     """
     Write the 'write' routine for the physics restart variables. This
     routine writes the physics fields to the restart (cam.r) file
@@ -332,25 +360,20 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     outfile.blank_line()
 
     outfile.comment("Local variables", 2)
-    outfile.write(f"integer                         :: dims({len(dims)})", 2)
+    outfile.write(f"integer                          :: dims({len(dimensions_dict)})", 2)
     outfile.write("integer                          :: grid_decomp", 2)
     outfile.write("integer                          :: grid_dims(2)", 2)
     outfile.write("integer                          :: field_shape(2)", 2)
     outfile.write("integer                          :: constituent_idx", 2)
+    outfile.write("integer                          :: nonadvected_idx", 2)
+    outfile.write("logical                          :: advected", 2)
+    outfile.write("real(kind=kind_phys), pointer    :: field_data_ptr(:,:,:)", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
-
-    # Just exit if we don't have any variables!
-    if len(required_vars) == 0 and len(constituent_dimmed_vars) == 0:
-        outfile.write("end subroutine restart_physics_write", 1)
-        return
-    # end if
 
     outfile.comment("Grab physics grid", 2)
     outfile.write("grid_decomp = cam_grid_id('physgrid')", 2)
-    dim_index = 1
-    for dim in dims:
-        outfile.write(f"dims({dim_index}) = {dim}", 2)
-        dim_index = dim_index + 1
+    for dim in dimensions_dict:
+        outfile.write(f"dims({dimensions_dict[dim]['index']}) = {dimensions_dict[dim]['import']}", 2)
     # end if
     outfile.comment("Write required restart variables to the restart file", 2)
     for key, value in required_vars.items():
@@ -360,14 +383,16 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
             outfile.write("field_shape(1) = num_global_phys_cols", 2)
             outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), (/field_shape(1)/), {key}, {desc_name})", 2)
         elif len(value["dims"]) > 1:
+            dimstr = '(/'
             for index, dim in enumerate(value["dims"]):
+                dimstr = f"{dimstr}dims({dimensions_dict[dim.split(':')[1]]['index']}),"
                 if 'horizontal_dimension' in dim:
                     outfile.write("field_shape(1) = num_global_phys_cols", 2)
                 else:
                     outfile.write(f"field_shape({index + 1}) = size({key}, {index + 1})", 2)
                 # end if
             # end if
-            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, {dimstr[:-1]}/), field_shape, {key}, {desc_name})", 2)
         # end if
     # end for
 
@@ -385,6 +410,22 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
             outfile.blank_line()
         # end for
     # end if
+
+    # Handle non-advected constituent variables
+    outfile.blank_line()
+    outfile.comment(f"Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
+    outfile.write("field_shape(1) = num_global_phys_cols", 2)
+    outfile.write("field_shape(2) = pver", 2)
+    outfile.write("nonadvected_idx = 1", 2)
+    outfile.write("field_data_ptr => cam_constituents_array()", 2)
+    outfile.write("do constituent_idx = 1, size(const_props)", 2)
+    outfile.write("call const_props(constituent_idx)%is_advected(advected)", 3)
+    outfile.write("if (.not. advected) then", 3)
+    outfile.write("call cam_grid_write_dist_array(file, grid_decomp, (/dims(1), dims(2)/), field_shape, field_data_ptr(:,:,constituent_idx), cnst_desc(nonadvected_idx))", 4)
+    outfile.write("nonadvected_idx = nonadvected_idx + 1", 4)
+    outfile.write("end if", 3)
+    outfile.write("end do", 2)
+
     outfile.write("end subroutine restart_physics_write", 1)
 
 def write_restart_physics_read(outfile):
