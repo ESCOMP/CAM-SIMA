@@ -31,7 +31,7 @@ _TMP_DIR = os.path.join(_PRE_TMP_DIR, "write_restart_physics")
 _SRC_MOD_DIR = os.path.join(_PRE_TMP_DIR, "SourceMods")
 _INC_SEARCH_DIRS = [_SRC_MOD_DIR, __REGISTRY_DIR]
 
-__FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
+__FILE_OPEN = lambda x: open(x, 'r', encoding='utf-8')
 
 #Check for all necessary directories:
 if not os.path.exists(__CCPP_DIR):
@@ -281,20 +281,11 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
-        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_RESTART_SAMPLES_DIR,
-                                    "temp_adjust_no_dim.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_horiz.xml")
-        host_files = [model_host, out_meta]
 
         # Setup write_restart_physics inputs:
         rest_name = "restart_physics_no_required.F90"
         check_restart_out = os.path.join(_TMP_DIR, rest_name)
-        # Setup comparison files
-        check_restart_in = os.path.join(_RESTART_SAMPLES_DIR, rest_name)
-
-        # Create local logger:
-        logger = logging.getLogger("write_restart_physics_no_dim")
 
         # Clear all temporary output files:
         remove_files([out_source, out_meta, cap_datafile,
@@ -302,7 +293,7 @@ class WriteInitTest(unittest.TestCase):
 
         # Attempt to generate registry files
         with self.assertRaises(CCPPError) as cerr:
-            _, _, _, constituents, restart_vars, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+            _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
                              error_on_no_validate=True)

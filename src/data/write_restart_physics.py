@@ -223,8 +223,8 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("end if", 2)
 
     # Define static dimensions
-    outfile.write(f"call cam_pio_def_dim(file, 'ncol', num_global_phys_cols, dimids(1), existOK=.true.)", 2)
-    outfile.write(f"call cam_pio_def_dim(file, 'lev', pver, dimids(2), existOK=.true.)", 2)
+    outfile.write("call cam_pio_def_dim(file, 'ncol', num_global_phys_cols, dimids(1), existOK=.true.)", 2)
+    outfile.write("call cam_pio_def_dim(file, 'lev', pver, dimids(2), existOK=.true.)", 2)
 
     # Start at 3; index=1 is ncol, index=2 is lev
     dim_index = 3
@@ -284,6 +284,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
                             dimsize = 'pverp'
                         else:
                             dim_loc_name = dimensions_dict[dimname]['local_name']
+                            dimsize = dim_loc_name
                         # end if
                         outfile.write(f"call cam_pio_def_dim(file, '{dim_loc_name}', {dimsize}, dimids({dim_index}), existOK=.true.)", 2)
                         dimensions_dict[dimname]['index'] = dim_index
@@ -310,7 +311,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
 
     # Handle non-advected constituent variables
     outfile.blank_line()
-    outfile.comment(f"Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
+    outfile.comment("Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
     outfile.comment("Allocate cnst_desc to total size of constituents array; some will be unused", 2)
     outfile.write("allocate(cnst_desc(size(const_props)))", 2)
     outfile.write("nonadvected_idx = 1", 2)
@@ -413,7 +414,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
     # Handle non-advected constituent variables
     outfile.blank_line()
-    outfile.comment(f"Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
+    outfile.comment("Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
     outfile.write("field_shape(1) = num_global_phys_cols", 2)
     outfile.write("field_shape(2) = pver", 2)
     outfile.write("nonadvected_idx = 1", 2)
