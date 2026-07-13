@@ -1293,11 +1293,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
         # Constituent-indexed fields are checked per constituent against
         # <base_name>_<constituent_name> file variables (mirroring the
-        # read_constituent_dimensioned_field call in physics_read_data).
-        # Only the vertically-resolved case is implemented; skip otherwise.
-        if has_constituent_read and levnm is None:
-            continue
-        # end if
+        # read_constituent_dimensioned_field call in physics_read_data),
+        # with and without a vertical dimension.
 
         # Indexed-dimensioned (fixed-size extra dimension) fields are read-only
         # inputs assembled from numbered per-slice file variables; checking is
