@@ -6,6 +6,7 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
    public :: read_constituent_dimensioned_field
+   public :: read_indexed_dimensioned_field
    public :: check_field
    public :: check_constituent_dimensioned_field
    public :: flush_check_field_verbose
@@ -935,6 +936,166 @@ CONTAINS
       deallocate(buffer)
 
    end subroutine read_constituent_dimensioned_field_3d
+
+   ! Reads a (horizontal, N) field whose trailing dimension is a fixed-size,
+   ! non-vertical dimension (e.g., dust emission size bins): each slice is stored
+   ! on file as a separate numbered variable <base_var_name><n> (e.g.,
+   ! cam_in_dstflx_bin1 ... cam_in_dstflx_bin4), because a fixed extra dimension
+   ! cannot be captured as a single history/snapshot variable. The slice index is
+   ! appended directly to the base name, so the base names given in the registry
+   ! <ic_file_input_names> must carry any separator text (e.g., 'cam_in_dstflx_bin').
+   ! The number of slices is taken from the trailing dimension of field_array.
+   subroutine read_indexed_dimensioned_field(file, std_name, base_var_names, timestep, field_array, error_on_not_found)
+      use ccpp_kinds,           only: kind_phys
+      use shr_assert_mod,       only: shr_assert_in_domain
+      use shr_sys_mod,          only: shr_sys_flush
+      use pio,                  only: file_desc_t, var_desc_t
+      use spmd_utils,           only: masterproc
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: endrun, check_allocate
+      use cam_logfile,          only: iulog
+      use cam_field_read,       only: cam_read_field
+      use phys_vars_init_check, only: mark_as_read_from_file
+
+      ! Dummy arguments
+      type(file_desc_t),                     intent(inout) :: file   !Parallel I/O (PIO) file type.
+      character(len=*),  intent(in)                        :: std_name            ! Standard name of base variable.
+      character(len=*),                      intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_varname<n>)
+      integer,                               intent(in)    :: timestep            ! Timestep to read [count]
+      real(kind_phys),                       intent(inout) :: field_array(:,:)    ! Output field array (ncol, indexed dimension)
+      logical, optional,                     intent(in)    :: error_on_not_found  ! Flag to error and exit if not found
+
+      ! Local variables
+      logical                          :: var_found
+      character(len=256)               :: file_var_name
+      character(len=256)               :: found_name
+      character(len=512)               :: missing_vars
+      type(var_desc_t)                 :: vardesc
+      real(kind_phys), allocatable     :: buffer(:)
+      integer                          :: slice_idx, base_idx
+      integer                          :: ierr
+      logical                          :: error_on_not_found_local
+      logical                          :: any_missing
+
+      character(len=256)               :: errmsg
+
+      character(len=*), parameter      :: subname = 'read_indexed_dimensioned_field: '
+
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
+      end if
+
+      ! Initialize tracking variables
+      any_missing = .false.
+      missing_vars = ''
+
+      ! Allocate temporary buffer
+      allocate(buffer(size(field_array, 1)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
+
+      ! Loop through all possible base names to find correct base name.
+      ! Note this assumes that the same base name is used for all slices.
+      base_idx_loop: do base_idx = 1, size(base_var_names)
+         ! Loop through all slices of the indexed dimension
+         slice_idx_loop: do slice_idx = 1, size(field_array, 2)
+            ! Create file variable name: <base_var_name><slice_idx>
+            write(file_var_name, '(a,i0)') trim(base_var_names(base_idx)), slice_idx
+
+            ! Try to find variable in file
+            var_found = .false.
+            call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+
+            if(var_found) then
+               exit base_idx_loop
+            endif
+         end do slice_idx_loop
+      end do base_idx_loop
+
+      if(.not. var_found) then
+         if(error_on_not_found_local) then
+            !End model run with appropriate error message:
+            call endrun(subname // 'Required indexed-dimensioned variables not found: No match for ' // trim(std_name))
+         else
+            !Write message to log file, then exit subroutine:
+            if (masterproc) then
+               write(iulog, *) subname // 'Required indexed-dimensioned variables not found: No match for ' // trim(std_name)
+               call shr_sys_flush(iulog)
+            end if
+            return !Nothing more to do here
+         end if
+      end if
+
+      ! Once base_idx is identified, use it in the actual slice loop:
+      slice_read_loop: do slice_idx = 1, size(field_array, 2)
+         ! Create file variable name: <base_var_name><slice_idx>
+         write(file_var_name, '(a,i0)') trim(base_var_names(base_idx)), slice_idx
+
+         ! Try to find variable in file
+         var_found = .false.
+         call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+
+         if (var_found) then
+            ! Read the variable
+            if (masterproc) then
+               write(iulog, *) 'Reading indexed-dimensioned input field, ', trim(found_name)
+               call shr_sys_flush(iulog)
+            end if
+
+            call cam_read_field(found_name, file, buffer, var_found, timelevel=timestep)
+
+            if (var_found) then
+               ! Copy to correct slice index in field array
+               field_array(:, slice_idx) = buffer(:)
+
+               ! Check for NaN values
+               call shr_assert_in_domain(field_array(:, slice_idx), is_nan=.false., &
+                    varname=trim(found_name), &
+                    msg=subname//'NaN found in '//trim(found_name))
+            else
+               ! Failed to read even though variable was found
+               any_missing = .true.
+               if (len_trim(missing_vars) > 0) then
+                  missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+               else
+                  missing_vars = trim(file_var_name)
+               end if
+            end if
+         else
+            ! Variable not found in file
+            any_missing = .true.
+            if (len_trim(missing_vars) > 0) then
+               missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+            else
+               missing_vars = trim(file_var_name)
+            end if
+
+            if (.not. error_on_not_found_local) then
+               ! Use default value (already set at initialization)
+
+               if (masterproc) then
+                  write(iulog, *) 'Indexed-dimensioned field ', trim(file_var_name), &
+                                 ' not found, using default value for this slice'
+                  call shr_sys_flush(iulog)
+               end if
+            end if
+         end if
+      end do slice_read_loop
+
+      ! Check if we should fail due to missing variables
+      if (any_missing .and. error_on_not_found_local) then
+         call endrun(subname//'Required indexed-dimensioned variables not found: ' // trim(missing_vars) // &
+                     '. Make sure the <ic_file_input_names> in the registry hold the numbered-variable prefix.')
+      end if
+
+      ! Mark the base variable as read from file (only if no errors)
+      call mark_as_read_from_file(std_name)
+
+      ! Clean up
+      deallocate(buffer)
+
+   end subroutine read_indexed_dimensioned_field
 
    ! Check analog of read_constituent_dimensioned_field_3d: compares each slice of
    ! a (horizontal, vertical, constituent) field against the per-constituent

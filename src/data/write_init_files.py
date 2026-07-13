@@ -766,6 +766,9 @@ def get_dimension_info(hvar):
        - Flag if any dimensions are number_of_ccpp_constituents and needs
             reading separate variables by constituent and reassembled into
             host model indices.
+       - Flag if the variable is (horizontal, fixed-size extra dimension) and
+            needs reading separate numbered per-slice variables
+            (<base_var_name><N>).
     """
     vdim_name = None
     legal_dims = False
@@ -774,6 +777,13 @@ def get_dimension_info(hvar):
     dims = hvar.get_dimensions()
     levnm = hvar.has_vertical_dimension()
     has_constituent_dim = any('number_of_ccpp_constituents' in dim for dim in dims)
+    # A (horizontal, extra) variable whose only extra dimension is a fixed-size,
+    # non-vertical dimension (e.g. dust_size_bin_dimension) is read from numbered
+    # per-slice file variables (a fixed extra dimension cannot be captured as a
+    # single history/snapshot variable on the CAM side):
+    has_indexed_dim = ((len(dims) == 2) and (not levnm) and
+                       (not has_constituent_dim) and
+                       is_horizontal_dimension(dims[0]))
 
     # <hvar> is only 'legal' for 2 or 3 dimensional fields (i.e., 1 or 2
     #    dimensional variables).
@@ -795,6 +805,12 @@ def get_dimension_info(hvar):
         # in this case the variable needs to be suffixed by an underscore plus the constituent name
         # and read and reassembled separately into host model constituent indices
         # based on constituent name.
+        # This case will be handled separately.
+        legal_dims = True
+    elif has_indexed_dim:
+        # A special case where the only extra dimension is a fixed-size,
+        # non-vertical dimension: the variable is read from numbered
+        # per-slice file variables, <base_var_name><N>.
         # This case will be handled separately.
         legal_dims = True
     elif (ldims > 3) or ((ldims > 1) and (not levnm)):
@@ -865,7 +881,7 @@ def get_dimension_info(hvar):
         # end if
     # end if
 
-    return vdim_name, legal_dims, fail_reason, has_constituent_dim
+    return vdim_name, legal_dims, fail_reason, has_constituent_dim, has_indexed_dim
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
@@ -907,7 +923,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_read_field, reason, has_constituent_read = get_dimension_info(hvar)
+        levnm, call_read_field, reason, has_constituent_read, has_indexed_read = get_dimension_info(hvar)
         if hvar.get_prop_value('protected'):
             call_read_field = False
             if reason:
@@ -924,6 +940,10 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
             if has_constituent_read:
                 # Special case for constituent-dimension variables.
                 call_str = f"call read_constituent_dimensioned_field(const_props, file, '{var_stdname}', input_var_names(:,name_idx), "
+            elif has_indexed_read:
+                # Special case for fixed-size indexed-dimension variables
+                # (read from numbered per-slice file variables).
+                call_str = f"call read_indexed_dimensioned_field(file, '{var_stdname}', input_var_names(:,name_idx), "
             else:
                 # Replace vertical dimension with local name
                 call_str = "call read_field(file, " +                             \
@@ -970,7 +990,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx",
-                                   "read_constituent_dimensioned_field"]],
+                                   "read_constituent_dimensioned_field",
+                                   "read_indexed_dimensioned_field"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
                                    "cam_constituents_array",
                                    "cam_model_const_properties"]],
@@ -1268,13 +1289,20 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_check_field, reason, has_constituent_read = get_dimension_info(hvar)
+        levnm, call_check_field, reason, has_constituent_read, has_indexed_read = get_dimension_info(hvar)
 
         # Constituent-indexed fields are checked per constituent against
         # <base_name>_<constituent_name> file variables (mirroring the
         # read_constituent_dimensioned_field call in physics_read_data).
         # Only the vertically-resolved case is implemented; skip otherwise.
         if has_constituent_read and levnm is None:
+            continue
+        # end if
+
+        # Indexed-dimensioned (fixed-size extra dimension) fields are read-only
+        # inputs assembled from numbered per-slice file variables; checking is
+        # not implemented for them (mirroring the 2-D constituent skip above).
+        if has_indexed_read:
             continue
         # end if
 

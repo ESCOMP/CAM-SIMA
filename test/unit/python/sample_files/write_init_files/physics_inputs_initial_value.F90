@@ -33,7 +33,7 @@ contains
       use spmd_utils,                         only: masterproc
       use shr_kind_mod,                       only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                       only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use physics_data,                       only: read_constituent_dimensioned_field
+      use physics_data,                       only: read_constituent_dimensioned_field, read_indexed_dimensioned_field
       use cam_ccpp_cap,                       only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                         only: kind_phys
       use string_utils,                       only: to_lower, to_upper
