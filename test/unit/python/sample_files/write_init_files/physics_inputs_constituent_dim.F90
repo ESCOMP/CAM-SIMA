@@ -40,7 +40,7 @@ contains
       use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                          only: iulog
-      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, cool_default_cat_for_each_const, slp, theta
+      use physics_types_simple_constituent_dim, only: cool_cat_3d_for_each_const, cool_cat_for_each_const, cool_default_cat_for_each_const, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -160,6 +160,10 @@ contains
                         call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const', &
                             input_var_names(:,name_idx), timestep, cool_default_cat_for_each_const, error_on_not_found=.false.)
 
+                     case ('super_cool_cat_3d_every_const')
+                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_3d_every_const', input_var_names(:,name_idx), &
+                            'lev', timestep, cool_cat_3d_for_each_const, error_on_not_found=.false.)
+
                   end select !read variables
                end select !special indices
 
@@ -240,7 +244,7 @@ contains
       use cam_abortutils,                       only: endrun
       use shr_kind_mod,                         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
       use physics_data,                         only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use physics_data,                         only: flush_check_field_verbose
+      use physics_data,                         only: check_constituent_dimensioned_field, flush_check_field_verbose
       use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use cam_constituents,                     only: const_get_index
       use ccpp_kinds,                           only: kind_phys
@@ -252,7 +256,7 @@ contains
       use cam_pio_utils,                        only: cam_pio_openfile, cam_pio_closefile
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_simple_constituent_dim, only: cool_cat_for_each_const, theta
+      use physics_types_simple_constituent_dim, only: cool_cat_3d_for_each_const, cool_cat_for_each_const, theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -317,6 +321,7 @@ contains
       end if
       allocate(file)
       call cam_pio_openfile(file, ncdata_check_loc, pio_nowrite, log_info=.false.)
+      const_props => cam_model_const_properties()
       ! Loop over CCPP physics/chemistry suites:
       do suite_idx = 1, size(suite_names, 1)
 
@@ -354,6 +359,10 @@ contains
                      call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference, &
                          min_relative_value, is_first, diff_found)
 
+                  case ('super_cool_cat_3d_every_const')
+                     call check_constituent_dimensioned_field(const_props, file, 'super_cool_cat_3d_every_const', input_var_names(:,name_idx), 'lev', &
+                         timestep, cool_cat_3d_for_each_const, min_difference, min_relative_value, is_first, diff_found)
+
                   end select !check variables
                   if (diff_found) then
                      overall_diff_found = .true.
@@ -369,7 +378,6 @@ contains
 
       ! Check constituent variables
       field_data_ptr => cam_constituents_array()
-      const_props => cam_model_const_properties()
 
       do constituent_idx = 1, size(const_props)
          ! Check if constituent standard name in registered SIMA standard names list:

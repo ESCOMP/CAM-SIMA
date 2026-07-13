@@ -1270,18 +1270,29 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         # Extract vertical level variable:
         levnm, call_check_field, reason, has_constituent_read = get_dimension_info(hvar)
 
-        # If this is a constituent-indexed field, do not check it for now.
-        if has_constituent_read:
+        # Constituent-indexed fields are checked per constituent against
+        # <base_name>_<constituent_name> file variables (mirroring the
+        # read_constituent_dimensioned_field call in physics_read_data).
+        # Only the vertically-resolved case is implemented; skip otherwise.
+        if has_constituent_read and levnm is None:
             continue
         # end if
 
         # Set "check_field" call string:
         if call_check_field:
-            call_str = "call check_field(file, input_var_names(:,name_idx), "
+            if has_constituent_read:
+                # Special case for constituent-dimension variables.
+                call_str = f"call check_constituent_dimensioned_field(const_props, file, '{var_stdname}', input_var_names(:,name_idx), "
+            else:
+                call_str = "call check_field(file, input_var_names(:,name_idx), "
+            # end if
             if levnm is not None:
                 call_str += f"'{levnm}', "
             # end if
-            call_str += f"timestep, {var_locname}, '{var_stdname}', "
+            call_str += f"timestep, {var_locname}, "
+            if not has_constituent_read:
+                call_str += f"'{var_stdname}', "
+            # end if
             call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
             # For check field, don't endrun
@@ -1305,6 +1316,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["physics_data", ["check_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
                                    "prot_no_init_idx", "const_idx",
+                                   "check_constituent_dimensioned_field",
                                    "flush_check_field_verbose"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables",
                                    "cam_constituents_array",
@@ -1412,6 +1424,10 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call cam_pio_openfile(file, ncdata_check_loc, " +          \
                   "pio_nowrite, log_info=.false.)", 2)
 
+    # Constituent properties are needed inside the suite loop by
+    # check_constituent_dimensioned_field, and below for the constituent checks:
+    outfile.write("const_props => cam_model_const_properties()", 2)
+
     # Loop over physics suites:
     outfile.comment("Loop over CCPP physics/chemistry suites:", 2)
     outfile.write("do suite_idx = 1, size(suite_names, 1)", 2)
@@ -1493,7 +1509,6 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
     outfile.comment("Check constituent variables", 2)
     outfile.write("field_data_ptr => cam_constituents_array()", 2)
-    outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 3)

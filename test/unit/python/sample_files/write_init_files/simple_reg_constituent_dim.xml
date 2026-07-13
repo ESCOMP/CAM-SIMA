@@ -32,5 +32,14 @@
       <initial_value>2.33_kind_phys</initial_value>
       <ic_file_input_names>cool_cat_default_tend</ic_file_input_names>
     </variable>
+    <!-- Vertically-resolved constituent-dimensioned value: read AND checked
+         per constituent (check_constituent_dimensioned_field) -->
+    <variable local_name="cool_cat_3d_for_each_const" standard_name="super_cool_cat_3d_every_const"
+              units="kg kg-1" type="real" kind="kind_phys" allocatable="allocatable">
+      <long_name>The coolest imaginable vertically-resolved value per constituent</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cool_cat_3d</ic_file_input_names>
+    </variable>
   </file>
 </registry>
