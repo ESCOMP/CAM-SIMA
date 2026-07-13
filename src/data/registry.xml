@@ -1563,6 +1563,14 @@
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
+    <variable local_name="sgh30"
+              standard_name="standard_deviation_of_subgrid_orography_for_turbulent_orographic_form_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>SGH30 pbuf_SGH30</ic_file_input_names>
+    </variable>
     <variable local_name="kvm"
               standard_name="eddy_momentum_diffusivity_at_interfaces"
               units="m2 s-1" type="real" kind="kind_phys"
@@ -1579,7 +1587,6 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_kvh</ic_file_input_names>
     </variable>
-
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
