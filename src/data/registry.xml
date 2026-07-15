@@ -1956,6 +1956,63 @@
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
     </variable>
+    <!-- convective_cloud_water + cloud_water_paths inputs for RRTMGP cloud optics -->
+    <variable local_name="effi_external_in"
+              standard_name="effective_radius_of_stratiform_cloud_ice_particle"
+              units="micron" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>REI pbuf_REI</ic_file_input_names>
+    </variable>
+    <variable local_name="concld"
+              standard_name="convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>CONCLD pbuf_CONCLD</ic_file_input_names>
+    </variable>
+    <variable local_name="qsout"
+              standard_name="snow_mixing_ratio_wrt_moist_air_and_condensed_water_of_new_state"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>QSOUT pbuf_QSOUT</ic_file_input_names>
+    </variable>
+    <variable local_name="qgout"
+              standard_name="graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water_of_new_state"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>QGOUT pbuf_QGOUT</ic_file_input_names>
+    </variable>
+    <variable local_name="totg_liq"
+              standard_name="gridbox_total_cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>GB_TOTCLDLIQMR pbuf_GB_TOTCLDLIQMR</ic_file_input_names>
+    </variable>
+    <variable local_name="totg_ice"
+              standard_name="gridbox_total_cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>GB_TOTCLDICEMR pbuf_GB_TOTCLDICEMR</ic_file_input_names>
+    </variable>
+    <!-- One-moment (RK) microphysics is not a supported CAM-SIMA
+         configuration; hardcoded false (selects the two-moment rei clamp in
+         convective_cloud_water). Revisit if an RK+RRTMGP config arrives. -->
+    <variable local_name="one_mom_clouds"
+              standard_name="flag_for_one_moment_cloud_microphysics"
+              units="flag" type="logical">
+      <long_name>flag indicating one-moment (RK) cloud microphysics is active</long_name>
+      <initial_value>.false.</initial_value>
+    </variable>
     <variable local_name="qrs"
               standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_shortwave_radiation_adjusted_by_air_pressure_thickness"
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
