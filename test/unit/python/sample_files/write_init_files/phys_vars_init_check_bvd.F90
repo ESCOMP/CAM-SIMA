@@ -32,19 +32,20 @@ module phys_vars_init_check_bvd
    integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
    ! Total number of physics-related variables:
-   integer, public, parameter :: phys_var_num = 2
+   integer, public, parameter :: phys_var_num = 3
    integer, public, parameter :: phys_const_num = 16
 
    !Max length of physics-related variable standard names:
    integer, public, parameter :: std_name_len = 25
 
    ! Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 5
+   integer, public, parameter :: ic_name_len = 7
 
    ! Physics-related input variable standard names:
    character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
       'potential_temperature    ', &
-      'air_pressure_at_sea_level' /)
+      'air_pressure_at_sea_level', &
+      'band_number              ' /)
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
       "ccpp_constituent_minimum_values     ", &
@@ -64,19 +65,22 @@ module phys_vars_init_check_bvd
       "suite_name                          ", &
       "suite_part                          " /)
    !Array storing all registered IC file input names for each variable:
-   character(len=5), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
-      'theta', &
-      'slp  ' /), (/1, phys_var_num/))
+   character(len=7), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
+      'theta  ', &
+      'slp    ', &
+      'band_no' /), (/1, phys_var_num/))
 
    ! Array indicating whether or not variable is protected:
    logical, public, protected :: protected_vars(phys_var_num)= (/ &
       .false., &
-      .false. /)
+      .false., &
+      .true. /)
 
    ! Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):
    integer, public, protected :: initialized_vars(phys_var_num)= (/ &
       UNINITIALIZED, &
-      UNINITIALIZED /)
+      UNINITIALIZED, &
+      PARAM /)
 
 
 contains

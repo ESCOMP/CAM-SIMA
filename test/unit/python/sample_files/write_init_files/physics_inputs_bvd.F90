@@ -40,7 +40,7 @@ contains
       use phys_vars_init_check_bvd,  only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_logfile,               only: iulog
-      use physics_types_bad_vertdim, only: slp, theta
+      use physics_types_bad_vertdim, only: band_no, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -151,6 +151,9 @@ contains
 
                      case ('air_pressure_at_sea_level')
                         call endrun('Cannot read slp from file'//', slp has unsupported dimension, band_number (dimension 2).')
+
+                     case ('band_number')
+                        call endrun('Cannot read band_no from file'//', band_no has no horizontal dimension; band_no is a protected variable')
 
                   end select !read variables
                end select !special indices
