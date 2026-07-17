@@ -645,11 +645,6 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
      end if
    end do
 
-   ! DEBUG -JN:
-   do m=1, num_advected
-     write(iulog, *) 'DEBUG -JN adv_const_dx: ', advected_constituent_index(m), m
-   end do
-
    ! Finalize statediag_numtrac now that the number of advected
    ! constituents is known (qsize is set by dimensions_mod_init, which runs
    ! after cam_register_constituents).
