@@ -1786,6 +1786,8 @@ subroutine read_inidat(dyn_in)
 
       if (found) then
          call read_dyn_var(trim(const_ic_name(m_cnst)), fh_ini, dimname, dbuf3)
+      else
+         dbuf3 = 0._r8
       end if
 
       do ie = 1, nelemd
