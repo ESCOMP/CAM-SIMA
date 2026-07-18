@@ -683,10 +683,11 @@ CONTAINS
       ! Try the constituent name as registered plus its all-upper and all-lower
       ! spellings; the base name keeps its case.
       use string_utils, only: to_upper, to_lower
+      use shr_kind_mod, only: cl => shr_kind_cl
 
       character(len=*), intent(in) :: base_name
       character(len=*), intent(in) :: cname
-      character(len=256)           :: var_names(3)
+      character(len=cl)           :: var_names(3)
 
       var_names(1) = trim(base_name) // '_' // trim(cname)
       var_names(2) = trim(base_name) // '_' // trim(to_upper(cname))

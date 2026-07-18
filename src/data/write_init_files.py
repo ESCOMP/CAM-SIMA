@@ -341,20 +341,10 @@ def gather_ccpp_req_vars(cap_database):
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
                     constituent_vars.add(stdname)
-                    if cvar.get_prop_value('advected'):
-                        # Advected constituents are allocated/registered by the
-                        # constituents object and read via the runtime
-                        # constituent loop (registry ic_file_input_names or
-                        # the cnst_/pbuf_ fallback).  Do NOT add them to the
-                        # host-variable list: that gives them a
-                        # phys_var_stdnames row keyed to the scheme's local
-                        # name, which never matches a CAM snapshot field and
-                        # would pre-empt the fallback.
-                        pass
-                    else:
-                        # Constituent-related but not advected (e.g. tendency
-                        # variables): these are read as regular host variables,
-                        # not through the constituent loop.
+                    # Do not add advected constituents to the host variable
+                    # list so they are not included in phys_var_stdnames and
+                    # can be read in the constituent path:
+                    if not cvar.get_prop_value('advected'):
                         in_vars[stdname] = cvar
                     # end if
                 else:
@@ -1212,10 +1202,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.",4)
     outfile.comment("Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,",4)
     outfile.comment("so also try the all-upper and all-lower case spellings of the constituent name:",4)
-    # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks --
-    # in the as-registered, all-upper, and all-lower case spellings -- allow us to
-    # not enumerate all needed constituents from snapshots in the registry, yet
-    # allow reading their values from CAM snapshots regardless of authored name case.
+    # Try uppercase and lowercase variants for constituent names to match CAM
+    # e.g., O3, NO2, NUMLIQ (most species) ... num_a1, num_a2 (aerosols)
     outfile.write("call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
     outfile.write("end if", 3)
     outfile.write("if(.not. var_found) then", 3)
@@ -1529,10 +1517,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.",4)
     outfile.comment("Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,",4)
     outfile.comment("so also try the all-upper and all-lower case spellings of the constituent name:",4)
-    # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks --
-    # in the as-registered, all-upper, and all-lower case spellings -- allow us to
-    # not enumerate all needed constituents from snapshots in the registry, yet
-    # allow reading their values from CAM snapshots regardless of authored name case.
+    # Try uppercase and lowercase variants for constituent names to match CAM
+    # e.g., O3, NO2, NUMLIQ (most species) ... num_a1, num_a2 (aerosols)
     outfile.write("call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
     outfile.write("if (diff_found) then", 4)
     outfile.write("overall_diff_found = .true.", 5)
