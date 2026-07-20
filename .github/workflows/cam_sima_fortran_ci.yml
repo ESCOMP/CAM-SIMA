@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if there are changes to Fortran source code
         id: conditional
@@ -218,14 +218,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Checkout dependencies
         run: |
           ./bin/git-fleximod update ncar-physics share
 
       - name: Checkout rrtmgp-data for PIO file reader tests
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: earth-system-radiation/rrtmgp-data
           ref: ${{ env.RRTMGP_DATA_REFERENCE }}
