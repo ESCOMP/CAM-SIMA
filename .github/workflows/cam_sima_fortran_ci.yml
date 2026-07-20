@@ -114,7 +114,7 @@ jobs:
           echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
           git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
 
-          if grep -E -q '(^\.github\/workflows\/cam_sima_fortran_ci\.yml$|^share$|^src\/.+$|^test\/unit\/.+$)' changed-paths.txt; then
+          if grep -E -q '(^\.github/workflows/cam_sima_fortran_ci\.yml$|^share$|^src/.+$|^test/unit/.+$)' changed-paths.txt; then
             write_result_and_exit true
           else
             write_result_and_exit false
