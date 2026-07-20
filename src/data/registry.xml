@@ -1972,6 +1972,35 @@
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
     </variable>
+    <!-- Net radiative flux profiles for persistence across timesteps (including those without radiation) -->
+    <variable local_name="fns"
+              standard_name="shortwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcns"
+              standard_name="shortwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fnl"
+              standard_name="longwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcnl"
+              standard_name="longwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
     <variable local_name="two"
               standard_name="constant_dimension_two"
               units="count" type="integer"
