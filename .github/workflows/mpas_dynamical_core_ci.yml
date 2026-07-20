@@ -199,7 +199,7 @@ jobs:
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     runs-on: ubuntu-slim
     env:
-      FORTITUDE_VERSION: 0.7.*
+      FORTITUDE_VERSION: 0.9.*
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
     timeout-minutes: 10
     steps:
