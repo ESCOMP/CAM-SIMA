@@ -807,7 +807,8 @@ class Variable(VarBase):
             lname = f'{ddt_str}{self.local_name}'
             if self.allocatable == "pointer":
                 all_type = 'associated'
-            elif self.allocatable == "allocatable":
+            elif self.allocatable[0:11] == "allocatable":
+                # covers both "allocatable" and "allocatable, target"
                 all_type = 'allocated'
             else:
                 all_type = ''
