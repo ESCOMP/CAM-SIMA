@@ -227,7 +227,6 @@ jobs:
             check \
             --exit-zero \
             --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
-            --preview \
             "$SOURCE_CODE_PATH"
           cat "$SOURCE_CODE_PATH/source-code-linting.log"
 
