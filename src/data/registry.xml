@@ -1560,7 +1560,7 @@
     <variable local_name="dgncur_a"
               standard_name="dry_number_mode_diameter_of_modal_aerosol"
               units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable, target">
       <long_name>dry number mode diameter of modal aerosol</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1568,7 +1568,7 @@
     <variable local_name="dgncur_awet"
               standard_name="wet_number_mode_diameter_of_modal_aerosol"
               units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable, target">
       <long_name>wet number mode diameter of modal aerosol (from previous timestep)</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1648,7 +1648,7 @@
     <variable local_name="qaerwat_aer"
               standard_name="aerosol_water_mixing_ratio_of_modal_aerosol"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable, target">
       <long_name>aerosol water mass mixing ratio per mode</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
       <initial_value>0.0_kind_phys</initial_value>

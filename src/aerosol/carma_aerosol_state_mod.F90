@@ -154,10 +154,12 @@ contains
     call endrun('carma_aerosol_state%hygroscopicity: not implemented')
   end subroutine hygroscopicity
 
-  subroutine water_uptake(self, aero_props, bin_idx, ncol, nlev, dgnumwet, qaerwat)
+  subroutine water_uptake(self, aero_props, bin_idx, ncol, nlev, top_lev, &
+       t, pmid, h2ommr, cldn, dgnumwet, qaerwat)
     class(carma_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props
-    integer, intent(in) :: bin_idx, ncol, nlev
+    integer, intent(in) :: bin_idx, ncol, nlev, top_lev
+    real(r8), intent(in) :: t(:,:), pmid(:,:), h2ommr(:,:), cldn(:,:)
     real(r8), intent(out) :: dgnumwet(ncol,nlev), qaerwat(ncol,nlev)
     call endrun('carma_aerosol_state%water_uptake: not implemented')
   end subroutine water_uptake
@@ -170,18 +172,22 @@ contains
     vol = -huge(1._r8)
   end function dry_volume
 
-  function wet_volume(self, aero_props, bin_idx, ncol, nlev) result(vol)
+  function wet_volume(self, aero_props, bin_idx, ncol, nlev, top_lev, &
+       t, pmid, h2ommr, cldn) result(vol)
     class(carma_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props
-    integer, intent(in) :: bin_idx, ncol, nlev
+    integer, intent(in) :: bin_idx, ncol, nlev, top_lev
+    real(r8), intent(in) :: t(:,:), pmid(:,:), h2ommr(:,:), cldn(:,:)
     real(r8) :: vol(ncol,nlev)
     vol = -huge(1._r8)
   end function wet_volume
 
-  function water_volume(self, aero_props, bin_idx, ncol, nlev) result(vol)
+  function water_volume(self, aero_props, bin_idx, ncol, nlev, top_lev, &
+       t, pmid, h2ommr, cldn) result(vol)
     class(carma_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props
-    integer, intent(in) :: bin_idx, ncol, nlev
+    integer, intent(in) :: bin_idx, ncol, nlev, top_lev
+    real(r8), intent(in) :: t(:,:), pmid(:,:), h2ommr(:,:), cldn(:,:)
     real(r8) :: vol(ncol,nlev)
     vol = -huge(1._r8)
   end function water_volume

@@ -11,6 +11,10 @@ module aerosol_mmr_host
 ! directly. Here the routines access the CCPP constituents array to return
 ! mixing ratio pointers.
 !
+! The pair also provides get_mode_dry_diameter, get_mode_wet_diameter and
+! get_mode_aer_water accessors for the climate-list mode diagnostics computed
+! by the calcsize/wateruptake calculations.
+!
 ! Ported from the CAM flavor: replaces pbuf/state%q with CCPP constituents.
 !
 !------------------------------------------------------------------------------------------------
@@ -61,6 +65,9 @@ real(r8), allocatable, target :: zero_cols(:,:)
 
 public :: aero_host_binding_t
 public :: aero_host_binding   ! build a handle from host data structures
+public :: get_mode_dry_diameter  ! dry number mode diameters of the climate list
+public :: get_mode_wet_diameter  ! wet number mode diameters of the climate list
+public :: get_mode_aer_water     ! aerosol water of the climate list modes
 public :: aerosol_mmr_init    ! allocate zero_cols
 public :: get_host_idx
 public :: resolve_mode_idx, resolve_bin_idx
@@ -105,6 +112,60 @@ function aero_host_binding(constituents) result(host)
    host%constituents => constituents
 
 end function aero_host_binding
+
+!================================================================================================
+
+subroutine get_mode_dry_diameter(host, dgnum)
+
+   ! Return the dry number mode diameters (all modes) of the climate list,
+   ! computed by the modal_aero_calcsize calculation.
+   ! CAM-SIMA: the dgncur_a registry field written by the CCPPized scheme
+   ! (the host handle is not needed; kept for interface parity with CAM).
+
+   use physics_types, only: dgncur_a
+
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: dgnum(:,:,:)
+
+   dgnum => dgncur_a
+
+end subroutine get_mode_dry_diameter
+
+!================================================================================================
+
+subroutine get_mode_wet_diameter(host, dgnumwet)
+
+   ! Return the wet number mode diameters (all modes) of the climate list,
+   ! computed by the modal_aero_wateruptake calculation.
+   ! CAM-SIMA: the dgncur_awet registry field written by the CCPPized scheme
+   ! (the host handle is not needed; kept for interface parity with CAM).
+
+   use physics_types, only: dgncur_awet
+
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: dgnumwet(:,:,:)
+
+   dgnumwet => dgncur_awet
+
+end subroutine get_mode_wet_diameter
+
+!================================================================================================
+
+subroutine get_mode_aer_water(host, qaerwat)
+
+   ! Return the aerosol water (all modes) of the climate list,
+   ! computed by the modal_aero_wateruptake calculation.
+   ! CAM-SIMA: the qaerwat_aer registry field written by the CCPPized scheme
+   ! (the host handle is not needed; kept for interface parity with CAM).
+
+   use physics_types, only: qaerwat_aer
+
+   type(aero_host_binding_t), intent(in) :: host
+   real(r8),                  pointer    :: qaerwat(:,:,:)
+
+   qaerwat => qaerwat_aer
+
+end subroutine get_mode_aer_water
 
 !================================================================================================
 
