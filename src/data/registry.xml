@@ -753,9 +753,11 @@
     <!-- data_flux_fuel is being intentionally ignored as it will only be needed for the online carbon cycle -->
     <!-- data_flux_ocn is being intentionally ignored as it will only be needed for the online carbon cycle -->
 
+    <!-- CLM computes and sends Sl_ddvel in cm/s; gas dry deposition
+         consumes it as-is in the Wesely land-type merge. -->
     <variable local_name="depvel"
               standard_name="dry_deposition_velocity_from_coupler"
-              units="m s-1" type="real" kind="kind_phys"
+              units="cm s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension number_of_dry_deposition_species</dimensions>
       <initial_value>0.0_kind_phys</initial_value>

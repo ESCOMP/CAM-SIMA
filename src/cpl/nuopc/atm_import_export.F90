@@ -57,21 +57,25 @@ contains
   subroutine read_surface_fields_namelists()
 
     use shr_drydep_mod    , only : shr_drydep_readnl
+    use shr_drydep_mod    , only : shr_drydep_list => drydep_list
     use shr_megan_mod     , only : shr_megan_readnl
     use shr_fire_emis_mod , only : shr_fire_emis_readnl
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_ndep_mod      , only : shr_ndep_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
-    use drydep_coupling   , only : drydep_coupling_set_nflds
+    use drydep_coupling   , only : drydep_coupling_set_nflds, drydep_coupling_set_list
 
     character(len=*), parameter :: nl_file_name = 'drv_flds_in'
 
     ! read mediator fields options
     call shr_ndep_readnl(nl_file_name, ndep_nflds)
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
-    ! Mirror the dry deposition field count for physics; registry fields
-    ! dimensioned by it are allocated later, during physics initialization
+    ! Mirror the dry deposition field count and species names for physics;
+    ! registry fields dimensioned by the count are allocated later, during
+    ! physics initialization. The list order is the Sl_ddvel coupler index
+    ! contract with the land model.
     call drydep_coupling_set_nflds(drydep_nflds)
+    call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
     call shr_megan_readnl(nl_file_name, megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
