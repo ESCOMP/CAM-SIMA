@@ -665,6 +665,12 @@ contains
         v_phys(i,2,k)=D(2,1,i)*v1 + D(2,2,i)*v2
       end do
     end do
+
+    ! Cleanup pointer components of interp_p and interpdata
+    ! to avoid memory leaks every element:
+    deallocate(interp_p%Imat, interp_p%rk, interp_p%vtemp, interp_p%glp)
+    deallocate(interpdata%interp_xy, interpdata%ilat, interpdata%ilon)
+
   end function dyn2phys_vector
 
   subroutine setup_interpdata_for_gll_to_phys_vec_mapping(interpdata,interp_p)
@@ -723,6 +729,10 @@ contains
         ioff=ioff+1
       enddo
     enddo
+
+    ! Cleanup pointers allocated by gausslobatto:
+    deallocate(gp_quadrature%points, gp_quadrature%weights)
+
   end subroutine setup_interpdata_for_gll_to_phys_vec_mapping
 
 
