@@ -70,12 +70,14 @@ contains
     ! read mediator fields options
     call shr_ndep_readnl(nl_file_name, ndep_nflds)
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
-    ! Mirror the dry deposition field count and species names for physics;
-    ! registry fields dimensioned by the count are allocated later, during
-    ! physics initialization. The list order is the Sl_ddvel coupler index
-    ! contract with the land model.
+
+    ! mirror the dry deposition field count and species names for physics.
+    ! registry fields dimensioned by the count are allocated later,
+    ! during physics initialization.
+    ! the order of the fields in Sl_ddvel is shared with the land model.
     call drydep_coupling_set_nflds(drydep_nflds)
     call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
+
     call shr_megan_readnl(nl_file_name, megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
