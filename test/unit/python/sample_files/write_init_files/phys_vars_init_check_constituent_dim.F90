@@ -96,6 +96,8 @@ contains
       ! which means any initialization check should
       ! now return True.
 
+      use string_utils, only: to_lower
+
       ! Dummy argument
       character(len=*), intent(in) :: varname    !Variable name being marked
 
@@ -104,7 +106,7 @@ contains
 
       ! Search for <varname> in the standard name array:
       do stdnam_idx = 1, phys_var_num
-         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+         if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
             ! Only set to INITIALIZED if state is UNINITIALIZED
             if (initialized_vars(stdnam_idx) < PARAM) then
                initialized_vars(stdnam_idx) = INITIALIZED
@@ -124,6 +126,7 @@ contains
       !    initialized_vars array
 
       use cam_abortutils, only: endrun
+      use string_utils,   only: to_lower
 
       ! Dummy argument
       character(len=*), intent(in) :: varname    ! Variable name being marked
@@ -136,7 +139,7 @@ contains
       found_var = .false.
       ! Set variable to READ_FROM_FILE:
       do stdnam_idx = 1, phys_var_num
-         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+         if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
             ! It is an error if the variable has already been set to PARAM
             if (initialized_vars(stdnam_idx) == PARAM) then
                call endrun("Variable '"//trim(varname)//                      &
@@ -164,6 +167,7 @@ contains
       !    initialized according to the 'initialized_vars' array.
 
       use cam_abortutils, only: endrun
+      use string_utils,   only: to_lower
 
       ! Dummy argument
       character(len=*), intent(in) :: varname ! Variable name being checked
@@ -178,7 +182,7 @@ contains
 
       ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
-         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+         if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
             is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
             found = .true.
             exit ! Exit loop once variable has been found and checked
@@ -199,6 +203,7 @@ contains
       !    file according to the 'initialized_vars' array.
 
       use cam_abortutils, only: endrun
+      use string_utils,   only: to_lower
 
       ! Dummy arguments
       character(len=*),  intent(in)  :: varname ! Variable name being checked
@@ -216,7 +221,7 @@ contains
 
       ! Return .true. if the variable's status is READ_FROM_FILE:
       do stdnam_idx = 1, phys_var_num
-         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+         if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
             is_read = (initialized_vars(stdnam_idx) == READ_FROM_FILE)
             ! Mark as found:
             found = .true.
@@ -227,7 +232,7 @@ contains
       if (.not. found) then
          ! Check to see if this is an internally-protected variable
          do stdnam_idx = 1, phys_const_num
-            if (trim(phys_const_stdnames(stdnam_idx)) == trim(varname)) then
+            if (to_lower(trim(phys_const_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
                found = .true.
                exit ! Exit loop once variable has been found
             end if

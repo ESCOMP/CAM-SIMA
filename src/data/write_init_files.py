@@ -132,7 +132,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -306,7 +306,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
     return missing_vars
 
 ##############################################################################
-def gather_ccpp_req_vars(cap_database, registry_constituents):
+def gather_ccpp_req_vars(cap_database):
     """
     Generate a list of host-model and constituent variables
     required by the CCPP physics suites potentially being used
@@ -340,10 +340,11 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
                 (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
-                    #Add variable to constituent set:
                     constituent_vars.add(stdname)
-                    #Add variable to required variable list if it's not a registry constituent
-                    if stdname not in registry_constituents:
+                    # Do not add advected constituents to the host variable
+                    # list so they are not included in phys_var_stdnames and
+                    # can be read in the constituent path:
+                    if not cvar.get_prop_value('advected'):
                         in_vars[stdname] = cvar
                     # end if
                 else:
@@ -974,6 +975,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "cam_constituents_array",
                                    "cam_model_const_properties"]],
                  ["ccpp_kinds", ["kind_phys"]],
+                 ["string_utils", ["to_lower", "to_upper"]],
                  [phys_check_fname_str, ["phys_var_num", "phys_var_stdnames",
                                          "input_var_names", "std_name_len",
                                          "is_initialized"]],
@@ -1180,26 +1182,29 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("var_found = .false.", 3)
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 3)
     outfile.write("call const_props(constituent_idx)%standard_name(std_name)", 3)
-    outfile.write("if(any(phys_var_stdnames == trim(std_name))) then", 3)
+    outfile.comment("Find array index to extract correct input names", 3)
+    outfile.comment("(case-insensitive: see find_input_name_idx):", 3)
+    outfile.write("const_input_idx = -1", 3)
+    outfile.write("do n=1, phys_var_num", 3)
+    outfile.write("if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then", 4)
+    outfile.write("const_input_idx = n", 5)
+    outfile.write("exit", 5)
+    outfile.write("end if", 4)
+    outfile.write("end do", 3)
+    outfile.write("if(const_input_idx > 0) then", 3)
     outfile.comment("Don't read the variable in if it's already initialized", 4)
     outfile.write("if (is_initialized(std_name)) then", 4)
     outfile.write("cycle", 5)
     outfile.write("end if", 4)
-    outfile.comment("Find array index to extract correct input names:", 4)
-    outfile.write("do n=1, phys_var_num", 4)
-    outfile.write("if(trim(phys_var_stdnames(n)) == trim(std_name)) then", 5)
-    outfile.write("const_input_idx = n", 6)
-    outfile.write("exit", 6)
-    outfile.write("end if", 5)
-    outfile.write("end do", 4)
     outfile.write("call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
     outfile.write("else", 3)
     outfile.comment("If not in standard names list, then attempt constituent name",4)
-    outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:",4)
-    # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks
-    # allows us to not enumerate all needed constituents from snapshots in the
-    # registry, yet allow reading their values from CAM snapshots.
-    outfile.write("call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
+    outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.",4)
+    outfile.comment("Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,",4)
+    outfile.comment("so also try the all-upper and all-lower case spellings of the constituent name:",4)
+    # Try uppercase and lowercase variants for constituent names to match CAM
+    # e.g., O3, NO2, NUMLIQ (most species) ... num_a1, num_a2 (aerosols)
+    outfile.write("call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)", 4)
     outfile.write("end if", 3)
     outfile.write("if(.not. var_found) then", 3)
     outfile.write("constituent_has_default = .false.", 4)
@@ -1306,6 +1311,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                                    "cam_model_const_properties"]],
                  ["cam_constituents", ["const_get_index"]],
                  ["ccpp_kinds", ["kind_phys"]],
+                 ["string_utils", ["to_lower", "to_upper"]],
                  ["cam_logfile", ["iulog"]],
                  ["spmd_utils", ["masterproc"]],
                  ["phys_vars_init_check", ["is_read_from_file"]],
@@ -1492,25 +1498,28 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 3)
     outfile.write("call const_props(constituent_idx)%standard_name(std_name)", 3)
-    outfile.write("if(any(phys_var_stdnames == std_name)) then", 3)
-    outfile.comment("Find array index to extract correct input names:", 4)
-    outfile.write("do n=1, phys_var_num", 4)
-    outfile.write("if(trim(phys_var_stdnames(n)) == trim(std_name)) then", 5)
-    outfile.write("const_input_idx = n", 6)
-    outfile.write("exit", 6)
-    outfile.write("end if", 5)
-    outfile.write("end do", 4)
+    outfile.comment("Find array index to extract correct input names", 3)
+    outfile.comment("(case-insensitive: see find_input_name_idx):", 3)
+    outfile.write("const_input_idx = -1", 3)
+    outfile.write("do n=1, phys_var_num", 3)
+    outfile.write("if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then", 4)
+    outfile.write("const_input_idx = n", 5)
+    outfile.write("exit", 5)
+    outfile.write("end if", 4)
+    outfile.write("end do", 3)
+    outfile.write("if(const_input_idx > 0) then", 3)
     outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
     outfile.write("if (diff_found) then", 4)
     outfile.write("overall_diff_found = .true.", 5)
     outfile.write("end if", 4)
     outfile.write("else", 3)
     outfile.comment("If not in standard names list, then attempt constituent name",4)
-    outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names:",4)
-    # The <std_name>, cnst_<std_name>, pbuf_<std_name> prefix default fallbacks
-    # allows us to not enumerate all needed constituents from snapshots in the
-    # registry, yet allow reading their values from CAM snapshots.
-    outfile.write("call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
+    outfile.comment("and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.",4)
+    outfile.comment("Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,",4)
+    outfile.comment("so also try the all-upper and all-lower case spellings of the constituent name:",4)
+    # Try uppercase and lowercase variants for constituent names to match CAM
+    # e.g., O3, NO2, NUMLIQ (most species) ... num_a1, num_a2 (aerosols)
+    outfile.write("call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
     outfile.write("if (diff_found) then", 4)
     outfile.write("overall_diff_found = .true.", 5)
     outfile.write("end if", 4)
