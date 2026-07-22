@@ -215,7 +215,10 @@
       excluding variables from the `{{ hilight }}ncdata_check{{ closehilight }}`
       comparison, matched against the name each row is reported under in the
       physics check output (for constituent-dimensioned variables, the
-      per-constituent file variable name).
+      per-constituent file variable name). Matching is case-insensitive,
+      since the case of a row's name depends on how its constituent was
+      registered and the CCPP framework treats standard names differing
+      only in case as the same.
 
       gitignore-style keep is supported:
       A pattern with a leading '!' keeps (still compares) the name, any other pattern excludes it;

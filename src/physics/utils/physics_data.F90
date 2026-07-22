@@ -50,7 +50,10 @@ module physics_data
    ! matching pattern decides and a leading '!' keeps (still compares) a
    ! matching row. Excluded rows skip the comparison entirely but are
    ! buffered here and listed by flush_check_field_verbose, so exclusion
-   ! is never silent.
+   ! is never silent. Matching is case-insensitive (patterns are stored
+   ! lowercased): the case of a row's label is an artifact of how its
+   ! constituent was registered (capgen lowercases derived standard names)
+   ! and the framework treats names differing only in case as the same.
    character(len=verbose_name_len), allocatable, save :: check_exclude_patterns(:)
    integer, save :: num_excluded_entries = 0
    character(len=verbose_name_len), save :: excluded_stdnames(max_verbose_entries)
@@ -1367,11 +1370,13 @@ CONTAINS
    subroutine set_check_field_exclusions(patterns)
       !
       ! Store the ordered check-exclusion glob patterns (the
-      ! ncdata_check_exclude namelist option). Blank entries are dropped;
-      ! the relative order of the rest is preserved (first match wins in
-      ! check_field_excluded).
+      ! ncdata_check_exclude namelist option), lowercased for the
+      ! case-insensitive match in check_field_excluded. Blank entries are
+      ! dropped; the relative order of the rest is preserved (first match
+      ! wins in check_field_excluded).
       !
       use cam_abortutils, only: check_allocate
+      use string_utils,   only: to_lower
 
       !Dummy variables:
       character(len=*), intent(in) :: patterns(:)
@@ -1397,7 +1402,7 @@ CONTAINS
       do i = 1, size(patterns)
          if (len_trim(patterns(i)) > 0) then
             num_patterns = num_patterns + 1
-            check_exclude_patterns(num_patterns) = patterns(i)
+            check_exclude_patterns(num_patterns) = to_lower(patterns(i))
          end if
       end do
 
@@ -1407,11 +1412,13 @@ CONTAINS
       !
       ! Decide whether a check row is excluded from comparison by the
       ! ncdata_check_exclude patterns; excluded rows are buffered and later
-      ! listed by flush_check_field_verbose. Runs identically on all ranks
-      ! (the patterns arrive via the namelist broadcast), so the collective
-      ! MPI calls inside check_field stay aligned.
+      ! listed by flush_check_field_verbose. Matching is case-insensitive
+      ! (see the check_exclude_patterns declaration). Runs identically on
+      ! all ranks (the patterns arrive via the namelist broadcast), so the
+      ! collective MPI calls inside check_field stay aligned.
       !
       use string_core_utils, only: core_glob_list_excluded
+      use string_utils,      only: to_lower
 
       !Dummy variables:
       character(len=*), intent(in) :: stdname
@@ -1424,8 +1431,8 @@ CONTAINS
          return
       end if
 
-      check_field_excluded = core_glob_list_excluded(trim(stdname),           &
-         check_exclude_patterns)
+      check_field_excluded = core_glob_list_excluded(                         &
+         to_lower(trim(stdname)), check_exclude_patterns)
 
       if (check_field_excluded .and.                                          &
           (num_excluded_entries < max_verbose_entries)) then
