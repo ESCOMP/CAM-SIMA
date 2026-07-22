@@ -13,11 +13,13 @@ module physics_types
 
   implicit none
 
+  ! target so the aerosol_mmr_host accessors can return pointers to them
+  ! (mirrors the real registry-generated fields).
   ! dry number mode diameter of modal aerosol [m]
-  real(kind_phys), public, allocatable :: dgncur_a(:,:,:)
+  real(kind_phys), public, allocatable, target :: dgncur_a(:,:,:)
   ! wet number mode diameter of modal aerosol [m]
-  real(kind_phys), public, allocatable :: dgncur_awet(:,:,:)
+  real(kind_phys), public, allocatable, target :: dgncur_awet(:,:,:)
   ! aerosol water mass mixing ratio per mode [kg kg-1]
-  real(kind_phys), public, allocatable :: qaerwat_aer(:,:,:)
+  real(kind_phys), public, allocatable, target :: qaerwat_aer(:,:,:)
 
 end module physics_types

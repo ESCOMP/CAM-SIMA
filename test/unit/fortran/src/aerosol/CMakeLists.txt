@@ -82,6 +82,7 @@ add_library(bulk_aero_testlib
     ${CORE_UTILS}/string_core_utils.F90
     mock_phys_prop.F90
     mock_radiative_aerosol.F90
+    mock_physics_types.F90
     mock_aerosol_mmr_host.F90
     ${CCPP_STUB}
 )
@@ -116,7 +117,6 @@ add_pfunit_ctest(test_insoluble_aerosol_optics
 add_library(modal_aero_testlib
     ${AEROSOL_SRC}/modal_aerosol_properties_mod.F90
     ${AEROSOL_SRC}/modal_aerosol_state_mod.F90
-    mock_physics_types.F90
     modal_test_helpers.F90
 )
 target_link_libraries(modal_aero_testlib PUBLIC bulk_aero_testlib)

@@ -42,6 +42,9 @@ module aerosol_mmr_host
   public :: aero_host_binding
   public :: rad_cnst_get_aer_mmr
   public :: rad_cnst_get_mode_num
+  public :: get_mode_dry_diameter
+  public :: get_mode_wet_diameter
+  public :: get_mode_aer_water
 
 contains
 
@@ -54,6 +57,36 @@ contains
 
     host%constituents => constituents
   end function aero_host_binding
+
+  !-----------------------------------------------------------------------
+  ! Mode diameter / aerosol water accessors. Mirror the real module by
+  ! returning the mock physics_types registry fields; the host handle is
+  ! ignored (parity with the real interface). Tests exercising these paths
+  ! must allocate and fill dgncur_a / dgncur_awet / qaerwat_aer.
+  !-----------------------------------------------------------------------
+  subroutine get_mode_dry_diameter(host, dgnum)
+    use physics_types, only: dgncur_a
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: dgnum(:,:,:)
+
+    dgnum => dgncur_a
+  end subroutine get_mode_dry_diameter
+
+  subroutine get_mode_wet_diameter(host, dgnumwet)
+    use physics_types, only: dgncur_awet
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: dgnumwet(:,:,:)
+
+    dgnumwet => dgncur_awet
+  end subroutine get_mode_wet_diameter
+
+  subroutine get_mode_aer_water(host, qaerwat)
+    use physics_types, only: qaerwat_aer
+    type(aero_host_binding_t), intent(in) :: host
+    real(r8),                  pointer    :: qaerwat(:,:,:)
+
+    qaerwat => qaerwat_aer
+  end subroutine get_mode_aer_water
 
   !-----------------------------------------------------------------------
   ! Mock rad_cnst_get_aer_mmr (bulk): directly index into constituents(:,:,aer_idx).
