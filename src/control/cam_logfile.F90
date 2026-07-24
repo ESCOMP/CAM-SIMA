@@ -127,7 +127,7 @@ contains
       if (ierr /= 0) then
          ! Can't call endrun because of dependency loop
          ! But MPI usually crashes in Fortran
-         write(iulog, *) subname, ": ERROR: mpi_bcast: debug_output"
+         write(iulog, *) subname, ': ERROR: mpi_bcast: debug_output'
       end if
 
    end subroutine cam_logfile_readnl
