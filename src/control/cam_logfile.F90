@@ -49,7 +49,7 @@ module cam_logfile
       module procedure cam_log_multiwrite_nr8 ! Multiple 8-byte reals
    end interface cam_log_multiwrite
 
-CONTAINS
+contains
 
 !-----------------------------------------------------------------------
 ! Subroutines and functions --------------------------------------------
