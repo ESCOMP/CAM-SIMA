@@ -93,7 +93,7 @@ contains
       log_output = masterproc
 
       if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
+         open(newunit=unitn, action='read', file=trim(nlfile), status='old')
          call find_group_name(unitn, 'cam_logfile_nl', status=ierr)
          if (ierr == 0) then
             read(unitn, cam_logfile_nl, iostat=ierr)
