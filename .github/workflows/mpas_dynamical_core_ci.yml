@@ -216,6 +216,7 @@ jobs:
         run: |
           python3 -m venv venv-fortitude
           source venv-fortitude/bin/activate
+          python3 -m pip install --upgrade pip
           python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
 
       - name: Lint Fortran source code
