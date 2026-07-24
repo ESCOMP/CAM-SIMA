@@ -73,6 +73,7 @@ contains
 
    subroutine cam_logfile_readnl(nlfile)
       use mpi,        only: mpi_integer
+      use shr_kind_mod, only: cx => shr_kind_cx
       use shr_nl_mod, only: find_group_name => shr_nl_find_group_name
       use spmd_utils, only: mpicom, masterprocid, masterproc
 
@@ -80,6 +81,7 @@ contains
       character(len=*), intent(in) :: nlfile
 
       ! Local variables
+      character(len=cx)            :: cerr
       integer                      :: unitn
       integer                      :: ierr
 
@@ -96,10 +98,11 @@ contains
          open(newunit=unitn, action='read', file=trim(nlfile), status='old')
          call find_group_name(unitn, 'cam_logfile_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, cam_logfile_nl, iostat=ierr)
+            read(unitn, cam_logfile_nl, iomsg=cerr, iostat=ierr)
             if (ierr /= 0) then
                ! Can't call endrun because of dependency loop
-               write(iulog, *) subname, ': ERROR: reading namelist'
+               write(iulog, *) subname, ': ERROR: reading namelist' // new_line('') // &
+                  trim(adjustl(cerr))
             end if
          end if
          close(unitn)
