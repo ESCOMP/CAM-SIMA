@@ -134,9 +134,9 @@ contains
 
    subroutine cam_log_multiwrite_ni(subname, headers, fmt_string, values)
       ! Print out values from every task
+      use mpi,          only: mpi_integer
       use shr_sys_mod,  only: shr_sys_flush
       use spmd_utils,   only: mpicom, masterprocid, masterproc, npes
-      use mpi,          only: mpi_integer
 
       ! Dummy arguments
       character(len=*), intent(in) :: subname
@@ -170,9 +170,9 @@ contains
    subroutine cam_log_multiwrite_nr8(subname, headers, fmt_string, values)
       ! Print out values from every task
       use iso_fortran_env, only: r8 => REAL64
+      use mpi,             only: mpi_real8
       use shr_sys_mod,     only: shr_sys_flush
       use spmd_utils,      only: mpicom, masterprocid, masterproc, npes
-      use mpi,             only: mpi_real8
 
       ! Dummy arguments
       character(len=*), intent(in) :: subname
