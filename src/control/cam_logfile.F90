@@ -12,6 +12,8 @@ module cam_logfile
 !-----------------------------------------------------------------------
 !- use statements ------------------------------------------------------
 !-----------------------------------------------------------------------
+   use, intrinsic :: iso_fortran_env, only: output_unit
+
 !-----------------------------------------------------------------------
 !- module boilerplate --------------------------------------------------
 !-----------------------------------------------------------------------
@@ -35,7 +37,7 @@ module cam_logfile
    integer, public, protected :: debug_output = DEBUGOUT_NONE
    !> \section arg_table_cam_logfile  Argument Table
    !! \htmlinclude cam_logfile.html
-   integer, public, protected :: iulog = 6
+   integer, public, protected :: iulog = output_unit
    logical, public, protected :: log_output = .false.
 
 !-----------------------------------------------------------------------
