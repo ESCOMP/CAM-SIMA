@@ -1427,7 +1427,7 @@
       <long_name> </long_name>
     </variable>
 
-    <!-- Topography dataset fields: default to 0 when no topo -->
+    <!-- Topography dataset fields: default to 0 when no topo (aquap) -->
     <variable local_name="sgh"
               standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
               units="m" type="real" kind="kind_phys"
@@ -1442,7 +1442,7 @@
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>SGH30 pbuf_SGH30</ic_file_input_names>
+      <ic_file_input_names>pbuf_SGH30</ic_file_input_names>
     </variable>
     <variable local_name="landm"
               standard_name="smoothed_land_area_fraction"
@@ -1450,7 +1450,7 @@
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
+      <ic_file_input_names>pbuf_LANDM</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations from snapshot -->
