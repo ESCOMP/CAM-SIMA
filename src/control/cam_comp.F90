@@ -467,51 +467,24 @@ CONTAINS
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run4(rstwr, nlend,                         &
-        yr_spec, mon_spec, day_spec, sec_spec)
+   subroutine cam_run4(rstwr, nlend)
+      logical, intent(in)  :: rstwr    ! write restart file
+      logical, intent(in)  :: nlend    ! this is final timestep
 
       !-----------------------------------------------------------------------
       !
-      ! Purpose:  Final phase of atmosphere model run method. This consists
-      !           of all the restart output, history writes, and other
-      !           file output.
+      ! Purpose:
       !
       !-----------------------------------------------------------------------
-!      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
-
-      logical,         intent(in)           :: rstwr    ! write restart file
-      logical,         intent(in)           :: nlend    ! this is final timestep
-      integer,         intent(in), optional :: yr_spec  ! Simulation year
-      integer,         intent(in), optional :: mon_spec ! Simulation month
-      integer,         intent(in), optional :: day_spec ! Simulation day
-      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
-
-      !
-      ! Write restart files
-      !
-      if (rstwr) then
-         call t_startf('cam_write_restart')
-         if (present(yr_spec) .and. present(mon_spec) .and.                   &
-              present(day_spec).and.present(sec_spec)) then
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out, yr_spec=yr_spec, &
-!                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
-!!XXgoldyXX: ^ need to import this
-         else
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out)
-!!XXgoldyXX: ^ need to import this
-         end if
-         call t_stopf('cam_write_restart')
-      end if
 
    end subroutine cam_run4
 
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, do_history_write)
+   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, &
+                   yr_spec, mon_spec, day_spec, sec_spec, do_history_write)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
@@ -521,15 +494,20 @@ CONTAINS
       use phys_comp,    only: phys_timestep_final
       use cam_history,  only: history_write_files
       use cam_history,  only: history_wrap_up
+      use cam_restart,  only: cam_write_restart
       logical, intent(in)  :: rstwr    ! write restart file
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
       ! - flag is true if this is not the first or last step
       logical, intent(in)  :: do_ncdata_check
+      integer,         intent(in), optional :: yr_spec  ! Simulation year
+      integer,         intent(in), optional :: mon_spec ! Simulation month
+      integer,         intent(in), optional :: day_spec ! Simulation day
+      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
       !Flag for whether to perform the history write
       logical, optional, intent(in) :: do_history_write
 
-      logical :: history_write_loc
+      logical                               :: history_write_loc
 
       if (present(do_history_write)) then
          history_write_loc = do_history_write
@@ -540,7 +518,20 @@ CONTAINS
       if (history_write_loc) then
          call history_write_files()
       end if
-      ! peverwhee - todo: handle restarts
+      !
+      ! Write restart files
+      !
+      if (rstwr) then
+         call t_startf('cam_write_restart')
+         if (present(yr_spec) .and. present(mon_spec) .and.                   &
+              present(day_spec).and.present(sec_spec)) then
+            call cam_write_restart(dyn_out, yr_spec=yr_spec, &
+                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
+         else
+            call cam_write_restart(dyn_out)
+         end if
+         call t_stopf('cam_write_restart')
+      end if
       call history_wrap_up(rstwr, nlend)
 
       !

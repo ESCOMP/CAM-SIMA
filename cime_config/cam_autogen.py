@@ -33,6 +33,7 @@ sys.path.append(_REG_GEN_DIR)
 # Import needed registry and other src/data scripts:
 from generate_registry_data import gen_registry
 from write_init_files import write_init_files
+from write_restart_physics import write_restart_physics
 
 ###############################################################################
 
@@ -454,7 +455,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
-            retcode, reg_file_list, ic_names, registry_constituents, vars_init_value = retvals
+            retcode, reg_file_list, ic_names, registry_constituents, restart_vars, vars_init_value = retvals
             # Raise error if gen_registry failed:
             if retcode != 0:
                 emsg = "ERROR:Unable to generate CAM data structures from {}, err = {}"
@@ -468,16 +469,17 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_file_paths, ic_names, registry_constituents, vars_init_value)
+                                    reg_file_paths, ic_names, registry_constituents, restart_vars, vars_init_value)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()
         ic_names = build_cache.ic_names()
         registry_constituents = build_cache.constituents()
+        restart_vars = build_cache.restart_vars()
         vars_init_value = build_cache.vars_init_value()
     # End if
 
-    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents, vars_init_value
+    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents, restart_vars, vars_init_value
 
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
@@ -807,6 +809,54 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
     # End if
 
     return init_dir
+
+###############################################################################
+def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
+                              source_mods_dir, gen_fort_indent, cap_database,
+                              ic_names, registry_constituents, restart_vars):
+###############################################################################
+    """
+    Generate the physics restart routines (restart_physics.F90) using
+    both the registry and the CCPP physics suites if required
+    (new case or changes to registry or CCPP source(s), meta-data,
+    and/or script).
+    """
+
+    #Add new directory to build path:
+    restart_dir = os.path.join(bldroot, "phys_restart")
+    # Use this for cache check
+    gen_restart_file = os.path.join(_REG_GEN_DIR, "write_restart_physics.py")
+
+    # Figure out if we need to generate new restart routines:
+    if os.path.exists(restart_dir):
+        # Check if registry and / or CCPP suites were modified:
+        if force_ccpp or force_restart:
+            do_gen_restart = True
+        else:
+            #If not, then check cache to see if actual
+            #"restart_physics.py" was modified:
+            do_gen_restart = build_cache.restart_write_mismatch(gen_restart_file)
+    else:
+        #If no directory exists, then one will need
+        # to create new routines:
+        os.mkdir(restart_dir)
+        do_gen_restart = True
+    # End if
+    if do_gen_restart:
+        source_paths = [source_mods_dir, _REG_GEN_DIR]
+        retmsg = write_restart_physics(cap_database, registry_constituents, restart_vars, 
+                                       restart_dir, gen_fort_indent, _LOGGER)
+        
+        #Check that script ran properly
+        if retmsg:
+            emsg = f"ERROR: Unable to generate CAM restart source code, error message is:\n{retmsg}"
+            raise CamAutoGenError(emsg)
+        #-----
+
+        # save build details in the build cache
+        build_cache.update_restart_gen(gen_restart_file)
+
+    return restart_dir
 
 #############
 # End of file

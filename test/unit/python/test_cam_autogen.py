@@ -140,6 +140,12 @@ class FakeBuildCache:
 
         return []
 
+    def restart_vars(self):
+
+        """Fake version of 'restart_vars' property."""
+
+        return []
+
     def scheme_nl_metadata(self):
 
         """Fake version of 'scheme_nl_metadata' property."""
@@ -376,8 +382,8 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         """Check that "_find_metadata_files" works properly if given the proper inputs."""
 
         #Copy test files into test SourceMods directory:
-        test_meta = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.meta")
-        test_src = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.F90")
+        test_meta = os.path.join(self.test_suite_path, "shared", "temp_adjust.meta")
+        test_src = os.path.join(self.test_suite_path, "shared", "temp_adjust.F90")
 
         shutil.copy2(test_meta, self.test_src_mods_dir)
         shutil.copy2(test_src, self.test_src_mods_dir)
@@ -523,7 +529,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         test_data_search = [os.path.join(_CAM_ROOT_DIR, "src", "data")]
 
         #Set expected output tuple:
-        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [], [])
+        expected_results = (f'{self.test_bldroot}'+os.sep+'cam_registry', False, [], {}, [], [], [])
 
         #Run registry generation function:
         gen_results = generate_registry(test_data_search, self.test_cache, _CAM_ROOT_DIR,
@@ -568,9 +574,9 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         """Check that "generate_physics_suites" works properly if given the proper inputs"""
 
         #Copy test files into test SourceMods directory:
-        test_suite = os.path.join(self.test_suite_path, "write_init_files", "suite_simple.xml")
-        test_meta  = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.meta")
-        test_src  = os.path.join(self.test_suite_path, "write_init_files", "temp_adjust.F90")
+        test_suite = os.path.join(self.test_suite_path, "shared", "suite_simple.xml")
+        test_meta  = os.path.join(self.test_suite_path, "shared", "temp_adjust.meta")
+        test_src  = os.path.join(self.test_suite_path, "shared", "temp_adjust.F90")
 
         shutil.copy2(test_suite, self.test_src_mods_dir)
         shutil.copy2(test_meta, self.test_src_mods_dir)

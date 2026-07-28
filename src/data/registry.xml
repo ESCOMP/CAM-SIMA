@@ -139,14 +139,16 @@
     <variable local_name="frontgf"
               standard_name="frontogenesis_function"
               units="K2 m-2 s-1" type="real" kind="kind_phys"
-              allocatable="pointer">
+              allocatable="pointer" restart="true"
+	      diagnostic_name="FRONTGF">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>frontgf pbuf_FRONTGF</ic_file_input_names>
     </variable>
     <variable local_name="frontga"
               standard_name="frontogenesis_angle"
               units="radians" type="real" kind="kind_phys"
-              allocatable="pointer">
+              allocatable="pointer" restart="true"
+	      diagnostic_name="FRONTGA">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>frontga pbuf_FRONTGA</ic_file_input_names>
     </variable>
@@ -161,7 +163,8 @@
     <variable local_name="qpert"
               standard_name="convective_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_perturbation_due_to_pbl_eddies"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="QPERT">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>qpert pbuf_qpert</ic_file_input_names>
@@ -177,7 +180,8 @@
     <variable local_name="cmfmc_dp"
               standard_name="atmosphere_convective_mass_flux_due_to_deep_convection"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+              diagnostic_name="CMFMC_DP">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>cmfmc_dp pbuf_CMFMC_DP</ic_file_input_names>
@@ -185,7 +189,8 @@
     <variable local_name="cmfmc_sh"
               standard_name="atmosphere_convective_mass_flux_due_to_shallow_convection"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+              diagnostic_name="CMFMC_SH">
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>cmfmc_sh pbuf_CMFMC_SH</ic_file_input_names>
@@ -193,7 +198,8 @@
     <variable local_name="dlfzm"
               standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="DLFZM">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dlfzm pbuf_DLFZM</ic_file_input_names>
@@ -217,7 +223,8 @@
     <variable local_name="rprddp"
               standard_name="tendency_of_precipitation_wrt_moist_air_and_condensed_water_due_to_deep_convection_excluding_subcloud_evaporation"
               units="kg kg-1 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="RPRDDP">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RPRDDP</ic_file_input_names>
@@ -609,7 +616,7 @@
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" constituent="true">
+              units="kg kg-1" type="real" constituent="true" restart="true" diagnostic_name="cldliq">
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
@@ -660,7 +667,8 @@
     <variable local_name="landm"
               standard_name="smoothed_land_area_fraction"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="LANDM">
       <dimensions>horizontal_dimension</dimensions>
       <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
       <initial_value>0.0_kind_phys</initial_value>
@@ -669,7 +677,8 @@
     <variable local_name="ast"
               standard_name="stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="AST">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_AST</ic_file_input_names>
@@ -711,7 +720,8 @@
     <variable local_name="cflx"
               standard_name="surface_upward_ccpp_constituent_fluxes_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="CFLX">
       <dimensions>horizontal_dimension number_of_ccpp_constituents</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>cflx cam_in_cflx</ic_file_input_names>
@@ -901,7 +911,8 @@
     <variable local_name="shf"
               standard_name="surface_upward_sensible_heat_flux_from_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="SHF">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>shf cam_in_shf</ic_file_input_names>
@@ -1006,7 +1017,8 @@
     <variable local_name="wsx"
               standard_name="surface_eastward_wind_stress_from_coupler"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="wsx">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>wsx cam_in_wsx</ic_file_input_names>
@@ -1014,7 +1026,8 @@
     <variable local_name="wsy"
               standard_name="surface_northward_wind_stress_from_coupler"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="wsy">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>wsy cam_in_wsy</ic_file_input_names>
@@ -1024,7 +1037,8 @@
     <variable local_name="bcphidry"
               standard_name="dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="BCPHIDRY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>bcphidry cam_out_bcphidry</ic_file_input_names>
@@ -1040,7 +1054,8 @@
     <variable local_name="bcphodry"
               standard_name="dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="BCPHODRY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
@@ -1048,7 +1063,8 @@
     <variable local_name="co2diag"
               standard_name="co2diag_tbd"
               units="tbd" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="CO2DIAG">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
@@ -1056,7 +1072,8 @@
     <variable local_name="co2prog"
               standard_name="co2prog_tbd"
               units="tbd" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="CO2PROG">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2prog cam_out_co2prog</ic_file_input_names>
@@ -1064,7 +1081,8 @@
     <variable local_name="dstdry1"
               standard_name="dry_deposition_of_dust_bin1_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="DSTDRY1">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstdry1 cam_out_dstdry1</ic_file_input_names>
@@ -1072,7 +1090,8 @@
     <variable local_name="dstdry2"
               standard_name="dry_deposition_of_dust_bin2_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="DSTDRY2">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstdry2 cam_out_dstdry2</ic_file_input_names>
@@ -1080,7 +1099,8 @@
     <variable local_name="dstdry3"
               standard_name="dry_deposition_of_dust_bin3_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="DSTDRY3">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstdry3 cam_out_dstdry3</ic_file_input_names>
@@ -1088,7 +1108,8 @@
     <variable local_name="dstdry4"
               standard_name="dry_deposition_of_dust_bin4_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+              diagnostic_name="DSTDRY4">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstdry4 cam_out_dstdry4</ic_file_input_names>
@@ -1128,7 +1149,8 @@
     <variable local_name="flwds"
               standard_name="longwave_downward_radiative_flux_at_surface_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="FLWDS">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>flwds cam_out_flwds</ic_file_input_names>
@@ -1168,7 +1190,8 @@
     <variable local_name="ocphidry"
               standard_name="dry_deposition_flux_of_hydrophilic_organic_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="OCPHIDRY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ocphidry cam_out_ocphidry</ic_file_input_names>
@@ -1184,7 +1207,8 @@
     <variable local_name="ocphodry"
               standard_name="dry_deposition_flux_of_hydrophobic_organic_carbon_at_surface_to_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="OCPHODRY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ocphodry cam_out_ocphodry</ic_file_input_names>
@@ -1265,7 +1289,8 @@
     <variable local_name="soll"
               standard_name="direct_solar_radiative_flux_at_surface_ge_700nm_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="SOLL">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>soll cam_out_soll</ic_file_input_names>
@@ -1273,7 +1298,8 @@
     <variable local_name="solld"
               standard_name="diffuse_solar_radiative_flux_at_surface_ge_700nm_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="SOLLD">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>solld cam_out_solld</ic_file_input_names>
@@ -1281,7 +1307,8 @@
     <variable local_name="sols"
               standard_name="direct_solar_radiative_flux_at_surface_lt_700nm_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="SOLS">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>sols cam_out_sols</ic_file_input_names>
@@ -1289,7 +1316,8 @@
     <variable local_name="solsd"
               standard_name="diffuse_solar_radiative_flux_at_surface_lt_700nm_to_coupler"
               units="W m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="SOLSD">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>solsd cam_out_solsd</ic_file_input_names>
@@ -1441,7 +1469,8 @@
     <variable local_name="pblh"
               standard_name="atmosphere_boundary_layer_thickness"
               units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="PBLH">
       <dimensions>horizontal_dimension</dimensions>
       <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
            while a PBL scheme is unavailable. -->
@@ -1451,7 +1480,8 @@
     <variable local_name="tpert"
               standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
               units="K" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TPERT">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
@@ -1537,7 +1567,8 @@
     <variable local_name="qcwat"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="QCWAT">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
@@ -1546,7 +1577,8 @@
     <variable local_name="tcwat"
               standard_name="air_temperature_on_previous_timestep"
               units="K" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TCWAT">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
@@ -1555,7 +1587,8 @@
     <variable local_name="lcwat"
               standard_name="cloud_water_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="LCWAT">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
@@ -1590,7 +1623,8 @@
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TAURESX">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_tauresx</ic_file_input_names>
@@ -1598,7 +1632,8 @@
     <variable local_name="tauresy"
               standard_name="northward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TAURESY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_tauresy</ic_file_input_names>
@@ -1606,7 +1641,8 @@
     <variable local_name="dragblj"
               standard_name="turbulent_orographic_form_drag_coefficent"
               units="s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="DRAGBLJ">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_dragblj</ic_file_input_names>
@@ -1619,7 +1655,8 @@
     <variable local_name="taubljx"
               standard_name="eastward_beljaars_surface_stress_tbd"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TAUBLJX">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_taubljx</ic_file_input_names>
@@ -1627,7 +1664,8 @@
     <variable local_name="taubljy"
               standard_name="northward_beljaars_surface_stress_tbd"
               units="N m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="TAUBLJY">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_taubljy</ic_file_input_names>
@@ -1672,7 +1710,8 @@
     <variable local_name="clubbtop"
               standard_name="vertical_layer_index_of_clubb_top_tbd"
               units="index" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="CLUBBTOP">
       <!-- REMOVECAM: once CAM snapshots are no longer used, change to integer. -->
       <long_name>vertical layer index for top of CLUBB for running HB above</long_name>
       <dimensions>horizontal_dimension</dimensions>
@@ -1778,14 +1817,16 @@
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="QL">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
     </variable>
     <variable local_name="cldfrc"
               standard_name="cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="CLDFRC">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.7_kind_phys</initial_value>
       <ic_file_input_names>CLD pbuf_CLD</ic_file_input_names>
@@ -1829,21 +1870,24 @@
     <variable local_name="qini"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="QINI">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>QINI pbuf_QINI</ic_file_input_names>
     </variable>
     <variable local_name="liqini"
               standard_name="total_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+ 	      allocatable="allocatable" restart="true"
+	      diagnostic_name="LIQINI">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>TOTLIQINI pbuf_TOTLIQINI</ic_file_input_names>
     </variable>
     <variable local_name="iceini"
               standard_name="total_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water_before_physics"
               units="kg kg-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+	      allocatable="allocatable" restart="true"
+	      diagnostic_name="ICEINI">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>TOTICEINI pbuf_TOTICEINI</ic_file_input_names>
     </variable>

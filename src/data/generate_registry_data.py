@@ -166,6 +166,8 @@ class VarBase:
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
         self.__constituent = elem_node.get("constituent", default=False)
         self.__advected    = elem_node.get("advected", default=False)
+        self.__restart     = elem_node.get("restart", default=False)
+        self.__diag_name   = elem_node.get("diagnostic_name", default=local_name)
         self.__tstep_init  = elem_node.get("phys_timestep_init_zero",
                                            default=tstep_init_default)
         if self.__allocatable == "none":
@@ -438,6 +440,11 @@ class VarBase:
         return self.__advected
 
     @property
+    def is_restart(self):
+        """Return True if this variable should be included on the physics restart file"""
+        return self.__restart
+
+    @property
     def tstep_init(self):
         """Return True if variable will be set to zero every physics timestep."""
         return self.__tstep_init
@@ -544,7 +551,8 @@ class Variable(VarBase):
                         "constituent", "dycore", "extends",
                         "kind", "local_name", "name",
                         "phys_timestep_init_zero", "standard_name",
-                        "type", "units", "version"]
+                        "type", "units", "version", "restart",
+                        "diagnostic_name"]
 
     def __init__(self, var_node, known_types, vdict, dycore, logger):
         # pylint: disable=too-many-locals
@@ -571,6 +579,10 @@ class Variable(VarBase):
         self.__def_dims_str = ""
         for attrib in var_node:
             if attrib.tag == 'dimensions':
+                if not attrib.text:
+                    emsg = f"Variable '{local_name}' cannot be a restart variable without any dimensions."
+                    raise CCPPError(emsg)
+                # end if
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
                 def_dims = [] # Dims used for variable declarations
                 for dim in my_dimensions:
@@ -1827,6 +1839,35 @@ def _create_constituent_list(registry):
     return constituent_list
 
 ###############################################################################
+def _create_restart_dict(registry):
+###############################################################################
+    """
+    Create a list of all registry variables that need to be included in
+    the physics restart file.
+    To be used by write_physics_restart.py
+    """
+    restart_list = {}
+    for section in registry:
+        if section.tag == 'file':
+            for obj in section:
+                if obj.tag == 'variable':
+                    if obj.get('restart'):
+                        stdname = obj.get('standard_name')
+                        diagnostic_name = obj.get('diagnostic_name')
+                        if diagnostic_name:
+                            restart_list[stdname] = diagnostic_name
+                        else:
+                            local_name = obj.get('local_name')
+                            restart_list[stdname] = local_name
+                        # end if
+                    # end if (ignore non-restart variables)
+                # end if (ignore other node types)
+            # end for
+        # end if (ignore other node types)
+    # end for
+    return restart_list
+
+###############################################################################
 def _create_variables_with_initial_value_list(registry):
 ###############################################################################
     """
@@ -1922,10 +1963,11 @@ def gen_registry(registry_file, dycore, outdir, indent,
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
         registry_constituents = _create_constituent_list(registry)
+        restart_vars = _create_restart_dict(registry)
         vars_init_value = _create_variables_with_initial_value_list(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, registry_constituents, vars_init_value
+    return retcode, files, ic_names, registry_constituents, restart_vars, vars_init_value
 
 def main():
     """Function to execute when module called as a script"""

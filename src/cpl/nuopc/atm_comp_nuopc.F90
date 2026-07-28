@@ -1183,10 +1183,10 @@ contains
        call t_stopf  ('CAM_run3')
 
        call t_startf ('CAM_run4')
-       call cam_run4( rstwr, nlend, &
-            yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
+       call cam_run4(rstwr, nlend)
        call t_stopf  ('CAM_run4')
-       call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
+       call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check, &
+               yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
 
        ! Advance cam time step
 

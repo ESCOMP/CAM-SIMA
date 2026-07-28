@@ -110,10 +110,14 @@
 
   <xs:attribute name="constituent"             type="xs:boolean"
                 default="false"/>
+  <xs:attribute name="restart"             type="xs:boolean"
+                default="false"/>
   <xs:attribute name="advected"                type="xs:boolean"
                 default="false"/>
   <xs:attribute name="phys_timestep_init_zero" type="xs:boolean"
                 default="false"/>
+  <xs:attribute name="diagnostic_name" type="fortran_id_type"
+                default="none"/>
 
   <!-- definition of simple types -->
 
@@ -147,8 +151,10 @@
     <xs:attribute ref="standard_name" use="required"/>
     <xs:attribute ref="units"         use="optional"/>
     <xs:attribute ref="constituent"   use="optional"/>
+    <xs:attribute ref="restart"       use="optional"/>
     <xs:attribute ref="advected"      use="optional"/>
     <xs:attribute ref="phys_timestep_init_zero" use="optional"/>
+    <xs:attribute ref="diagnostic_name" use="optional"/>
     <!-- array element-specific attributes -->
     <xs:attribute name="index_name"    type="standard_name_type"
                   use="required"/>
@@ -171,8 +177,10 @@
     <xs:attribute ref="allocatable"   use="optional" default="none"/>
     <xs:attribute ref="access"        use="optional" default="public"/>
     <xs:attribute ref="constituent"   use="optional"/>
+    <xs:attribute ref="restart"   use="optional"/>
     <xs:attribute ref="advected"      use="optional"/>
     <xs:attribute ref="phys_timestep_init_zero" use="optional"/>
+    <xs:attribute ref="diagnostic_name" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="array_type">
