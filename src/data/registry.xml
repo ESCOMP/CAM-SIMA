@@ -2029,9 +2029,6 @@
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>GB_TOTCLDICEMR pbuf_GB_TOTCLDICEMR</ic_file_input_names>
     </variable>
-    <!-- One-moment (RK) microphysics is not a supported CAM-SIMA
-         configuration; hardcoded false (selects the two-moment rei clamp in
-         convective_cloud_water). Revisit if an RK+RRTMGP config arrives. -->
     <variable local_name="one_mom_clouds"
               standard_name="flag_for_one_moment_cloud_microphysics"
               units="flag" type="logical">
