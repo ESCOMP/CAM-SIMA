@@ -198,6 +198,14 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dlfzm pbuf_DLFZM</ic_file_input_names>
     </variable>
+    <variable local_name="icwmrsh"
+              standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_shallow_convection"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ICWMRSH pbuf_ICWMRSH</ic_file_input_names>
+    </variable>
     <variable local_name="dlf"
               standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_all_convection"
               units="kg kg-1 s-1" type="real" kind="kind_phys"
@@ -221,6 +229,22 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RPRDDP</ic_file_input_names>
+    </variable>
+    <variable local_name="dp_frac"
+              standard_name="deep_convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>DP_FRAC pbuf_DP_FRAC</ic_file_input_names>
+    </variable>
+    <variable local_name="sh_frac"
+              standard_name="shallow_convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>SH_FRAC pbuf_SH_FRAC</ic_file_input_names>
     </variable>
     <variable local_name="rliq"
               standard_name="vertically_integrated_cloud_liquid_water_tendency_due_to_all_convection_to_be_applied_later_in_time_loop"
@@ -1959,9 +1983,10 @@
     <!-- convective_cloud_water + cloud_water_paths inputs for RRTMGP cloud optics -->
     <variable local_name="effi_external_in"
               standard_name="effective_radius_of_stratiform_cloud_ice_particle"
-              units="micron" type="real" kind="kind_phys"
+              units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>REI pbuf_REI</ic_file_input_names>
     </variable>
     <variable local_name="concld"
