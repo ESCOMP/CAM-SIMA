@@ -229,22 +229,28 @@ jobs:
 
       - name: Lint Fortran source code
         run: |
+          # Retrieve the matched paths.
+          echo "${{ needs.conditional-check.outputs.matched-paths }}" | base64 -d > matched-paths.txt
+
           # Filter Fortran files for Fortitude.
           # Fortitude will choke if it encounters non-Fortran files in the command line arguments.
-          if echo "${{ needs.conditional-check.outputs.matched-paths }}" | base64 -d | grep -E '[^/]+\.(F|f|F90|f90|pf)$' > matched-paths.txt; then
+          if grep -E '[^/]+\.(F|f|F90|f90|pf)$' matched-paths.txt > filtered-paths.txt; then
             set --
             while IFS="" read -r LINE || [ -n "$LINE" ]; do
               [ -f "$LINE" ] && set -- "$@" "$LINE"
-            done < matched-paths.txt
+            done < filtered-paths.txt
 
-            source venv-fortitude/bin/activate
-            fortitude \
-              --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
-              check \
-              --exit-zero \
-              --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
-              "$@"
-            cat "$SOURCE_CODE_PATH/source-code-linting.log"
+            # Fortitude will still choke if there are no command line arguments.
+            if [ "$#" -gt 0 ]; then
+              source venv-fortitude/bin/activate
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
+                "$@"
+              cat "$SOURCE_CODE_PATH/source-code-linting.log"
+            fi
           fi
 
       - name: Upload Fortran source code linting log
