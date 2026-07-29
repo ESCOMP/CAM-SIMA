@@ -284,7 +284,7 @@
   </entry>
   <entry id="se_sponge_del4_nu_div_fac">
     <type>real</type>
-    <category>se></category>
+    <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
       Divergence damping hyperviscosity coefficient se_nu_div [m^4/s] for u,v is increased to
@@ -302,8 +302,8 @@
     </values>
   </entry>
   <entry id="se_sponge_del4_lev">
-    <type>real</type>
-    <category>se></category>
+    <type>integer</type>
+    <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
       Level index around which increased del4 damping is centered.

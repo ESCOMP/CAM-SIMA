@@ -1103,8 +1103,9 @@ contains
         end do
         if(ntrac>tracer_num_threads) then
           call omp_set_nested(.true.)
-          !$OMP PARALLEL NUM_THREADS(tracer_num_threads),
-          !DEFAULT(SHARED), PRIVATE(hybridnew2,qbeg,qend)
+          !$OMP PARALLEL NUM_THREADS(tracer_num_threads) &
+          !$OMP DEFAULT(SHARED) &
+          !$OMP PRIVATE(hybridnew2,qbeg,qend)
           hybridnew2 = config_thread_region(hybrid,'ctracer')
           call get_loop_ranges(hybridnew2, qbeg=qbeg, qend=qend)
           call remap1(fvm(ie)%c(1:nc,1:nc,:,1:ntrac),nc,qbeg,qend,ntrac,dpc_star, &

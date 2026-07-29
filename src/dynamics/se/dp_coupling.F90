@@ -779,11 +779,6 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       end do
    end if
 
-   ! Ensure tracers are all greater than or equal to their
-   ! minimum-allowed value:
-   call qneg_run('D_P_COUPLING', pcols, pver, qmin_vals, &
-                 const_data_ptr, errflg, errmsg)
-
    !-----------------------------------------------------------------------------
    ! Call cam_thermo_update. If cam_runtime_opts%update_thermodynamic_variables()
    ! returns .true., cam_thermo_update will compute cpairv, rairv, mbarv, and cappav as
@@ -843,6 +838,11 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
          end do
       end do
    end do
+
+   ! Ensure tracers are all greater than or equal to their
+   ! minimum-allowed value:
+   call qneg_run('D_P_COUPLING', pcols, pver, qmin_vals, &
+                 const_data_ptr, errflg, errmsg)
 
    ! Call geopotential_temp CCPP scheme:
    call geopotential_temp_run(pver, lagrangian_vertical, pver, 1,                        &
