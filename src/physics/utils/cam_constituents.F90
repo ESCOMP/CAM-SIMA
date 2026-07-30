@@ -7,11 +7,11 @@ module cam_constituents
    private
 
    ! Public system functions
-   public :: cam_constituents_readnl
    public :: cam_constituents_init
    ! Public accessor functions
    public :: const_name     ! Constituent standard name
    public :: const_longname
+   public :: const_diag_name ! Constituent diagnostic (file output) name
    public :: const_molec_weight
    public :: const_get_index
    public :: const_is_advected
@@ -29,8 +29,6 @@ module cam_constituents
    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:) => NULL()
 
    ! Namelist variable
-   ! readtrace: Obtain initial tracer data from IC file if .true.
-   logical, public :: readtrace = .true.
    ! Only allow initialization once
    logical, private :: initialized = .false.
 
@@ -99,66 +97,6 @@ module cam_constituents
    private :: check_index_bounds
 
 CONTAINS
-
-   subroutine cam_constituents_readnl(nlfile)
-
-      use mpi,            only: mpi_logical
-      use shr_nl_mod,     only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,     only: masterproc, mpicom, mstrid=>masterprocid
-      use cam_logfile,    only: iulog
-      use cam_abortutils, only: endrun
-
-      ! nlfile: filepath for file containing namelist input
-      character(len=*), intent(in) :: nlfile
-
-      ! Local variables
-      integer                      :: unitn, ierr
-      character(len=*), parameter  :: sub = 'cam_constituents_readnl'
-
-      namelist /constituents_nl/ readtrace
-      !------------------------------------------------------------------------
-
-      !!XXgoldyXX: v Need to figure out how to figure out pcnst
-      !! Update physconst so that we can use 'dry_air_species' and
-      !!   'water_species_in_air' from air_composition_nl.
-      !! Register CCPP constituents (see call below)
-      !! Count up species from air_composition_nl plus CCPP advected
-      !!   constituents not in that namelist.
-      !! Make sure there are indices for all thermodynamically-active species
-      !!   in runtime DDT object. Pack them at front of state Q array.
-      !!XXgoldyXX: ^ Need to figure out how to figure out pcnst
-
-      if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
-         call find_group_name(unitn, 'constituents_nl', status=ierr)
-         if (ierr == 0) then
-            read(unitn, constituents_nl, iostat=ierr)
-            if (ierr /= 0) then
-               call endrun(sub//': FATAL: reading namelist',                  &
-                    file=__FILE__, line=__LINE__)
-            end if
-         end if
-         close(unitn)
-      end if
-
-      call mpi_bcast(readtrace, 1, mpi_logical, mstrid, mpicom, ierr)
-      if (ierr /= 0) then
-         call endrun(sub//": FATAL: mpi_bcast: readtrace",                    &
-              file=__FILE__, line=__LINE__)
-      end if
-
-      if (masterproc) then
-         write(iulog,*)'Summary of constituent module options:'
-         if (readtrace) then
-            write(iulog,*)'  Attempt to read constituent initial values ',    &
-                 'from the initial file by default'
-         else
-            write(iulog,*)'  Do not read constituent initial values ',        &
-                 'from the initial file'
-         end if
-      end if
-
-   end subroutine cam_constituents_readnl
 
    !#######################################################################
 
@@ -285,6 +223,32 @@ CONTAINS
       end if
 
    end function const_longname
+
+   !#######################################################################
+   function const_diag_name(const_ind)
+      use cam_abortutils, only: endrun
+      use string_utils,   only: to_str
+      use shr_kind_mod,   only: CL => shr_kind_cl
+
+      ! Return the diagnostic name of the constituent at <const_ind>.
+      ! Dummy arguments
+      integer, intent(in)         :: const_ind
+      character(len=CL)           :: const_diag_name
+      ! Local variables
+      integer                     :: err_code
+      character(len=256)          :: err_msg
+      character(len=*), parameter :: subname = 'const_diag_name: '
+
+      if (check_index_bounds(const_ind, subname)) then
+         call const_props(const_ind)%diagnostic_name(const_diag_name,        &
+              err_code, err_msg)
+         if (err_code /= 0) then
+            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+                 trim(err_msg), file=__FILE__, line=__LINE__)
+         end if
+      end if
+
+   end function const_diag_name
 
    !#######################################################################
 

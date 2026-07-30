@@ -1378,7 +1378,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do ie=nets,nete
 
       call convert_gbl_index(elem(ie)%vertex%number,ie1,je1,face_no)
-      start%x=r-pi/4._r8 + ie1*dx
+      start%x=-pi/4._r8 + ie1*dx
       start%y=-1._r8*pi/4._r8 + je1*dy
       endd%x  =start%x + dx
       endd%y  =start%y + dy

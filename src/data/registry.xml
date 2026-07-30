@@ -424,7 +424,7 @@
               standard_name="dycore_calculates_geopotential_using_logarithms"
               units="flag" type="logical" access="protected">
       <initial_value>.false.</initial_value>
-      <initial_value dyn="SE,FV">.true.</initial_value>
+      <initial_value dyn="FV,FV3">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data>air_temperature</data>
