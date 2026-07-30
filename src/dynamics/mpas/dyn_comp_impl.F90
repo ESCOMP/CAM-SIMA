@@ -129,8 +129,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
         use cam_constituents, only: const_name, const_is_water_species, &
-                                    num_advected, &
-                                    readtrace
+                                    num_advected
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info
@@ -219,14 +218,8 @@ contains
                 ! the actual availability (checked and handled by MPAS).
                 call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
-                ! Namelist option that controls if constituents are to be read from a file.
-                if (readtrace) then
-                    ! Read variables that belong to the "input" stream in MPAS.
-                    call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
-                else
-                    ! Read variables that belong to the "input" stream in MPAS, excluding constituents.
-                    call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input-scalars')
-                end if
+                ! Read variables that belong to the "input" stream in MPAS.
+                call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
             end if
         else
             ! Run type is branch or restart run.

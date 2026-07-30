@@ -12,7 +12,6 @@ module cam_history_support
 
    implicit none
    private
-   save
 
    integer, parameter, public :: fieldname_len = 32              ! max chars for field name
    integer, parameter, public :: fieldname_suffix_len =  3       ! length of field name suffix ("&IC")
@@ -143,7 +142,7 @@ module cam_history_support
   end interface
 
   !!---------------------------------------------------------------------------
-  
+
   CONTAINS
 
   pure integer function get_hist_coord_index(mdimname)
@@ -921,7 +920,7 @@ module cam_history_support
     end if ! (.not. dimonly)
 
   end subroutine write_hist_coord_attr
-  
+
   !---------------------------------------------------------------------------
   !
   !  write_hist_coord_attrs
@@ -1054,7 +1053,7 @@ module cam_history_support
     if (associated(hist_coords(mdimind)%formula_terms%a_values)) then
       ! Check to make sure the variable already exists in the file
       ! NB: Reusing vardesc, no longer assocated with previous variables
-      ierr = pio_inq_varid(File, trim(hist_coords(mdimind)%formula_terms%a_name), vardesc) 
+      ierr = pio_inq_varid(File, trim(hist_coords(mdimind)%formula_terms%a_name), vardesc)
       write(errormsg,*) subname, ': Error writing values for nonexistent "a" formula_terms for variable "', &
               trim(hist_coords(mdimind)%name), '" (formula_terms%a_name="',    &
               trim(hist_coords(mdimind)%formula_terms%a_name), '")'
