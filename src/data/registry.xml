@@ -1046,16 +1046,16 @@
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
     </variable>
     <variable local_name="co2diag"
-              standard_name="co2diag_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="diagnostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
     </variable>
     <variable local_name="co2prog"
-              standard_name="co2prog_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="prognostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1391,8 +1391,8 @@
        <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
-       <data>co2diag_tbd</data>
-       <data>co2prog_tbd</data>
+       <data>diagnostic_volume_mixing_ratio_of_co2_to_coupler</data>
+       <data>prognostic_volume_mixing_ratio_of_co2_to_coupler</data>
        <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
