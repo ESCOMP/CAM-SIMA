@@ -1519,8 +1519,17 @@ subroutine read_inidat(dyn_in)
       call check_allocate(ierr, subname, 'm_ind(qsize)', &
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
+      ! Map each GLL tracer slot to its constituent index
       do m_cnst = 1, qsize
-         m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
+         if (use_cslam) then
+            ! with CSLAM the GLL tracers are the condensate-loading water species
+            ! (qsize = thermodynamic_active_species_num):
+            m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
+         else
+            ! without CSLAM they are all of the advected constituents
+            ! (qsize = num_advected):
+            m_ind(m_cnst) = advected_constituent_index(m_cnst)
+         end if
       end do
 
       ! Init tracers on the GLL grid.  Note that analytic_ic_set_ic makes
