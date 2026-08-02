@@ -1742,9 +1742,6 @@ subroutine read_inidat(dyn_in)
    call check_allocate(ierr, subname, 'const_ic_name(num_advected)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   ! Initialize to variable name that will likely never be found in the IC file:
-   const_ic_name(:) = 'NONAME_NEVERFOUND'
-
    do m_cnst = 1, num_advected
 
       ! Extract constituent standard name:
@@ -1759,14 +1756,11 @@ subroutine read_inidat(dyn_in)
          end if
       end do
 
-      if (const_ic_names_idx < 0) then
-         ! Constituents registered at run time have no registry entry so they are not in
-         ! phys_var_stdnames. Use the IC file field name:
-         const_ic_name(m_cnst) = trim(std_name)
-      else
+      ! Initialize IC name array with the constituent standard name
+      const_ic_name(m_cnst) = trim(std_name)
+      if (const_ic_names_idx > 0) then
          ! Scan the IC file variables for the first name in the registry IC names list.
-         ! If none are found, uses the first name as the default so there is a reportable name:
-         const_ic_name(m_cnst) = input_var_names(1, const_ic_names_idx)
+         ! If none are found, then the standard name is the default:
          do k = 1, size(input_var_names, 1)
             ! Unused name slots are blank-padded:
             if (len_trim(input_var_names(k, const_ic_names_idx)) == 0) then
