@@ -211,7 +211,7 @@ CONTAINS
       ! (1) For all non-null dycores:
       !     The dycore reads advected constituent ICs (and marks them initialized)
       !     from the IC file which is on the dynamics grid.
-      !     It is "pushed" to physics via d_p_coupling.
+      !     It is "pushed" to physics via the dynamics-physics coupling layer.
       ! (2) Other constituent values come from physics schemes.
       !     If physics init schemes have set values for constituents
       !     (e.g., prescribe_radiative_gas_concentrations), then we also mark it as being
@@ -222,7 +222,7 @@ CONTAINS
       ! constituents object initialized it to. This avoids schemes having dependencies
       ! on host-side subroutines like const_mark_as_initialized.
       !
-      ! In phys_timestep_init (!), the physics-side IC read (3) runs:
+      ! In phys_timestep_init (careful! not init), the physics-side IC read (3) runs:
       ! (3) For all uninitialized variables, the generated physics_read_data runs
       !     on the physics grid for all time steps (null dycore) or initial step.
       ! Because it runs in timestep_init phase and not init, any quantities not marked as
