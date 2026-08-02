@@ -184,6 +184,7 @@ CONTAINS
       use cam_ccpp_cap,              only: cam_model_const_properties
       use cam_constituents,          only: num_constituents
       use cam_constituents,          only: const_mark_as_initialized
+      use cam_constituents,          only: const_is_initialized
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use runtime_obj,               only: cam_runtime_opts
 
@@ -235,6 +236,10 @@ CONTAINS
          const_props => cam_model_const_properties()
          const_array => cam_constituents_array()
          do const_idx = 1, num_constituents
+            ! Constituents the dycore already marked in (1) need no value check:
+            if (const_is_initialized(const_idx)) then
+               cycle
+            end if
             ! We call the framework default_value here because for constituents that do not have
             ! a default value, it is huge(1.0) and that magic value is private to the framework:
             call const_props(const_idx)%default_value(const_default, errcode, errmsg)
