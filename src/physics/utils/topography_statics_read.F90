@@ -2,7 +2,7 @@
 ! LANDM_COSLAT) from the topography dataset (namelist bnd_topo) into their
 ! CAM-SIMA registry variables (sgh, sgh30, landm).
 !
-! Note: SE dycore handles PHIS itself (see set_phis)
+! Note: it is assumed that the dycore will handle PHIS (see set_phis in the SE dycore)
 !
 ! This is a decomposed read of the grid-dependent topo file so it is not a CCPP scheme.
 module topography_statics_read
