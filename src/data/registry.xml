@@ -424,7 +424,7 @@
               standard_name="dycore_calculates_geopotential_using_logarithms"
               units="flag" type="logical" access="protected">
       <initial_value>.false.</initial_value>
-      <initial_value dyn="SE,FV">.true.</initial_value>
+      <initial_value dyn="FV,FV3">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data>air_temperature</data>
@@ -1037,16 +1037,16 @@
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
     </variable>
     <variable local_name="co2diag"
-              standard_name="co2diag_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="diagnostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
     </variable>
     <variable local_name="co2prog"
-              standard_name="co2prog_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="prognostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1382,8 +1382,8 @@
        <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
-       <data>co2diag_tbd</data>
-       <data>co2prog_tbd</data>
+       <data>diagnostic_volume_mixing_ratio_of_co2_to_coupler</data>
+       <data>prognostic_volume_mixing_ratio_of_co2_to_coupler</data>
        <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
@@ -1972,6 +1972,35 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
+    </variable>
+    <!-- Net radiative flux profiles for persistence across timesteps (including those without radiation) -->
+    <variable local_name="fns"
+              standard_name="shortwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcns"
+              standard_name="shortwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fnl"
+              standard_name="longwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcnl"
+              standard_name="longwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
     </variable>
     <variable local_name="two"
               standard_name="constant_dimension_two"

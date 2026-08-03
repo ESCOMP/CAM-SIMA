@@ -1950,5 +1950,5 @@ def main():
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE, _FILES, _IC_NAMES = main()
+    __RETCODE, *_ = main()
     sys.exit(__RETCODE)
