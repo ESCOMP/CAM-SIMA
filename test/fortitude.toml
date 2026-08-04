@@ -20,6 +20,7 @@ ignore = [
             # in the NVIDIA HPC SDK as of version 25.11.
     'C182', # Requiring separate allocations and deallocations for each variable is too restrictive.
             # Related variables can be grouped together at the discretion of developers.
+    'MOD201', # Switching to the `mpi_f08` module is planned post-CESM3. Re-enable this rule when the time comes.
     'S102'  # Prefer only one space instead of two.
 ]
 line-length = 132
