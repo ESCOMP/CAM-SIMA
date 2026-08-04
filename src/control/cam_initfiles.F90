@@ -10,6 +10,7 @@ module cam_initfiles
    use spmd_utils,       only: masterproc
    use cam_control_mod,  only: initial_run, restart_run, branch_run
    use cam_control_mod,  only: caseid, brnch_retain_casename
+   use cam_control_mod,  only: aqua_planet
    use cam_pio_utils,    only: cam_pio_openfile, cam_pio_closefile
    use pio,              only: file_desc_t, pio_global, pio_inq_att
    use pio,              only: pio_get_att, pio_nowrite
@@ -211,6 +212,12 @@ CONTAINS
            write(iulog,*) &
               '  Initial condition dry mass will not be scaled.'
          end if
+      end if
+
+      ! Aquaplanet has no topography and should not have a topo file specified:
+      if (aqua_planet .and. (trim(bnd_topo) /= trim(unset_path_str))) then
+         call endrun(subname//': ERROR: bnd_topo must be unset ('//          &
+              trim(unset_path_str)//') for an aqua planet run')
       end if
 
    end subroutine cam_initfiles_readnl
