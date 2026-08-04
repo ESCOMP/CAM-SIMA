@@ -224,6 +224,12 @@ CONTAINS
       ! Initialize constituent data
       call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
 
+      ! Ensure the constituents object is locked and allocated:
+      if (errflg /= 0) then
+         call endrun('cam_init: cam_ccpp_initialize_constituents failure: '//trim(errmsg), &
+                     file=__FILE__, line=__LINE__)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
