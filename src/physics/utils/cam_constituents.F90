@@ -35,7 +35,7 @@ module cam_constituents
    ! the initial conditions read does not overwrite them on the physics grid.
    ! phys_vars_init_check cannot track these because it only covers registry variables
    ! and not runtime constituents (which is why we have to use indices here:)
-   logical, allocatable, private :: const_initialized(:)
+   logical, allocatable :: const_initialized(:)
 
    ! Namelist variable
    ! Only allow initialization once
