@@ -243,13 +243,20 @@ jobs:
             # Fortitude will still choke if there are no command line arguments.
             if [ "$#" -gt 0 ]; then
               source venv-fortitude/bin/activate
+              # First run: Annotated output for GitHub Actions.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-format github \
+                "$@" | sed -e "s|file=$SOURCE_CODE_PATH/|file=|g"
+              # Second run: Output to a log file for uploading.
               fortitude \
                 --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
                 check \
                 --exit-zero \
                 --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
                 "$@"
-              cat "$SOURCE_CODE_PATH/source-code-linting.log"
             fi
           fi
 
