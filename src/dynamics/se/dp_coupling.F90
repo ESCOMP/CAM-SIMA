@@ -401,7 +401,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
 
    !Convert wet mixing ratios to dry, which for CAM
    !configurations is only the water species:
-   !$omp parallel do num_threads(max_num_threads) private (k, i, m)
+   !$omp parallel do num_threads(max_num_threads) private (ilyr, icol, m, m_cnst, factor)
    do ilyr = 1, nlev
       do icol=1, pcols
 
@@ -696,7 +696,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
 
    ! wet pressure variables (should be removed from physics!)
    factor_array(:,:) = 1.0_kind_phys
-   !$omp parallel do num_threads(horz_num_threads) private (k, i, m_cnst)
+   ! shared factor_array, do not parallelize:
    do m_cnst = dry_air_species_num + 1, thermodynamic_active_species_num
       ! include all water species in the factor array.
       m = thermodynamic_active_species_idx(m_cnst)

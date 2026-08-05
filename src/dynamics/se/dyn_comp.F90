@@ -1347,6 +1347,7 @@ subroutine read_inidat(dyn_in)
    use cam_initfiles,        only: pertlim, initial_file_get_id, topo_file_get_id
    use cam_constituents,     only: num_advected, const_name
    use cam_constituents,     only: const_is_water_species, const_qmin, const_is_wet
+   use cam_constituents,     only: const_mark_as_initialized
    use dyn_tests_utils,      only: vcoord=>vc_dry_pressure
 
    !This should eventually be replaced with the "const_diag_name" function from "cam_constituents".
@@ -1518,8 +1519,17 @@ subroutine read_inidat(dyn_in)
       call check_allocate(ierr, subname, 'm_ind(qsize)', &
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
+      ! Map each GLL tracer slot to its constituent index
       do m_cnst = 1, qsize
-         m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
+         if (use_cslam) then
+            ! with CSLAM the GLL tracers are the condensate-loading water species
+            ! (qsize = thermodynamic_active_species_num):
+            m_ind(m_cnst) = thermodynamic_active_species_idx(m_cnst)
+         else
+            ! without CSLAM they are all of the advected constituents
+            ! (qsize = num_advected):
+            m_ind(m_cnst) = advected_constituent_index(m_cnst)
+         end if
       end do
 
       ! Init tracers on the GLL grid.  Note that analytic_ic_set_ic makes
@@ -1732,9 +1742,6 @@ subroutine read_inidat(dyn_in)
    call check_allocate(ierr, subname, 'const_ic_name(num_advected)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   ! Initialize to variable name that will likely never be found in the IC file:
-   const_ic_name(:) = 'NONAME_NEVERFOUND'
-
    do m_cnst = 1, num_advected
 
       ! Extract constituent standard name:
@@ -1749,12 +1756,22 @@ subroutine read_inidat(dyn_in)
          end if
       end do
 
-      ! Skip to next constituent if not found in input names list:
-      if (const_ic_names_idx < 0) cycle
-
-      ! The first name in IC names list should be the correct
-      ! name for standard CAM IC (ncdata) files:
-      const_ic_name(m_cnst) = input_var_names(1, const_ic_names_idx)
+      ! Initialize IC name array with the constituent standard name
+      const_ic_name(m_cnst) = trim(std_name)
+      if (const_ic_names_idx > 0) then
+         ! Scan the IC file variables for the first name in the registry IC names list.
+         ! If none are found, then the standard name is the default:
+         do k = 1, size(input_var_names, 1)
+            ! Unused name slots are blank-padded:
+            if (len_trim(input_var_names(k, const_ic_names_idx)) == 0) then
+               exit
+            end if
+            if (dyn_field_exists(fh_ini, trim(input_var_names(k, const_ic_names_idx)), required=.false.)) then
+               const_ic_name(m_cnst) = input_var_names(k, const_ic_names_idx)
+               exit
+            end if
+         end do
+      end if
    end do
    !-------------
 
@@ -1786,7 +1803,11 @@ subroutine read_inidat(dyn_in)
 
       if (found) then
          call read_dyn_var(trim(const_ic_name(m_cnst)), fh_ini, dimname, dbuf3)
+         ! Tell the physics initial conditions read to leave this constituent alone:
+         ! (it holds dynamics-grid data that physics cannot re-read)
+         call const_mark_as_initialized(advected_constituent_index(m_cnst))
       else
+         ! Not on the file: cold start from the constituent minimum below:
          dbuf3 = 0._r8
       end if
 
