@@ -34,7 +34,7 @@ target-std = 'f2018'
 
 [check.complexity]
 max-args = 20
-max-complexity = 50
+max-complexity = 20
 
 [check.exit-unlabelled-loops]
 allow-unnested-loops = true
