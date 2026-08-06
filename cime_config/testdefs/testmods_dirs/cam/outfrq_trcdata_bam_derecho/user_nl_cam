@@ -15,8 +15,8 @@
 ! the test will pass iff. the tracer_data utility in CAM-SIMA and the prescribed_ozone/aerosols schemes
 ! can populate the prescribed fields bit-for-bit compared to the original snapshot file.
 
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_before_c20260312.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_after_c20260312.nc'
+ncdata = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_before_c20260312.nc'
+ncdata_check = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_tracer_data_0xprescribed-ozone-aero-volcaero_from_energy_fixer_derecho_gnu_after_c20260312.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.

@@ -1,6 +1,6 @@
 ! CAM6 snapshot:
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_before_c20260614.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_after_c20260614.nc'
+ncdata = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_before_c20260614.nc'
+ncdata_check = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_after_c20260614.nc'
 pver = 32
 
 ! tolerances for testing

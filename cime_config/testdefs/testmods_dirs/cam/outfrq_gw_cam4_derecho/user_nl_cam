@@ -1,7 +1,7 @@
 ! cam4 snapshot
 pver = 26
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_before_c20250826.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_after_c20250826.nc'
+ncdata = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_before_c20250826.nc'
+ncdata_check = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhistc4_gw_drag_cam4_oro_snapshot_derecho_gnu_after_c20250826.nc'
 
 debug_output = 0
 

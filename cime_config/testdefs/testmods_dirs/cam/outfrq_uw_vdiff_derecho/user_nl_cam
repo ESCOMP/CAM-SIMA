@@ -1,6 +1,6 @@
 ! these are FHIST_C5 snapshots
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_before_c20260309.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_after_c20260309.nc'
+ncdata = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_before_c20260309.nc'
+ncdata_check = '${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_fhist_c5_vertical_diffusion_uw_snapshot_derecho_gnu_after_c20260309.nc'
 
 ! tolerances for testing
 ncdata_check_err = .true.

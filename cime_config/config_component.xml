@@ -306,6 +306,17 @@
     <desc>User mods to apply to specific compset matches. </desc>
   </entry>
 
+  <entry id="SIMA_TESTDIR">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value>/glade/campaign/cesm/community/amwg/sima_baselines</default_value>
+    <group>run_component_cam</group>
+    <file>env_run.xml</file>
+    <desc>
+      Path to directory where CAM-SIMA regression testing files are stored.
+    </desc>
+  </entry>
+
   <entry id="CAM_LINKED_LIBS">
     <type>char</type>
     <valid_values></valid_values>

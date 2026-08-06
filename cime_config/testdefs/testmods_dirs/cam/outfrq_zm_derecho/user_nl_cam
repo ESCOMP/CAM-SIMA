@@ -1,5 +1,5 @@
-ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_before_c20250116.nc'
-ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_after_c20250116.nc'
+ncdata='${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_before_c20250116.nc'
+ncdata_check='${SIMA_TESTDIR}/cam_sima_test_snapshots/cam_ne3pg3_ZM_snapshot_derecho_gnu_after_c20250116.nc'
 debug_output=0
 pver=32
 zmconv_momcd=.7D0
