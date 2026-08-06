@@ -8,8 +8,7 @@ include = [
 
 [check]
 extend-exclude = [
-    'src/dynamics/mpas/assets',
-    'src/dynamics/mpas/dycore'
+    'src/dynamics/mpas'
 ]
 force-exclude = true
 # Do not apply or suggest any fixes automatically. Manual intervention is required.
@@ -21,7 +20,9 @@ ignore = [
             # in the NVIDIA HPC SDK as of version 25.11.
     'C182', # Requiring separate allocations and deallocations for each variable is too restrictive.
             # Related variables can be grouped together at the discretion of developers.
-    'S102'  # Prefer only one space instead of two.
+    'MOD201', # Switching to the `mpi_f08` module is planned post-CESM3. Re-enable this rule when the time comes.
+    'S102', # Prefer only one space instead of two.
+    'S271'  # Allow `use` statements to be grouped by functionality at the discretion of developers.
 ]
 line-length = 132
 output-format = 'grouped'
@@ -32,7 +33,7 @@ select = [
 target-std = 'f2018'
 
 [check.complexity]
-max-args = 10
+max-args = 20
 max-complexity = 20
 
 [check.exit-unlabelled-loops]

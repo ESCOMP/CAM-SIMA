@@ -65,6 +65,8 @@
       <value dyn="se" hgrid="ne5np4" nlev="66">${DIN_LOC_ROOT}/atm/waccm/ic/wa3_ne5np4_1950_spinup.cam2.i.1960-01-01-00000_c150810.nc</value>
       <value dyn="se" hgrid="ne30np4" nlev="70" sim_year="1850">${DIN_LOC_ROOT}/atm/waccm/ic/waccm5_1850_ne30np4_L70_0001-01-11-00000_c151217.nc</value>
       <value dyn="se" hgrid="ne30np4" nlev="70">${DIN_LOC_ROOT}/atm/waccm/ic/fw2000_ne30np4_L70_c181221.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="58">${DIN_LOC_ROOT}/atm/cam/inic/se/FHISTC_LTso_ne16pg3_ne16pg3_mg17.i.c260220.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="93">${DIN_LOC_ROOT}/atm/cam/inic/se/FHISTC_MTso_ne16pg3_ne16pg3_mg17.i.c260220.nc</value>
 
       <!-- MPAS dycore ICs -->
       <value dyn="mpas" hgrid="mpasa120"  nlev="26" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120_L26_notopo_coords_c251105.nc</value>
@@ -116,7 +118,28 @@
       <value>UNSET_PATH</value>
     </values>
   </entry>
-
+  <entry id="scale_dry_air_mass">
+    <type>real</type>
+    <category>initial_conditions</category>
+    <group>cam_initfiles_nl</group>
+    <desc>
+      Specify whether and how to perform
+      dry surface pressure scaling. If less than or equal to 0.0,
+      do not perform scaling. If greater than 0.0, perform scaling to scale_dry_air_mass
+      value (in Pa) as the average dry surface pressure target.
+      Default: 0.0
+    </desc>
+    <values>
+      <value>0.0D0</value>
+      <!-- Scale Dry Air Mass: for cases with topography -->
+      <value phys_suite="cam4"   >  98288.0D0 </value>
+      <value phys_suite="cam5"   >  98288.0D0 </value>
+      <value phys_suite="cam6"   >  98288.0D0 </value>
+      <value phys_suite="cam7"   >  98288.0D0 </value>
+      <!-- Scale Dry Air Mass: for cases with no topography (aquaplanet) -->
+      <value aquaplanet="1"> 101080.0D0 </value>
+    </values>
+  </entry>
 <!-- Topography -->
 
   <entry id="bnd_topo">
