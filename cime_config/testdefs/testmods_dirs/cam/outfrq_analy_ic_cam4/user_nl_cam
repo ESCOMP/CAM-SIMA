@@ -33,9 +33,3 @@ hist_add_inst_fields;h1:slflx_PBL,qtflx_PBL,uflx_PBL,vflx_PBL,slflx_cg_PBL,qtflx
 hist_add_inst_fields;h1:slten_PBL,qtten_PBL,uten_PBL,vten_PBL,qvten_PBL,qlten_PBL,qiten_PBL,tten_PBL,rhten_PBL
 hist_add_inst_fields;h1:qt_pre_PBL,sl_pre_PBL,slv_pre_PBL,u_pre_PBL,v_pre_PBL,qv_pre_PBL,ql_pre_PBL,qi_pre_PBL,t_pre_PBL,rh_pre_PBL
 hist_add_inst_fields;h1:DTV,DUV,DVV,DTVKE
-
-! QPC4 is an aquaplanet case - disable prescribed aerosol data
-prescribed_aero_file = ''
-prescribed_aero_specifier = ''
-prescribed_volcaero_file = ''
-aerodep_flx_file = ''
