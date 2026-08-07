@@ -1029,27 +1029,16 @@ contains
                 subname, __LINE__)
         end if
 
-        self % index_mpas_scalar_to_constituent(:) = 0
-        j = 1
+        self % index_mpas_scalar_to_constituent(:) = [(i, i = 1, self % number_of_constituents)]
 
-        ! Place water species first as per MPAS requirements.
-        do i = 1, self % number_of_constituents
-            if (self % is_water_species(i)) then
-                self % index_mpas_scalar_to_constituent(j) = i
-                j = j + 1
-            end if
-        end do
+        ! Place water species first, then non-water species last, as per MPAS requirements.
+        self % index_mpas_scalar_to_constituent(:) = [ &
+            pack(self % index_mpas_scalar_to_constituent, self % is_water_species), &
+            pack(self % index_mpas_scalar_to_constituent, .not. self % is_water_species) &
+        ]
 
         index_water_start = 1
         index_water_end = count(self % is_water_species)
-
-        ! Place non-water species second as per MPAS requirements.
-        do i = 1, self % number_of_constituents
-            if (.not. self % is_water_species(i)) then
-                self % index_mpas_scalar_to_constituent(j) = i
-                j = j + 1
-            end if
-        end do
 
         ! Create inverse index mapping between MPAS scalars and constituent names. For example,
         ! Constituent index `i` corresponds to MPAS scalar index `index_constituent_to_mpas_scalar(i)`.
