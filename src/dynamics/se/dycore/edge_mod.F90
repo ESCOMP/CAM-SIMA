@@ -1293,6 +1293,9 @@ contains
 
 ! SWEST
     nce = max_corner_elem
+    v(1,1,1)%x=0_r8
+    v(1,1,1)%y=0_r8
+    v(1,1,1)%z=0_r8
     do l=swest,swest+max_corner_elem-1
        ! find the one active corner, then exist
         isw=edge%getmap(l,ielem)
@@ -1302,12 +1305,12 @@ contains
             v(1,1,1)%z=edge%receive(2*nce+isw+1)
             exit
         end if
-        v(1,1,1)%x=0_r8
-        v(1,1,1)%y=0_r8
-        v(1,1,1)%z=0_r8
     end do
 
 ! SEAST
+    v(2,np,1)%x=0_r8
+    v(2,np,1)%y=0_r8
+    v(2,np,1)%z=0_r8
     do l=swest+max_corner_elem,swest+2*max_corner_elem-1
        ! find the one active corner, then exist
         ise=edge%getmap(l,ielem)
@@ -1317,12 +1320,12 @@ contains
             v(2,np,1)%z=edge%receive(2*nce+ise+1)
             exit
         end if
-        v(2,np,1)%x=0_r8
-        v(2,np,1)%y=0_r8
-        v(2,np,1)%z=0_r8
     end do
 
 ! NEAST
+    v(3,np,np)%x=0_r8
+    v(3,np,np)%y=0_r8
+    v(3,np,np)%z=0_r8
     do l=swest+3*max_corner_elem,swest+4*max_corner_elem-1
        ! find the one active corner, then exist
         ine=edge%getmap(l,ielem)
@@ -1332,12 +1335,12 @@ contains
             v(3,np,np)%z=edge%receive(2*nce+ine+1)
             exit
         end if
-        v(3,np,np)%x=0_r8
-        v(3,np,np)%y=0_r8
-        v(3,np,np)%z=0_r8
     end do
 
 ! NWEST
+    v(4,1,np)%x=0_r8
+    v(4,1,np)%y=0_r8
+    v(4,1,np)%z=0_r8
     do l=swest+2*max_corner_elem,swest+3*max_corner_elem-1
        ! find the one active corner, then exist
         inw = edge%getmap(l,ielem)
@@ -1347,9 +1350,6 @@ contains
             v(4,1,np)%z=edge%receive(2*nce+inw+1)
             exit
         end if
-        v(4,1,np)%x=0_r8
-        v(4,1,np)%y=0_r8
-        v(4,1,np)%z=0_r8
     end do
 
     ! Fill the missing vertex info
