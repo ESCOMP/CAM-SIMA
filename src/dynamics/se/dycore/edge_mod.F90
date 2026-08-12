@@ -270,7 +270,7 @@ contains
 ! thread combinations.  I cant explain why, but this fixes that issue on Edison
 !$OMP BARRIER
 
-    if (nlyr==0) return  ! tracer code might call initedgebuffer() with zero tracers
+    if (nlyr == 0) return  ! tracer code might call initedgebuffer() with zero tracers
 
 
 !$OMP MASTER
@@ -416,7 +416,7 @@ contains
     icInter=0
     icIntra=0
     do icycle=1,nSendCycles
-       if(pSchedule%SendCycle(icycle)%onNode .eqv. .false.) then
+       if (.not. pSchedule%SendCycle(icycle)%onNode) then
           icInter=icInter+1
           edge%sdisplsInter(icInter)=edge%sdisplsFull(icycle)
           edge%scountsInter(icInter)=edge%scountsFull(icycle)
@@ -1231,7 +1231,7 @@ contains
 
     threadsafe=.false.
 
-    if (max_corner_elem/=1 .and. ne==0) then
+    if (max_corner_elem /= 1 .and. ne == 0) then
         ! MNL: this is used to construct the dual grid on the cube,
         !      currently only supported for the uniform grid. If
         !      this is desired on a refined grid, a little bit of
@@ -1301,10 +1301,10 @@ contains
             v(1,1,1)%y=edge%receive(nce+isw+1)
             v(1,1,1)%z=edge%receive(2*nce+isw+1)
             exit
-         end if
-         v(1,1,1)%x=0_r8
-         v(1,1,1)%y=0_r8
-         v(1,1,1)%z=0_r8
+        end if
+        v(1,1,1)%x=0_r8
+        v(1,1,1)%y=0_r8
+        v(1,1,1)%z=0_r8
     end do
 
 ! SEAST
@@ -1341,7 +1341,7 @@ contains
     do l=swest+2*max_corner_elem,swest+3*max_corner_elem-1
        ! find the one active corner, then exist
         inw = edge%getmap(l,ielem)
-        if(inw/= -1) then
+        if(inw /= -1) then
             v(4,1,np)%x=edge%receive(inw+1)
             v(4,1,np)%y=edge%receive(nce+inw+1)
             v(4,1,np)%z=edge%receive(2*nce+inw+1)

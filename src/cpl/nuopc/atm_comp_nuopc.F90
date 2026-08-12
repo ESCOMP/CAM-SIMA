@@ -190,9 +190,9 @@ contains
   !===============================================================================
   subroutine InitializeP0(gcomp, importState, exportState, clock, rc)
     type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),    intent(inout) :: importState
-    type(ESMF_State),    intent(inout) :: exportState
-    type(ESMF_Clock),    intent(inout) :: clock
+    type(ESMF_State),       intent(in) :: importState
+    type(ESMF_State),       intent(in) :: exportState
+    type(ESMF_Clock),       intent(in) :: clock
     integer,               intent(out) :: rc
     !-------------------------------------------------------------------------------
 
@@ -209,9 +209,9 @@ contains
 
     ! intput/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),    intent(inout) :: importState
-    type(ESMF_State),    intent(inout) :: exportState
-    type(ESMF_Clock),    intent(inout) :: clock
+    type(ESMF_State),       intent(in) :: importState
+    type(ESMF_State),       intent(in) :: exportState
+    type(ESMF_Clock),       intent(in) :: clock
     integer,               intent(out) :: rc
 
     ! local variables
@@ -333,9 +333,9 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),    intent(inout) :: importState
+    type(ESMF_State),       intent(in) :: importState
     type(ESMF_State),    intent(inout) :: exportState
-    type(ESMF_Clock),    intent(inout) :: clock
+    type(ESMF_Clock),       intent(in) :: clock
     integer, intent(out) :: rc
 
     ! local variables
@@ -1068,12 +1068,11 @@ contains
     logical                 :: nlend       ! Flag signaling last time-step
     integer                 :: lbnum
     integer                 :: localPet, localPeCount
-    logical                 :: first_time
+    logical, save           :: first_time = .true.
     logical                 :: do_ncdata_check  !Flag notifying SIMA if it is OK to perform a snapshot check
     character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
     !-------------------------------------------------------------------------------
 
-    first_time = .true.
     rc = ESMF_SUCCESS
 
 !$  call omp_set_num_threads(nthrds)
@@ -1643,7 +1642,7 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_Clock),    intent(inout) :: clock
+    type(ESMF_Clock),       intent(in) :: clock
     integer,               intent(out) :: rc
 
     ! local variables
@@ -2119,7 +2118,6 @@ contains
   subroutine cam_set_mesh_for_single_column(scol_lon, scol_lat, mesh, rc)
 
     ! Generate a mesh for single column
-!    use netcdf
 
     ! input/output variables
     real(r8)        , intent(in)  :: scol_lon

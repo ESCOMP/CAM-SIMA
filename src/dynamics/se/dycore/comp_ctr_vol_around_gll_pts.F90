@@ -391,7 +391,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 #endif
 !!XXgoldyXX: ^ debug only
       ! Grid imask
-      gwork(:,1,:) = 1_r8
+      gwork(:,1,:) = 1
       call cam_grid_write_dist_array(file, gll_grid, arr_dims2d, file_dims2d, &
            gwork(:,1,:), grid_imask_id)
 
@@ -673,7 +673,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do i=1,n
       if (a(i) < 9000_r8) m = m + 1
     end do
-    if (mod(m,2)/=0) then
+    if (mod(m,2) /= 0) then
       do i=1,n
         print *,'angle with centroid: ',i,a(i),mod(a(i),2*pi)
       end do
@@ -709,7 +709,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do i=1,m
       k = 1
       do j=2,n
-        if (angle(j)<angle(k)) k=j
+        if (angle(j) < angle(k)) k=j
       end do
       angle(k) = 9999 ! greater than pi
       ip(i)=k
@@ -941,7 +941,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
           vert(5) = cv(i-1, j+1)
           vert(6) = cv(i-1, j  )
           p = j
-          if (p==0) p=1
+          if (p == 0) p=1
           cvlist(ie)%vert(1:6,i,p) = vert(1:6)
           cvlist(ie)%nvert(i,p) = 6
           m=6
@@ -957,7 +957,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
           vert(5) = cv(i  , j  )
           vert(6) = cv(i-1, j  )
           o = i
-          if (o==0) o=1
+          if (o == 0) o=1
           cvlist(ie)%vert(1:6,o,j) = vert(1:6)
           cvlist(ie)%nvert(o,j) = 6
           m=6
@@ -969,7 +969,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
           vert(:)%x = 0
           vert(:)%y = 0
           vert(:)%z = 0
-          if (i==0.and.j==0) then
+          if (i == 0.and.j == 0) then
             ! counterclockwise from lower right
             vert(m+1) = cv(i+1, j-1)  !     5       4
             vert(m+2) = cv(i+1, j  )  !  (-1,+1)  (0,+1)  (+1,+1)  3
@@ -978,7 +978,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             vert(m+5) = cv(i-1, j+1)  !
             vert(m+6) = cv(i-1, j  )  !     X       X     (+1,-1)  1
             m = m + 6
-            if (mlt(swest)/=0) then
+            if (mlt(swest) /= 0) then
               vert(m+1) = cv(i-1, j-1)
               vert(m+2) = cv(i  , j-1)
               m = m+2
@@ -990,8 +990,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
               end do
             end if
           end if
-          if (i==np.and.j==0) then
-            if (mlt(seast)/=0) then
+          if (i == np.and.j == 0) then
+            if (mlt(seast) /= 0) then
               vert(m+1) = cv(i+1, j-1)
               vert(m+2) = cv(i+1, j  )
               m = m+2
@@ -1010,11 +1010,11 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             vert(m+6) = cv(i  , j-1)
             m = m + 6
           end if
-          if (i==np.and.j==np) then
+          if (i == np.and.j == np) then
             vert(1) = cv(i+1, j-1)
             vert(2) = cv(i+1, j  )
             m = m + 2
-            if (mlt(neast)/=0) then
+            if (mlt(neast) /= 0 ) then
               vert(m+1) = cv(i+1, j+1)
               vert(m+2) = cv(i  , j+1)
               m = m+2
@@ -1031,13 +1031,13 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             vert(m+4) = cv(i  , j-1)
             m = m + 4
           end if
-          if (i==0.and.j==np) then
+          if (i == 0.and.j == np) then
             vert(m+1) = cv(i+1, j-1)
             vert(m+2) = cv(i+1, j  )
             vert(m+3) = cv(i+1, j+1)
             vert(m+4) = cv(i  , j+1)
             m = m + 4
-            if (mlt(nwest)/=0) then
+            if (mlt(nwest) /= 0) then
               vert(m+1) = cv(i-1, j+1)
               vert(m+2) = cv(i-1, j  )
               m = m+2
@@ -1054,8 +1054,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
           end if
           o = i
           p = j
-          if (o==0) o=1
-          if (p==0) p=1
+          if (o == 0) o=1
+          if (p == 0) p=1
           m2=m
           if (8 < m) then
             m = SortNodes(vert, m2)
@@ -1097,12 +1097,12 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
         call shr_sys_flush(iulog)
         call endrun('SurfArea: invalid cv coordinates')
       end if
-    else if (abs(nvert)==4) then
+    else if (abs(nvert) == 4) then
       call sphere_tri_area(cv(1), cv(2), cv(3), area1)
       call sphere_tri_area(cv(1), cv(3), cv(4), area2)
       area3 = 0_r8
 
-    else if (abs(nvert)==5) then
+    else if (abs(nvert) == 5) then
       call sphere_tri_area(cv(1),cv(2),cv(3),area1)
       call sphere_tri_area(cv(1),cv(3),cv(4),area2)
       call sphere_tri_area(cv(1),cv(4),cv(5),area3)
@@ -1188,7 +1188,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     sect%x = (sect%x + y1%x + (y2%x-y1%x)*s2)/2
     sect%y = (sect%y + y1%y + (y2%y-y1%y)*s2)/2
 
-    if (s1<0 .or. s1>1) then
+    if (s1 < 0 .or. s1 > 1) then
       write(iulog, *) 'failed: intersection: ',s1,s2
       call shr_sys_flush(iulog)
       call endrun('find_intersect: intersection failure')
@@ -1411,7 +1411,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     call construct_cv_gll(elem,hybrid,nets,nete)
 
     iter_max=2000
-    if (iter_max>0) then
+    if (iter_max > 0) then
       ! areas computed from eleemnts on boundaries are from hexagons and pentagons
       ! compute new areas where all CVs are squares or triangles
       do ie=nets,nete
@@ -1478,29 +1478,29 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
                 ! corners and edges:  .89/1.11
                 keep=.false.
                 ! corner volumes
-                if (i==1 .and. j==1) then
-                  if (i1==0 .and. j1==0) keep=.true.
+                if (i == 1 .and. j == 1) then
+                  if (i1 == 0 .and. j1 == 0) keep=.true.
                   moved=1
-                else if (i==np-1 .and. j==1) then
-                  if (i1==1 .and. j1==0) keep=.true.
+                else if (i == np-1 .and. j == 1) then
+                  if (i1 == 1 .and. j1 == 0) keep=.true.
                   moved=-1
-                else if (i==1 .and. j==np-1) then
-                  if (i1==0 .and. j1==1) keep=.true.
+                else if (i == 1 .and. j == np-1) then
+                  if (i1 == 0 .and. j1 == 1) keep=.true.
                   moved=-1
-                else if (i==np-1 .and. j==np-1) then
-                  if (i1==1 .and. j1==1) keep=.true.
+                else if (i == np-1 .and. j == np-1) then
+                  if (i1 == 1 .and. j1 == 1) keep=.true.
                   moved=1
                   ! edge volumes
 
 
-                else if (i==1) then
-                  if (i1==0) keep=.true.
-                else if (i==np-1) then
-                  if (i1==1) keep=.true.
-                else if (j==1) then
-                  if (j1==0) keep=.true.
-                else if (j==np-1) then
-                  if (j1==1) keep=.true.
+                else if (i == 1) then
+                  if (i1 == 0) keep=.true.
+                else if (i == np-1) then
+                  if (i1 == 1) keep=.true.
+                else if (j == 1) then
+                  if (j1 == 0) keep=.true.
+                else if (j == np-1) then
+                  if (j1 == 1) keep=.true.
                 else
                   keep=.true.
                 end if
@@ -1509,12 +1509,12 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
                   ! move towards grid point
                   dir%x =  (elem(ie)%cartp(i+i1,j+j1)%x - cartp_nm1(i,j)%x)*(abs(diff(i+i1,j+j1)))
                   dir%y =  (elem(ie)%cartp(i+i1,j+j1)%y - cartp_nm1(i,j)%y)*(abs(diff(i+i1,j+j1)))
-                  if (moved==1) then
+                  if (moved == 1) then
                     ! project onto (1,1)/sqrt(2)
                     dir%x = dir%x/sqrt(2D0) + dir%y/sqrt(2D0)
                     dir%y = dir%x
                   end if
-                  if (moved==-1) then
+                  if (moved == -1) then
                     ! project onto (-1,1)/sqrt(2)
                     dir%y = -dir%x/sqrt(2D0) + dir%y/sqrt(2D0)
                     dir%x = -dir%y
@@ -1554,7 +1554,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       d1_global = ParallelMax(dx,hybrid)
       dx=maxval(d1mid)
       d1_global_mid = ParallelMax(dx,hybrid)
-      if (mod(iter-1,250)==0) then
+      if (mod(iter-1,250) == 0) then
         if (hybrid%masterthread) write(iulog, *) iter,'max d1=',d1_global,d1_global_mid
       end if
       ! compute new global CV  (cvlist(ie)%vert from cvlist(ie)%cartp_dual).
@@ -1598,16 +1598,16 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
               !
               cv_loc_2d(ii,i,j) = cart2cubedsphere_failsafe(cvlist(ie)%vert(ii,i,j),elem(ie)%FaceNum)
             end do
-            if (i==1 .and. j==1) then
+            if (i == 1 .and. j == 1) then
               cv_loc_2d(1,i,j)=cartp2d(i,j)
             end if
-            if (i==np .and. j==1) then
+            if (i == np .and. j == 1) then
               cv_loc_2d(2,i,j)=cartp2d(i,j)
             end if
-            if (i==1 .and. j==np) then
+            if (i == 1 .and. j == np) then
               cv_loc_2d(4,i,j)=cartp2d(i,j)
             end if
-            if (i==np .and. j==np) then
+            if (i == np .and. j == np) then
               cv_loc_2d(3,i,j)=cartp2d(i,j)
             end if
 
@@ -1619,7 +1619,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             !  |      ^
             !  v      |
             ! 1SW -> 2SE
-            if (i==1) then
+            if (i == 1) then
               ! replace points with x< elem(ie)%vert(i,j)%x
               if (cv_loc_2d(1,i,j)%x < cartp2d(i,j)%x) then
                 cvnew_loc_2d(1,i,j) = find_intersect(&
@@ -1633,7 +1633,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
               end if
             end if
 
-            if (i==np) then
+            if (i == np) then
               ! replace points with x> elem(ie)%vert(i,j)%x
               if (cv_loc_2d(2,i,j)%x > cartp2d(i,j)%x) then
                 cvnew_loc_2d(2,i,j) = find_intersect(&
@@ -1651,7 +1651,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             !  |      ^
             !  v      |
             ! 1SW -> 2SE
-            if (j==1) then
+            if (j == 1) then
               ! replace points with y < elem(ie)%vert(i,j)%y
               if (cv_loc_2d(1,i,j)%y < cartp2d(i,j)%y) then
                 cvnew_loc_2d(1,i,j) = find_intersect(&
@@ -1664,7 +1664,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
                      elem(ie)%cartp(1,j),elem(ie)%cartp(np,j))
               end if
             end if
-            if (j==np) then
+            if (j == np) then
               ! replace points with y > elem(ie)%vert(i,j)%y
               if (cv_loc_2d(4,i,j)%y > cartp2d(i,j)%y) then
                 cvnew_loc_2d(4,i,j) = find_intersect(&
@@ -1723,7 +1723,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
         !  |      ^
         !  v      |             23   33
         ! 1SW -> 2SE            22   32
-        if (diff(2,2)>0 .and. diff(3,3)>0) then
+        if (diff(2,2) > 0 .and. diff(3,3) > 0) then
           x1 = cart2cubedsphere(cvlist(ie)%vert(3,2,2),elem(ie)%FaceNum)
           x2 = cart2cubedsphere(cvlist(ie)%vert(1,2,2),elem(ie)%FaceNum)
           s = 0.99_r8
@@ -1772,7 +1772,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
           cvlist(ie)%nvert(2,3)=sign(5,cvlist(ie)%nvert(2,3))
           cvlist(ie)%nvert(3,2)=sign(5,cvlist(ie)%nvert(3,2))
-        else if (diff(2,3) >0 .and. diff(3,2)>0) then
+        else if (diff(2,3) > 0 .and. diff(3,2) > 0) then
           !
           ! 4NW <- 3NE
           !  |      ^
@@ -2053,7 +2053,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     ! Create the polygon at the edges of the element
 
 
-    if(.NOT.(MODULO(np,2)==0)) then
+    if(.NOT.(MODULO(np,2) == 0)) then
       call endrun('surfaces_mod: NV odd not implemented')
     end if
     vertpack = 0
@@ -2133,16 +2133,16 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
           nvert=0
           do k=1,4
             rvert = cvlist(ie)%vert(k,i,j)%x**2+cvlist(ie)%vert(k,i,j)%y**2+cvlist(ie)%vert(k,i,j)%z**2
-            if(rvert>0.9_r8)nvert=nvert+1
+            if(rvert > 0.9_r8)nvert=nvert+1
           end do
           if(.NOT.Orientation(cvlist(ie)%vert(:,i,j),elem(ie)%FaceNum))nvert=-nvert
           cvlist(ie)%nvert(i,j) = nvert
-          corner = (((i==1) .and. (j==1)) .or. &
-               ((i==1) .and. (j==np)) .or. &
-               ((i==np) .and. (j==1)) .or. &
-               ((i==np) .and. (j==np)))
-          if (abs(nvert)/=4) then
-            if (abs(nvert)/=3) then
+          corner = (((i == 1) .and. (j == 1)) .or. &
+               ((i == 1) .and. (j == np)) .or. &
+               ((i == np) .and. (j == 1)) .or. &
+               ((i == np) .and. (j == np)))
+          if (abs(nvert) /= 4) then
+            if (abs(nvert) /= 3) then
               write(iulog, *) 'i,j,nvert=',i,j,nvert
               call shr_sys_flush(iulog)
               call endrun('construct_cv_gll: bad value of nvert')
@@ -2164,13 +2164,13 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
             end if
             ! nvert=3.  we are at a cube corner.  One of the control volume
             ! nodes from the 'missing' corner element should be all zeros:
-            if (cvlist(ie)%vert(1,i,j)%x==0) then
+            if (cvlist(ie)%vert(1,i,j)%x == 0) then
               ! ok
-            else if (cvlist(ie)%vert(2,i,j)%x==0) then
+            else if (cvlist(ie)%vert(2,i,j)%x == 0) then
               ! ok
-            else if (cvlist(ie)%vert(3,i,j)%x==0) then
+            else if (cvlist(ie)%vert(3,i,j)%x == 0) then
               ! ok
-            else if (cvlist(ie)%vert(4,i,j)%x==0) then
+            else if (cvlist(ie)%vert(4,i,j)%x == 0) then
               ! ok
             else
               write(iulog, *) 'cube corner node with 4 neighbors'
