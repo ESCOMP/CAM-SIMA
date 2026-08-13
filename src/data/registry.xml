@@ -623,14 +623,14 @@
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
     <variable local_name="numliq"
-              standard_name="mass_number_concentration_of_cloud_liquid_wrt_moist_air_and_condensed_water"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water"
               units="kg-1" type="real" constituent="true">
       <long_name>Cloud liquid number with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
     </variable>
     <variable local_name="numice"
-              standard_name="mass_number_concentration_of_ice_wrt_moist_air_and_condensed_water"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water"
               units="kg-1" type="real" constituent="true">
       <long_name>Cloud ice number with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1963,7 +1963,7 @@
 
     <!-- Aerosol nucleation/activation data into microphysics -->
     <variable local_name="naai"
-              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei"
+              standard_name="tendency_of_mass_number_concentration_of_activated_ice_nuclei"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1971,7 +1971,7 @@
       <ic_file_input_names>pbuf_NAAI</ic_file_input_names>
     </variable>
     <variable local_name="naai_hom"
-              standard_name="tendency_of_number_concentration_of_activated_ice_nuclei_due_to_homogenous_freezing"
+              standard_name="tendency_of_mass_number_concentration_of_activated_ice_nuclei_due_to_homogeneous_freezing"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1979,7 +1979,7 @@
       <ic_file_input_names>pbuf_NAAI_HOM</ic_file_input_names>
     </variable>
     <variable local_name="npccn"
-              standard_name="tendency_of_activated_cloud_condensation_nuclei_mass_number_concentration"
+              standard_name="tendency_of_mass_number_concentration_of_activated_cloud_condensation_nuclei"
               units="kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -2170,7 +2170,7 @@
       <ic_file_input_names>ICSWP pbuf_ICSWP</ic_file_input_names>
     </variable>
     <variable local_name="dei"
-              standard_name="effective_diameter_of_stratiform_cloud_ice_particle_for_radiation"
+              standard_name="effective_diameter_of_stratiform_cloud_ice_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -2178,7 +2178,7 @@
       <ic_file_input_names>DEI pbuf_DEI</ic_file_input_names>
     </variable>
     <variable local_name="des"
-              standard_name="effective_diameter_of_stratiform_snow_particle_for_radiation"
+              standard_name="effective_diameter_of_stratiform_snow_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
