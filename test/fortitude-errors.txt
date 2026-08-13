@@ -1,0 +1,16 @@
+E001   # Syntax error
+MOD011 # Old array syntax
+MOD021 # Deprecated relational operator
+MOD051 # Save statement is superfluous at module level
+C032   # Magic IO unit
+C043   # File opened without action specifier
+C061   # Function argument missing 'intent' attribute
+C081   # Variable initialized in declaration with 'save' or 'parameter' attribute
+C132   # Module has default 'public' accessibility
+C142   # 'Cycle' or 'exit' in unlabeled do loop
+C152   # Line continuation in inline if-statement is misleading
+C183   # Stat without error message
+S071   # Variable declaration missing '::'
+S201   # 'implicit none' set on the enclosing module
+S221   # Function missing result() specifier
+S261   # Inconsistent specification of dimension
