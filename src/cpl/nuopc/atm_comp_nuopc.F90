@@ -473,7 +473,7 @@ contains
     !----------------------
 
     if (masterproc) then
-       write(iulog,format) 'CAM atm model initialization'
+       write(6,format) 'CAM atm model initialization'
     end if
 
 #if (defined _MEMTRACE)
