@@ -139,7 +139,7 @@ contains
         use runtime_obj, only: runtime_options
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
-        use phys_vars_init_check, only: std_name_len
+        use phys_vars_init_check, only: ic_name_len, std_name_len
         ! Module(s) from CESM Share.
         use shr_kind_mod, only: len_cx => shr_kind_cx
         ! Module(s) from external libraries.
@@ -152,6 +152,7 @@ contains
         character(*), parameter :: subname = 'dyn_comp::dyn_init'
         character(len_cx) :: cerr
         character(std_name_len), allocatable :: constituent_name(:)
+        character(ic_name_len), allocatable :: input_alias(:)
         integer :: coupling_time_interval
         integer :: i
         integer :: ierr
@@ -164,6 +165,9 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
+        pio_init_file => initial_file_get_id()
+        pio_topo_file => topo_file_get_id()
+
         call dyn_debug_print(debugout_info, 'Inquiring index mapping for advected constituents')
 
         ! Populate the `advected_constituent_index` lookup table.
@@ -173,21 +177,27 @@ contains
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', &
             file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
+        allocate(input_alias(num_advected), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'input_alias(num_advected)', &
+            file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
+
         allocate(is_water_species(num_advected), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, 'is_water_species(num_advected)', &
             file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, num_advected
             constituent_name(i) = const_name(advected_constituent_index(i))
+            input_alias(i) = dyn_constituent_input_alias(pio_init_file, constituent_name(i))
             is_water_species(i) = const_is_water_species(advected_constituent_index(i))
         end do
 
         call dyn_debug_print(debugout_info, 'Defining MPAS scalars and scalar tendencies')
 
         ! Inform MPAS about the constituent names and their corresponding waterness.
-        call mpas_dynamical_core % define_scalar(constituent_name, is_water_species)
+        call mpas_dynamical_core % define_scalar(constituent_name, input_alias, is_water_species)
 
         deallocate(constituent_name)
+        deallocate(input_alias)
         deallocate(is_water_species)
 
         ! Set dycore name in runtime object.
@@ -195,9 +205,6 @@ contains
 
         call set_thermodynamic_active_species_mapping()
         call set_thermodynamic_energy_formula()
-
-        pio_init_file => initial_file_get_id()
-        pio_topo_file => topo_file_get_id()
 
         if (initial_run) then
             ! Run type is initial run.
@@ -214,19 +221,20 @@ contains
                 call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by reading initial condition from a file')
 
                 ! Perform default initialization for all constituents.
-                ! Subsequently, they can be overridden depending on the namelist option (below) and
-                ! the actual availability (checked and handled by MPAS).
+                ! Subsequently, they can be overridden depending on the actual availability (checked and handled by MPAS).
                 call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
-                ! Read variables that belong to the "input" stream in MPAS.
-                call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
+                ! Read variables that belong to the "input" stream in MPAS. Constituent input aliases are considered for
+                ! initial runs only.
+                call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input+scalars_alias')
             end if
         else
             ! Run type is branch or restart run.
 
             call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by restarting from a file')
 
-            ! Read variables that belong to the "input" and "restart" streams in MPAS.
+            ! Read variables that belong to the "input" and "restart" streams in MPAS. For restart runs, constituent
+            ! input aliases are not considered because they are read and written by standard names with more specificity.
             call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input+restart')
         end if
 
@@ -292,6 +300,58 @@ contains
 
         call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_inquire_advected_constituent_index
+
+    !> Inquire the constituent input alias to use for the given standard name. To be successfully
+    !> considered as the input alias, it must be:
+    !> 1. Defined in the CAM-SIMA registry;
+    !> 2. Present on the file indicated by `pio_file`.
+    !> If no suitable input alias is found, an empty character string is produced.
+    !> (KCW, 2026-08-17)
+    function dyn_constituent_input_alias(pio_file, standard_name) result(input_alias)
+        ! Module(s) from CCPP.
+        use phys_vars_init_check, only: ic_name_len, std_name_len, &
+                                        input_var_names, phys_var_stdnames
+        ! Module(s) from external libraries.
+        use pio, only: file_desc_t, pio_file_is_open, pio_inq_varid, pio_noerr
+
+        type(file_desc_t), pointer, intent(in) :: pio_file
+        character(std_name_len), intent(in) :: standard_name
+        character(ic_name_len) :: input_alias
+
+        integer :: i, j
+        integer :: ierr, varid
+
+        input_alias = ''
+
+        if (.not. associated(pio_file)) then
+            return
+        end if
+
+        if (.not. pio_file_is_open(pio_file)) then
+            return
+        end if
+
+        j = findloc(adjustl(phys_var_stdnames), adjustl(standard_name), dim=1)
+
+        if (j == 0) then
+            return
+        end if
+
+        do i = 1, size(input_var_names, 1)
+            if (input_var_names(i, j) == '') then
+                cycle
+            end if
+
+            ! Check if the variable is present on the file.
+            ierr = pio_inq_varid(pio_file, trim(adjustl(input_var_names(i, j))), varid)
+
+            if (ierr == pio_noerr) then
+                input_alias = trim(adjustl(input_var_names(i, j)))
+
+                exit
+            end if
+        end do
+    end function dyn_constituent_input_alias
 
     !> Inform CAM-SIMA about the index mapping between MPAS scalars and CAM-SIMA constituents.
     !> (KCW, 2025-07-17)
