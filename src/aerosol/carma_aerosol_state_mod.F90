@@ -37,6 +37,7 @@ module carma_aerosol_state_mod
      procedure :: wet_diameter
      procedure :: aqu_gain_binfraction
      procedure :: wgtpct
+     procedure :: surf_area_dens
   end type carma_aerosol_state
 
   interface carma_aerosol_state
@@ -217,5 +218,28 @@ contains
 
     call endrun('carma_aerosol_state%aqu_gain_binfraction: not implemented')
   end subroutine aqu_gain_binfraction
+
+  subroutine surf_area_dens(self, aero_props, types_list, ncol, nlev, beglev, endlev, &
+       relhum, pmid, temp, pi, sad, reff, sfc, dm_aer)
+
+    class(carma_aerosol_state), intent(in) :: self
+    class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
+    character(len=*), intent(in) :: types_list(:) ! list of aerosol types to include
+    integer,  intent(in)  :: ncol        ! number of columns
+    integer,  intent(in)  :: nlev        ! number of levels
+    integer,  intent(in)  :: beglev(:)   ! beginning model level index
+    integer,  intent(in)  :: endlev(:)   ! ending model level index
+    real(r8), intent(in)  :: relhum(:,:) ! relative humidity
+    real(r8), intent(in)  :: pmid(:,:)   ! mid-level pressure (Pa)
+    real(r8), intent(in)  :: temp(:,:)   ! temperature (K)
+    real(r8), intent(in)  :: pi          ! pi mathematical constant
+
+    real(r8), intent(out) :: sad(:,:)    ! surface area density (cm2/cm3)
+    real(r8), intent(out) :: reff(:,:)   ! effective radius (units cm)
+    real(r8), optional, intent(out) :: sfc(:,:,:) ! surface area density per bin (cm2/cm3)
+    real(r8), optional, intent(out) :: dm_aer(:,:,:) ! diameter per bin (cm)
+
+    call endrun('carma_aerosol_state%surf_area_dens: not implemented')
+  end subroutine surf_area_dens
 
 end module carma_aerosol_state_mod

@@ -75,6 +75,7 @@ add_pfunit_ctest(test_list_populate
 # ========================================================================
 add_library(bulk_aero_testlib
     ${AEROSOL_SRC}/aerosol_properties_mod.F90
+    ${AEROSOL_SRC}/aerosol_spec_utils.F90
     ${AEROSOL_SRC}/aerosol_state_mod.F90
     ${AEROSOL_SRC}/bulk_aerosol_properties_mod.F90
     ${AEROSOL_SRC}/bulk_aerosol_state_mod.F90

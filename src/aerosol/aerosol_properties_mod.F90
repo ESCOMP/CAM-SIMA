@@ -398,8 +398,6 @@ contains
     integer :: imas,ibin,indx
     character(len=*),parameter :: prefix = 'aerosol_properties::aero_props_init: '
 
-    character(len=256) :: alloc_errmsg
-
     real(r8), parameter :: spechygro_so4 = 0.507_r8          ! Sulfate hygroscopicity
     real(r8), parameter :: spechygro_soa = 0.14_r8           ! SOA hygroscopicity
     real(r8), parameter :: spechygro_pom = 0.1_r8            ! POM hygroscopicity
@@ -711,7 +709,7 @@ contains
     !
     ! Abdul-Razzak and Ghan, A parameterization of aerosol activation.
     ! 2. Multiple aerosol types. J. Geophys. Res., 105, 6837-6844., 2000
-    ! https://doi.org/10.1029/1999JD901161Digital Object Identifier (DOI)
+    ! https://doi.org/10.1029/1999JD901161
     !-------------------------------------------------------------------------
 
     class(aerosol_properties), intent(in) :: self

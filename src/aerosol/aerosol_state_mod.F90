@@ -1,6 +1,7 @@
 module aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
+  use physconst, only: pi
 
   implicit none
 
@@ -64,6 +65,7 @@ module aerosol_state_mod
      procedure :: convcld_actfrac
      procedure :: sol_factb_interstitial
      procedure(aero_aqu_gain_binfraction), deferred :: aqu_gain_binfraction
+     procedure(aero_surf_area_dens), deferred :: surf_area_dens
 
   end type aerosol_state
 
@@ -326,6 +328,32 @@ module aerosol_state_mod
        real(r8), intent(out) :: faqgain(:,:,:)             ! fraction gain in each mode / bin
 
      end subroutine aero_aqu_gain_binfraction
+
+     !------------------------------------------------------------------------
+     ! aerosol surface area density
+     !------------------------------------------------------------------------
+     subroutine aero_surf_area_dens(self, aero_props, types_list, ncol, nlev, beglev, endlev, &
+                                    relhum, pmid, temp, pi, sad, reff, sfc, dm_aer)
+       import :: aerosol_state, aerosol_properties, r8
+
+       class(aerosol_state), intent(in) :: self
+       class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
+       character(len=*), intent(in) :: types_list(:) ! list of aerosol types to include
+       integer,  intent(in)  :: ncol        ! number of columns
+       integer,  intent(in)  :: nlev        ! number of levels
+       integer,  intent(in)  :: beglev(:)   ! beginning model level index
+       integer,  intent(in)  :: endlev(:)   ! ending model level index
+       real(r8), intent(in)  :: relhum(:,:) ! relative humidity
+       real(r8), intent(in)  :: pmid(:,:)   ! mid-level pressure (Pa)
+       real(r8), intent(in)  :: temp(:,:)   ! temperature (K)
+       real(r8), intent(in)  :: pi          ! pi mathematical constant
+
+       real(r8), intent(out) :: sad(:,:)    ! surface area density (cm2/cm3)
+       real(r8), intent(out) :: reff(:,:)   ! effective radius (units cm)
+       real(r8), optional, intent(out) :: sfc(:,:,:) ! surface area density per bin (cm2/cm3)
+       real(r8), optional, intent(out) :: dm_aer(:,:,:) ! diameter per bin (cm)
+
+     end subroutine aero_surf_area_dens
 
   end interface
 
@@ -756,8 +784,6 @@ contains
   !------------------------------------------------------------------------------
   function mass_mean_radius(self, bin_ndx, species_ndx, ncol, nlev, aero_props, rho) result(radius)
 
-    use physconst, only: pi
-
     class(aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
     integer, intent(in) :: species_ndx            ! species number
@@ -996,6 +1022,5 @@ contains
     end where
 
   end function sol_factb_interstitial
-
 
 end module aerosol_state_mod
