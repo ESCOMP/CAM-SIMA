@@ -9,6 +9,14 @@
 !   'M' if source='M', 'B' if source='B', 'A' if radname has .nc, else 'G'
 !-----------------------------------------------------------------------
 
+module test_parse_rad_specifier
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_parse_bulk_aerosol()
     use funit
@@ -139,3 +147,5 @@ subroutine test_parse_strips_spaces()
 
     deallocate(nml_data%source, nml_data%camname, nml_data%radname, nml_data%type)
 end subroutine test_parse_strips_spaces
+
+end module test_parse_rad_specifier

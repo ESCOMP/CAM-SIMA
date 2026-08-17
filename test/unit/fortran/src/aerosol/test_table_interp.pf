@@ -5,6 +5,14 @@
 ! interp1d (via table_interp), interp2d, and interp4d.
 !-----------------------------------------------------------------------
 
+module test_table_interp
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_calcwghts_midpoint()
     use funit
@@ -234,3 +242,5 @@ subroutine test_interp1d_multiple_columns()
     @assertEqual(20.0_r8, res(2), 1.0e-14_r8)
     @assertEqual(25.0_r8, res(3), 1.0e-14_r8)
 end subroutine test_interp1d_multiple_columns
+
+end module test_table_interp

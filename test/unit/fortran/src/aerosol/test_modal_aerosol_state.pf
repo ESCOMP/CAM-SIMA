@@ -17,6 +17,14 @@
 !   - aerosol_mmr_host (modal overloads) for state MMR retrieval
 !-----------------------------------------------------------------------
 
+module test_modal_aerosol_state
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_get_ambient_mmr()
     use funit
@@ -322,9 +330,15 @@ subroutine test_surf_area_dens_mode_gating()
     !   mode 1 "primary_carbon": has in-list mass but is always excluded
     !   mode 2 "accum": in-list sulfate, the only contributor
     !   mode 3 "aitken": zero mass, exercises the tot_mass == 0 branch
-    spec_type(1,1) = 'black-c'; spec_type(2,1) = 'sulfate'; spec_type(3,1) = 'sulfate'
-    spec_name(1,1) = 'bc_a1';   spec_name(2,1) = 'so4_a2';  spec_name(3,1) = 'so4_a3'
-    spec_name_cw(1,1) = 'bc_c1'; spec_name_cw(2,1) = 'so4_c2'; spec_name_cw(3,1) = 'so4_c3'
+    spec_type(1,1) = 'black-c'
+    spec_type(2,1) = 'sulfate'
+    spec_type(3,1) = 'sulfate'
+    spec_name(1,1) = 'bc_a1'
+    spec_name(2,1) = 'so4_a2'
+    spec_name(3,1) = 'so4_a3'
+    spec_name_cw(1,1) = 'bc_c1'
+    spec_name_cw(2,1) = 'so4_c2'
+    spec_name_cw(3,1) = 'so4_c3'
     spec_density(:,1) = [1700._r8, 1770._r8, 1770._r8]
     spec_hygro(:,1) = [1.0e-10_r8, 0.507_r8, 0.507_r8]
 
@@ -344,7 +358,7 @@ subroutine test_surf_area_dens_mode_gating()
          spec_name = spec_name, &
          spec_name_cw = spec_name_cw, &
          spec_density = spec_density, &
-         spec_hygro = spec_hygro )
+         spec_hygro = spec_hygro)
 
     ! flat layout: num_a1, bc_a1, num_a2, so4_a2, num_a3, so4_a3
     allocate(constituents(ncol, nlev, ncnst))
@@ -391,3 +405,5 @@ subroutine test_surf_area_dens_mode_gating()
     deallocate(constituents)
     call cleanup_mock_rad_aer()
 end subroutine test_surf_area_dens_mode_gating
+
+end module test_modal_aerosol_state

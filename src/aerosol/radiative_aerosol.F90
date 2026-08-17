@@ -1094,6 +1094,7 @@ subroutine rad_aer_readnl(nlfile)
    use phys_prop,      only: physprop_accum_unique_files
    use spmd_utils,     only: masterproc
    use cam_abortutils, only: endrun
+   use string_utils,   only: to_str
    use radiative_aerosol_definitions, only: &
       verbose, N_DIAG, n_rad_cnst, n_mode_str, n_bin_str, &
       modes, bins, &
@@ -1112,19 +1113,19 @@ subroutine rad_aer_readnl(nlfile)
    character(len=shr_kind_cm)  :: errmsg
 
    ! Namelist variables (matching XML: group rad_aer_nl)
-   character(len=256), dimension(n_mode_str) :: mode_defs     = ' '
-   character(len=256), dimension(n_bin_str)  :: bin_defs      = ' '
-   character(len=256) :: rad_aer_climate(n_rad_cnst)          = ' '
-   character(len=256) :: rad_aer_diag_1(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_2(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_3(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_4(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_5(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_6(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_7(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_8(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_9(n_rad_cnst)           = ' '
-   character(len=256) :: rad_aer_diag_10(n_rad_cnst)          = ' '
+   character(len=256) :: mode_defs(n_mode_str)
+   character(len=256) :: bin_defs(n_bin_str)
+   character(len=256) :: rad_aer_climate(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_1(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_2(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_3(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_4(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_5(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_6(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_7(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_8(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_9(n_rad_cnst)
+   character(len=256) :: rad_aer_diag_10(n_rad_cnst)
 
    namelist /rad_aer_nl/ mode_defs, bin_defs,          &
       rad_aer_climate,                                  &
@@ -1136,8 +1137,23 @@ subroutine rad_aer_readnl(nlfile)
 
    errmsg = ''
 
+   ! Namelist defaults
+   mode_defs       = ' '
+   bin_defs        = ' '
+   rad_aer_climate = ' '
+   rad_aer_diag_1  = ' '
+   rad_aer_diag_2  = ' '
+   rad_aer_diag_3  = ' '
+   rad_aer_diag_4  = ' '
+   rad_aer_diag_5  = ' '
+   rad_aer_diag_6  = ' '
+   rad_aer_diag_7  = ' '
+   rad_aer_diag_8  = ' '
+   rad_aer_diag_9  = ' '
+   rad_aer_diag_10 = ' '
+
    if (masterproc) then
-      open(newunit=unitn, file=trim(nlfile), status='old')
+      open(newunit=unitn, action='read', file=trim(nlfile), status='old')
       call find_group_name(unitn, 'rad_aer_nl', status=ierr)
       if (ierr == 0) then
          read(unitn, rad_aer_nl, iostat=ierr, iomsg=errmsg)
@@ -1188,6 +1204,10 @@ subroutine rad_aer_readnl(nlfile)
          call parse_rad_specifier(rad_aer_diag_9, radcnst_namelist(i))
       case (10)
          call parse_rad_specifier(rad_aer_diag_10, radcnst_namelist(i))
+      case default
+         ! The cases above are unrolled to match the rad_aer_diag_N namelist
+         ! variables, so they must be extended whenever N_DIAG grows.
+         call endrun(subname//': no namelist variable for diagnostic call '//to_str(i))
       end select
    end do
 

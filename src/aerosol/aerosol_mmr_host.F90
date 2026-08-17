@@ -24,7 +24,6 @@ use ccpp_kinds,     only: kind_phys
 
 implicit none
 private
-save
 
 ! Opaque host-binding handle: aggregates the host-model data references
 ! (for CAM-SIMA: the CCPP constituents array) needed to retrieve aerosol
@@ -294,12 +293,12 @@ subroutine resolve_bin_idx(bins)
       ! indices for number mixing ratio components
       bins%comps(m)%idx_num_a = get_host_idx(bins%comps(m)%source_num_a, bins%comps(m)%camname_num_a, routine)
       bins%comps(m)%idx_num_c = get_host_idx(bins%comps(m)%source_num_c, bins%comps(m)%camname_num_c, routine)
-      if ( bins%comps(m)%source_mass_a /= 'NOTSET' .and. bins%comps(m)%camname_mass_a /= 'NOTSET' ) then
+      if (bins%comps(m)%source_mass_a /= 'NOTSET' .and. bins%comps(m)%camname_mass_a /= 'NOTSET') then
          bins%comps(m)%idx_mass_a = get_host_idx(bins%comps(m)%source_mass_a, bins%comps(m)%camname_mass_a, routine)
-      endif
-      if ( bins%comps(m)%source_mass_c /= 'NOTSET' .and. bins%comps(m)%camname_mass_c /= 'NOTSET' ) then
+      end if
+      if (bins%comps(m)%source_mass_c /= 'NOTSET' .and. bins%comps(m)%camname_mass_c /= 'NOTSET') then
          bins%comps(m)%idx_mass_c = get_host_idx(bins%comps(m)%source_mass_c, bins%comps(m)%camname_mass_c, routine)
-      endif
+      end if
 
       ! allocate memory for species
       nspec = bins%comps(m)%nspec
@@ -381,7 +380,7 @@ subroutine rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, constituents, mmr)
       aerlist => bulk_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    ! Check for valid input aerosol index
    if (aer_idx < 1  .or.  aer_idx > aerlist%numaerosols) then
@@ -392,11 +391,13 @@ subroutine rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, constituents, mmr)
    ! Get data source
    source = aerlist%aer(aer_idx)%source
    idx    = aerlist%aer(aer_idx)%idx
-   select case( source )
+   select case(source)
    case ('A','N')
       mmr => constituents(:,:,idx)
    case ('Z')
       mmr => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_aer_mmr_by_idx
@@ -447,7 +448,7 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
       mlist => modal_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    ! Check for valid mode index
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
@@ -475,11 +476,13 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
       call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
-   select case( source )
+   select case(source)
    case ('A','N')
       mmr => constituents(:,:,idx)
    case ('Z')
       mmr => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_mam_mmr_by_idx
@@ -530,7 +533,7 @@ subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, 
       slist => sectional_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
       call endrun(subname//': bin list index out of range: bin_idx = '// &
@@ -554,11 +557,13 @@ subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, 
       call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
-   select case( source )
+   select case(source)
    case ('A','N')
       mmr => constituents(:,:,idx)
    case ('Z')
       mmr => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_bin_mmr_by_idx_ccpp
@@ -677,7 +682,7 @@ subroutine rad_cnst_get_bin_mmr(list_idx, bin_idx, phase, constituents, mmr)
       slist => sectional_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
       call endrun(subname//': bin list index out of range: bin_idx = '// &
@@ -696,11 +701,13 @@ subroutine rad_cnst_get_bin_mmr(list_idx, bin_idx, phase, constituents, mmr)
       call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
-   select case( source )
+   select case(source)
    case ('A','N')
       mmr => constituents(:,:,idx)
    case ('Z')
       mmr => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_bin_mmr
@@ -729,7 +736,7 @@ subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, n
       mlist => modal_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
       call endrun(subname//': mode list index out of range: mode_idx = '// &
@@ -748,11 +755,13 @@ subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, n
       call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
-   select case( source )
+   select case(source)
    case ('A','N')
       num => constituents(:,:,idx)
    case ('Z')
       num => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_mode_num_ccpp
@@ -797,7 +806,7 @@ subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num
       slist => sectional_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
       call endrun(subname//': bin list index out of range: bin_idx = '// &
@@ -816,11 +825,13 @@ subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num
       call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
-   select case( source )
+   select case(source)
    case ('A','N')
       num => constituents(:,:,idx)
    case ('Z')
       num => zero_cols
+   case default
+      call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
    end select
 
 end subroutine rad_cnst_get_bin_num_ccpp
@@ -928,7 +939,7 @@ subroutine rad_aer_diag_init(alist)
    character(len=64) :: name
    character(len=2)  :: list_id
    character(len=4)  :: suffix
-   character(len=128):: long_name
+   character(len=128) :: long_name
    character(len=32) :: long_name_description
    !-----------------------------------------------------------------------------
 
@@ -1009,7 +1020,7 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
       aerlist => bulk_aerosol_list(list_idx)
    else
       call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
-   endif
+   end if
 
    naer = aerlist%numaerosols
    if (naer == 0) return
@@ -1029,7 +1040,7 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
       cbname = 'cb_' // name(3:len_trim(name))
 
       ! 'Z' sources are identically zero; output zero fields without doing the math
-      select case( source )
+      select case(source)
       case ('A','N')
          mmr => constituents(:,:,idx)
          mass(:ncol,:) = mmr(:ncol,:) * pdeldry(:ncol,:) * rga
@@ -1037,6 +1048,8 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
       case ('Z')
          mass(:ncol,:) = 0._r8
          cb(:ncol) = 0._r8
+      case default
+         call endrun(subname//': unrecognized source "'//source//'"; must be "A", "N" or "Z"')
       end select
 
       call history_out_field(trim(name), mass(:ncol,:))

@@ -10,6 +10,14 @@
 ! Modal/bin tests would need those set up, which is more complex.
 !-----------------------------------------------------------------------
 
+module test_list_populate
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_populate_bulk_only()
     use funit
@@ -117,3 +125,5 @@ subroutine test_populate_empty()
     deallocate(modal_list%idx, modal_list%physprop_files, modal_list%idx_props)
     deallocate(sectional_list%idx, sectional_list%physprop_files, sectional_list%idx_props)
 end subroutine test_populate_empty
+
+end module test_list_populate

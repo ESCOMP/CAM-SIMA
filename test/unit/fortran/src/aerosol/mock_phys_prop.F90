@@ -17,16 +17,16 @@ module phys_prop
   public :: setup_mock_physprop_optics
   public :: cleanup_mock_physprop
 
-  integer, save :: next_id = 0
+  integer :: next_id = 0
 
   ! Mock optics data storage, indexed as (nwavbands, naero).
   ! The id passed to physprop_get is used as the aerosol index.
-  integer, save :: mock_nswbands = 0
-  integer, save :: mock_nlwbands = 0
-  real(r8), allocatable, target, save :: mock_sw_nonhygro_ext(:,:)
-  real(r8), allocatable, target, save :: mock_sw_nonhygro_ssa(:,:)
-  real(r8), allocatable, target, save :: mock_sw_nonhygro_asm(:,:)
-  real(r8), allocatable, target, save :: mock_lw_abs(:,:)
+  integer :: mock_nswbands = 0
+  integer :: mock_nlwbands = 0
+  real(r8), allocatable, target :: mock_sw_nonhygro_ext(:,:)
+  real(r8), allocatable, target :: mock_sw_nonhygro_ssa(:,:)
+  real(r8), allocatable, target :: mock_sw_nonhygro_asm(:,:)
+  real(r8), allocatable, target :: mock_lw_abs(:,:)
 
 contains
 

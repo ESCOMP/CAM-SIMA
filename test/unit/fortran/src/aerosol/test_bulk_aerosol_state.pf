@@ -12,6 +12,14 @@
 !   - aerosol_mmr_host (rad_cnst_get_aer_mmr) for state MMR retrieval
 !-----------------------------------------------------------------------
 
+module test_bulk_aerosol_state
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_constructor()
     use funit
@@ -93,7 +101,7 @@ subroutine test_dry_volume()
          hygro = [0.0_r8], &
          dispersion = [2.0_r8], &
          aername = [character(len=20) :: 'dust1'], &
-         opticstype = [character(len=32) :: 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro'])
 
     props => bulk_aerosol_properties()
 
@@ -137,7 +145,7 @@ subroutine test_ambient_total_bin_mmr()
          hygro = [0.0_r8, 0.5_r8], &
          dispersion = [2.0_r8, 1.6_r8], &
          aername = [character(len=20) :: 'dust1', 'sulfate'], &
-         opticstype = [character(len=32) :: 'nonhygro', 'hygro'] )
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -203,7 +211,7 @@ subroutine test_surf_area_dens_sulfate()
          hygro = [0.5_r8], &
          dispersion = [sd_sulf], &
          aername = [character(len=20) :: 'sulfate'], &
-         opticstype = [character(len=32) :: 'hygro'] )
+         opticstype = [character(len=32) :: 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -302,7 +310,7 @@ subroutine test_surf_area_dens_gating()
          hygro = [0.1_r8, 0.0_r8, 0.2_r8], &
          dispersion = [sd_bc, sd_bc, 2.20_r8], &
          aername = [character(len=20) :: 'bcphi', 'bcpho', 'ocphi'], &
-         opticstype = [character(len=32) :: 'hygro', 'insoluble', 'hygro'] )
+         opticstype = [character(len=32) :: 'hygro', 'insoluble', 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -353,3 +361,5 @@ subroutine test_surf_area_dens_gating()
     deallocate(constituents)
     call cleanup_mock_rad_aer()
 end subroutine test_surf_area_dens_gating
+
+end module test_bulk_aerosol_state

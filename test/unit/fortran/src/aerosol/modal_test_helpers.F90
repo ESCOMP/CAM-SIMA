@@ -32,19 +32,29 @@ contains
     character(len=32) :: spec_type(2,2), spec_name(2,2), spec_name_cw(2,2)
     real(r8) :: spec_density(2,2), spec_hygro(2,2)
 
-    spec_type(1,1) = 'sulfate';   spec_type(1,2) = 'black-c'
-    spec_type(2,1) = 'dust';      spec_type(2,2) = ''
+    spec_type(1,1) = 'sulfate'
+    spec_type(1,2) = 'black-c'
+    spec_type(2,1) = 'dust'
+    spec_type(2,2) = ''
 
-    spec_name(1,1) = 'so4_a1';    spec_name(1,2) = 'bc_a1'
-    spec_name(2,1) = 'dst_a2';    spec_name(2,2) = ''
-    spec_name_cw(1,1) = 'so4_c1'; spec_name_cw(1,2) = 'bc_c1'
-    spec_name_cw(2,1) = 'dst_c2'; spec_name_cw(2,2) = ''
+    spec_name(1,1) = 'so4_a1'
+    spec_name(1,2) = 'bc_a1'
+    spec_name(2,1) = 'dst_a2'
+    spec_name(2,2) = ''
+    spec_name_cw(1,1) = 'so4_c1'
+    spec_name_cw(1,2) = 'bc_c1'
+    spec_name_cw(2,1) = 'dst_c2'
+    spec_name_cw(2,2) = ''
 
-    spec_density(1,1) = dens_sulfate; spec_density(1,2) = dens_bc
-    spec_density(2,1) = dens_dust;    spec_density(2,2) = 0._r8
+    spec_density(1,1) = dens_sulfate
+    spec_density(1,2) = dens_bc
+    spec_density(2,1) = dens_dust
+    spec_density(2,2) = 0._r8
 
-    spec_hygro(1,1) = hygro_sulfate; spec_hygro(1,2) = hygro_bc
-    spec_hygro(2,1) = hygro_dust;    spec_hygro(2,2) = 0._r8
+    spec_hygro(1,1) = hygro_sulfate
+    spec_hygro(1,2) = hygro_bc
+    spec_hygro(2,1) = hygro_dust
+    spec_hygro(2,2) = 0._r8
 
     call setup_mock_modal_rad_aer( &
          nmodes = 2, &
@@ -62,7 +72,7 @@ contains
          spec_name = spec_name, &
          spec_name_cw = spec_name_cw, &
          spec_density = spec_density, &
-         spec_hygro = spec_hygro )
+         spec_hygro = spec_hygro)
   end subroutine setup_2mode_mock
 
 end module modal_test_helpers

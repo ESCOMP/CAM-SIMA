@@ -9,6 +9,14 @@
 ! Helper module: modal_test_helpers (compiled separately)
 !-----------------------------------------------------------------------
 
+module test_modal_aerosol_properties
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_constructor_and_sizes()
     use funit
@@ -208,3 +216,5 @@ subroutine test_get_density_hygro()
     deallocate(props)
     call cleanup_mock_rad_aer()
 end subroutine test_get_density_hygro
+
+end module test_modal_aerosol_properties

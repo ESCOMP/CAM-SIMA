@@ -8,6 +8,14 @@
 ! Mock boundary: radiative_aerosol (rad_aer_get_info, rad_aer_get_props)
 !-----------------------------------------------------------------------
 
+module test_bulk_aerosol_properties
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_constructor_nbins()
     use funit
@@ -24,7 +32,7 @@ subroutine test_constructor_nbins()
          hygro = [0.1_r8, 0.5_r8, 0.0_r8], &
          dispersion = [2.0_r8, 1.6_r8, 1.8_r8], &
          aername = [character(len=20) :: 'dust1', 'sulfate', 'bcphi'], &
-         opticstype = [character(len=32) :: 'nonhygro', 'hygro', 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro', 'nonhygro'])
 
     props => bulk_aerosol_properties()
 
@@ -53,7 +61,7 @@ subroutine test_get_density()
          hygro = [0.1_r8, 0.5_r8], &
          dispersion = [2.0_r8, 1.6_r8], &
          aername = [character(len=20) :: 'dust1', 'sulfate'], &
-         opticstype = [character(len=32) :: 'nonhygro', 'hygro'] )
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -83,7 +91,7 @@ subroutine test_get_hygro()
          hygro = [0.65_r8], &
          dispersion = [1.6_r8], &
          aername = [character(len=20) :: 'sulfate'], &
-         opticstype = [character(len=32) :: 'hygro'] )
+         opticstype = [character(len=32) :: 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -111,7 +119,7 @@ subroutine test_species_type_dust()
          hygro = [0.0_r8], &
          dispersion = [2.0_r8], &
          aername = [character(len=20) :: 'dust1'], &
-         opticstype = [character(len=32) :: 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro'])
 
     props => bulk_aerosol_properties()
 
@@ -139,7 +147,7 @@ subroutine test_species_type_sulfate()
          hygro = [0.5_r8], &
          dispersion = [1.6_r8], &
          aername = [character(len=20) :: 'sulfate'], &
-         opticstype = [character(len=32) :: 'hygro'] )
+         opticstype = [character(len=32) :: 'hygro'])
 
     props => bulk_aerosol_properties()
 
@@ -165,7 +173,7 @@ subroutine test_model_is()
          hygro = [0.0_r8], &
          dispersion = [2.0_r8], &
          aername = [character(len=20) :: 'dust1'], &
-         opticstype = [character(len=32) :: 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro'])
 
     props => bulk_aerosol_properties()
 
@@ -177,3 +185,5 @@ subroutine test_model_is()
     deallocate(props)
     call cleanup_mock_rad_aer()
 end subroutine test_model_is
+
+end module test_bulk_aerosol_properties

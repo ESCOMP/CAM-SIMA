@@ -12,6 +12,14 @@
 !   lw_props: pabs = abs(iwav) * mmr
 !-----------------------------------------------------------------------
 
+module test_insoluble_aerosol_optics
+    use funit
+
+    implicit none
+
+    public
+contains
+
 @test
 subroutine test_sw_props()
     use funit
@@ -45,7 +53,7 @@ subroutine test_sw_props()
          hygro = [0.0_r8], &
          dispersion = [2.0_r8], &
          aername = [character(len=20) :: 'dust1'], &
-         opticstype = [character(len=32) :: 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro'])
 
     ! Set up mock optics tables
     sw_ext(:, 1) = [100._r8, 200._r8]   ! extinction at 2 SW bands
@@ -123,7 +131,7 @@ subroutine test_lw_props()
          hygro = [0.0_r8], &
          dispersion = [2.0_r8], &
          aername = [character(len=20) :: 'dust1'], &
-         opticstype = [character(len=32) :: 'nonhygro'] )
+         opticstype = [character(len=32) :: 'nonhygro'])
 
     sw_ext(:, 1) = [100._r8]
     sw_ssa(:, 1) = [0.9_r8]
@@ -158,3 +166,5 @@ subroutine test_lw_props()
     call cleanup_mock_physprop()
     call cleanup_mock_rad_aer()
 end subroutine test_lw_props
+
+end module test_insoluble_aerosol_optics
