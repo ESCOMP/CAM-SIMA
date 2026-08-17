@@ -278,7 +278,7 @@ CONTAINS
 
       ! Aerosol optics infrastructure init:
       ! physics init phases will already query aerosol objects so this should
-      ! be run before phys_init (hplin, 4/20/26)
+      ! be run before phys_init
       call rad_aer_init_all()
 
       call phys_init()

@@ -13,7 +13,6 @@ module phys_prop
 
   implicit none
   private
-  save
 
   integer, parameter, public :: ot_length = 32
 
@@ -134,15 +133,23 @@ contains
   ! as strings with a ".nc" suffix.
   ! Construct a cumulative list of unique filenames containing physical property data.
   subroutine physprop_accum_unique_files(radname, type)
+    use cam_abortutils, only: endrun
+
     character(len=*), intent(in)  :: radname(:)
     character(len=1), intent(in)  :: type(:)
 
     integer :: ncnst, i
+    integer :: ierr
     character(len=*), parameter :: subname = 'physprop_accum_unique_files'
     !------------------------------------------------------------------------------------
 
     ! Initial guess for number of files we need.
-    if (.not. allocated(uniquefilenames)) allocate (uniquefilenames(50))
+    if (.not. allocated(uniquefilenames)) then
+      allocate (uniquefilenames(50), stat=ierr)
+      if (ierr /= 0) then
+        call endrun(subname//': allocation error: uniquefilenames')
+      end if
+    end if
 
     ncnst = ubound(radname, 1)
 
@@ -197,6 +204,7 @@ contains
   subroutine physprop_init()
     use ioFileMod,      only: cam_get_file
     use cam_pio_utils,  only: cam_pio_openfile
+    use cam_abortutils, only: endrun
     use pio,            only: PIO_NOWRITE
     use pio,            only: pio_closefile
 
@@ -207,12 +215,15 @@ contains
     character(len=32)  :: aername_str ! string read from netCDF file -- may contain trailing
                                       ! nulls which aren't dealt with by trim()
 
-    integer            :: ierr        ! error codes from mpi
+    integer            :: ierr        ! error code
 
     ! numphysprops is the number of unique physical properties files
     ! as counted by the physprop_accum_unique_files subroutine, which is called
     ! multiple times for different lists of radiatively active aerosol.
-    allocate (physprop(numphysprops))
+    allocate (physprop(numphysprops), stat=ierr)
+    if (ierr /= 0) then
+      call endrun('physprop_init: allocation error: physprop')
+    end if
     do fileindex = 1, numphysprops
       nullify (physprop(fileindex)%sw_hygro_ext)
       nullify (physprop(fileindex)%sw_hygro_ssa)
@@ -313,7 +324,6 @@ contains
                           sw_hygro_coreshell_ext, sw_hygro_coreshell_ssa, &
                           sw_hygro_coreshell_asm, lw_hygro_coreshell_abs)
     use cam_abortutils, only: endrun
-    use cam_logfile,    only: iulog
 
     ! Arguments
     integer, intent(in)  :: id
@@ -387,12 +397,13 @@ contains
     integer,           optional, intent(out) :: nfrac
 
     ! Local variables
+    character(len=256) :: msg
     character(len=*), parameter :: subname = 'physprop_get'
     !------------------------------------------------------------------------------------
 
     if (id <= 0 .or. id > numphysprops) then
-      write (iulog, *) subname//': illegal ID value: ', id
-      call endrun(subname//': ID out of range')
+      write (msg, '(2a,i0)') subname, ': illegal ID value: ', id
+      call endrun(trim(msg))
     end if
 
     if (present(sourcefile)) sourcefile = physprop(id)%sourcefile
@@ -1352,16 +1363,6 @@ contains
     ierr = pio_inq_varid(nc_id, 'num_to_mass_ratio', vid)
     ierr = pio_get_var(nc_id, vid, physprop%num_to_mass_aer)
 
-    ! Output select data to log file
-    ! if (debug .and. masterproc .and. idx_sw_diag > 0) then
-    !   if (trim(physprop%aername) == 'SULFATE') then
-    !     write (iulog, '(2x, a)') '_______ hygroscopic growth in visible band _______'
-    !     call aer_optics_log_rh('SO4', physprop%sw_hygro_ext(:, idx_sw_diag), &
-    !                            physprop%sw_hygro_ssa(:, idx_sw_diag), physprop%sw_hygro_asm(:, idx_sw_diag))
-    !   end if
-    !   write (iulog, *) subname//': finished for ', trim(physprop%aername)
-    ! end if
-
   end subroutine bulk_props_init
 
 !================================================================================================
@@ -1373,7 +1374,7 @@ contains
   !   x0 <= x <= x1
   !   assumes x is monotonically increasing
   ! Author: D. Fillmore
-  function exp_interpol(x, f, y) result(g)
+  pure function exp_interpol(x, f, y) result(g)
     real(r8), intent(in), dimension(:) :: x  ! grid points
     real(r8), intent(in), dimension(:) :: f  ! grid function values
     real(r8), intent(in) :: y                ! interpolation point
@@ -1402,7 +1403,6 @@ contains
     ! interpolate
     a = (log(f(k + 1)/f(k)))/(x(k + 1) - x(k))
     g = f(k)*exp(a*(y - x(k)))
-    return
   end function exp_interpol
 
 !================================================================================================
@@ -1442,76 +1442,7 @@ contains
     ! interpolate
     a = (f(k + 1) - f(k))/(x(k + 1) - x(k))
     g = f(k) + a*(y - x(k))
-    return
   end function lin_interpol
-
-!================================================================================================
-
-  ! Write aerosol optical constants to log file
-  ! Author: D. Fillmore
-  subroutine aer_optics_log(name, ext, ssa, asm)
-    use cam_logfile,    only: iulog
-
-    character(len=*), intent(in) :: name
-    real(r8), intent(in) :: ext(:)
-    real(r8), intent(in) :: ssa(:)
-    real(r8), intent(in) :: asm(:)
-
-    integer :: kbnd, nbnd
-
-    nbnd = ubound(ext, 1)
-
-    write (iulog, '(2x, a)') name
-    write (iulog, '(2x, a, 4x, a, 4x, a, 4x, a)') 'SW band', 'ext (m^2 kg^-1)', ' ssa', ' asm'
-    do kbnd = 1, nbnd
-      write (iulog, '(2x, i7, 4x, f13.2, 4x, f4.2, 4x, f4.2)') kbnd, ext(kbnd), ssa(kbnd), asm(kbnd)
-    end do
-
-  end subroutine aer_optics_log
-
-!================================================================================================
-
-  ! Write out aerosol optical properties for a set of test rh values
-  ! to test hygroscopic growth interpolation
-  ! Author: D. Fillmore
-  subroutine aer_optics_log_rh(name, ext, ssa, asm)
-    use cam_logfile,    only: iulog
-
-    character(len=*), intent(in) :: name
-    real(r8), intent(in) :: ext(nrh)
-    real(r8), intent(in) :: ssa(nrh)
-    real(r8), intent(in) :: asm(nrh)
-
-    integer :: krh_test
-    integer, parameter :: nrh_test = 36
-    integer :: krh
-    real(r8) :: rh
-    real(r8) :: rh_test(nrh_test)
-    real(r8) :: exti
-    real(r8) :: ssai
-    real(r8) :: asmi
-    real(r8) :: wrh
-    !------------------------------------------------------------------------------------
-
-    do krh_test = 1, nrh_test
-      rh_test(krh_test) = sqrt(sqrt(sqrt(sqrt(((krh_test - 1.0_r8)/(nrh_test - 1))))))
-    end do
-    write (iulog, '(2x, a)') name
-    write (iulog, '(2x, a, 4x, a, 4x, a, 4x, a)') '   rh', 'ext (m^2 kg^-1)', '  ssa', '  asm'
-
-    ! loop through test rh values
-    do krh_test = 1, nrh_test
-      ! find corresponding rh index
-      rh = rh_test(krh_test)
-      krh = min(floor((rh)*nrh) + 1, nrh - 1)
-      wrh = (rh)*nrh - krh
-      exti = ext(krh + 1)*(wrh + 1) - ext(krh)*wrh
-      ssai = ssa(krh + 1)*(wrh + 1) - ssa(krh)*wrh
-      asmi = asm(krh + 1)*(wrh + 1) - asm(krh)*wrh
-      write (iulog, '(2x, f5.3, 4x, f13.3, 4x, f5.3, 4x, f5.3)') rh_test(krh_test), exti, ssai, asmi
-    end do
-
-  end subroutine aer_optics_log_rh
 
 !================================================================================================
 

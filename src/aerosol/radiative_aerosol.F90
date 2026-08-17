@@ -102,8 +102,8 @@ end function rad_aer_num_name
 !================================================================================================
 
 subroutine rad_aer_get_info(list_idx, aernames, naero, nmodes, nbins)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: aerlist_t, modelist_t, binlist_t, &
       bulk_aerosol_list, modal_aerosol_list, sectional_aerosol_list
 
@@ -152,8 +152,8 @@ subroutine rad_aer_get_info(list_idx, aernames, naero, nmodes, nbins)
       ! check that output array is long enough
       arrlen = size(aernames)
       if (arrlen < a_list%numaerosols) then
-         write(iulog,*) subname//': ERROR: naero=', a_list%numaerosols, '  arrlen=', arrlen
-         call endrun(subname//': ERROR: aernames too short')
+         call endrun(subname//': ERROR: aernames too short: naero = '// &
+              to_str(a_list%numaerosols)//', arrlen = '//to_str(arrlen))
       end if
 
       do i = 1, a_list%numaerosols
@@ -168,8 +168,8 @@ end subroutine rad_aer_get_info
 
 subroutine rad_aer_get_info_by_mode(list_idx, m_idx, &
    mode_type, num_name, num_name_cw, nspec)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: modelist_t, modal_aerosol_list, modes
 
    ! Return info about modal aerosol lists
@@ -196,8 +196,7 @@ subroutine rad_aer_get_info_by_mode(list_idx, m_idx, &
    ! check for valid mode index
    nmodes = m_list%nmodes
    if (m_idx < 1 .or. m_idx > nmodes) then
-      write(iulog,*) subname//': ERROR - invalid mode index: ', m_idx
-      call endrun(subname//': ERROR - invalid mode index')
+      call endrun(subname//': ERROR - invalid mode index: '//to_str(m_idx))
    end if
 
    ! get index into the mode definition object
@@ -229,8 +228,8 @@ end subroutine rad_aer_get_info_by_mode
 
 subroutine rad_aer_get_info_by_bin(list_idx, m_idx, &
    bin_name, num_name, num_name_cw, mmr_name, mmr_name_cw, nspec)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: binlist_t, sectional_aerosol_list, bins
 
    ! Return info about CARMA aerosol lists
@@ -259,8 +258,7 @@ subroutine rad_aer_get_info_by_bin(list_idx, m_idx, &
    ! check for valid mode index
    nbins = s_list%nbins
    if (m_idx < 1 .or. m_idx > nbins) then
-      write(iulog,*) subname//': ERROR - invalid bin index: ', m_idx
-      call endrun(subname//': ERROR - invalid bin index')
+      call endrun(subname//': ERROR - invalid bin index: '//to_str(m_idx))
    end if
 
    ! get index into the mode definition object
@@ -301,8 +299,8 @@ end subroutine rad_aer_get_info_by_bin
 !================================================================================================
 subroutine rad_aer_get_info_by_bin_spec(list_idx, m_idx, s_idx, &
    spec_type, spec_morph, spec_name, spec_name_cw)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: binlist_t, sectional_aerosol_list, bins
 
    ! Return info about CARMA aerosol lists
@@ -329,8 +327,7 @@ subroutine rad_aer_get_info_by_bin_spec(list_idx, m_idx, s_idx, &
    ! check for valid mode index
    nbins = s_list%nbins
    if (m_idx < 1 .or. m_idx > nbins) then
-      write(iulog,*) subname//': ERROR - invalid bin index: ', m_idx
-      call endrun(subname//': ERROR - invalid bin index')
+      call endrun(subname//': ERROR - invalid bin index: '//to_str(m_idx))
    end if
 
    ! get index into the mode definition object
@@ -339,8 +336,7 @@ subroutine rad_aer_get_info_by_bin_spec(list_idx, m_idx, s_idx, &
    ! check for valid species index
    nspec = bins%comps(mm)%nspec
    if (s_idx < 1 .or. s_idx > nspec) then
-      write(iulog,*) subname//': ERROR - invalid specie index: ', s_idx
-      call endrun(subname//': ERROR - invalid specie index')
+      call endrun(subname//': ERROR - invalid species index: '//to_str(s_idx))
    end if
 
    if (present(spec_type)) then
@@ -361,8 +357,8 @@ end subroutine rad_aer_get_info_by_bin_spec
 !================================================================================================
 subroutine rad_aer_get_info_by_mode_spec(list_idx, m_idx, s_idx, &
    spec_type, spec_name, spec_name_cw)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: modelist_t, modal_aerosol_list, modes
 
    ! Return info about modal aerosol lists
@@ -390,8 +386,7 @@ subroutine rad_aer_get_info_by_mode_spec(list_idx, m_idx, s_idx, &
    ! check for valid mode index
    nmodes = m_list%nmodes
    if (m_idx < 1 .or. m_idx > nmodes) then
-      write(iulog,*) subname//': ERROR - invalid mode index: ', m_idx
-      call endrun(subname//': ERROR - invalid mode index')
+      call endrun(subname//': ERROR - invalid mode index: '//to_str(m_idx))
    end if
 
    ! get index into the mode definition object
@@ -400,8 +395,7 @@ subroutine rad_aer_get_info_by_mode_spec(list_idx, m_idx, s_idx, &
    ! check for valid specie index
    nspec = modes%comps(mm)%nspec
    if (s_idx < 1 .or. s_idx > nspec) then
-      write(iulog,*) subname//': ERROR - invalid specie index: ', s_idx
-      call endrun(subname//': ERROR - invalid specie index')
+      call endrun(subname//': ERROR - invalid species index: '//to_str(s_idx))
    end if
 
    ! specie type
@@ -581,8 +575,8 @@ end function rad_aer_get_spec_idx
 !================================================================================================
 
 integer function rad_aer_get_idx(list_idx, aer_name)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
 
    ! Return the index of aerosol aer_name in the list specified by list_idx.
@@ -600,8 +594,7 @@ integer function rad_aer_get_idx(list_idx, aer_name)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       aerlist => bulk_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    ! Get index in aerosol list for requested name
@@ -631,8 +624,8 @@ subroutine rad_aer_get_props_by_idx(list_idx, &
    aername, density_aer, hygro_aer, dryrad_aer, dispersion_aer, num_to_mass_aer)
    use shr_kind_mod,   only: r8 => shr_kind_r8
    use phys_prop,      only: physprop_get, ot_length
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
 
    ! Return requested properties for the aerosol from the specified
@@ -676,13 +669,12 @@ subroutine rad_aer_get_props_by_idx(list_idx, &
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       aerlist => bulk_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    if (aer_idx < 1 .or. aer_idx > aerlist%numaerosols) then
-      write(iulog,*) subname//': aerosol list index out of range: ', aer_idx ,' list index: ',list_idx
-      call endrun(subname//': aer_idx out of range')
+      call endrun(subname//': aer_idx out of range: aer_idx = '// &
+           to_str(aer_idx)//', list_idx = '//to_str(list_idx))
    end if
 
    idx = aerlist%aer(aer_idx)%physprop_id
@@ -732,8 +724,8 @@ subroutine rad_aer_get_mam_props_by_idx(list_idx, &
    num_to_mass_aer, spectype)
    use shr_kind_mod,   only: r8 => shr_kind_r8
    use phys_prop,      only: physprop_get, ot_length
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list, modes
 
    ! Return requested properties for the aerosol from the specified
@@ -780,14 +772,13 @@ subroutine rad_aer_get_mam_props_by_idx(list_idx, &
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       mlist => modal_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    ! Check for valid mode index
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    ! Get the index for the corresponding mode in the mode definition object
@@ -795,8 +786,8 @@ subroutine rad_aer_get_mam_props_by_idx(list_idx, &
 
    ! Check for valid specie index
    if (spec_idx < 1  .or.  spec_idx > modes%comps(m_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', modes%comps(m_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(modes%comps(m_idx)%nspec))
    end if
 
    idx = modes%comps(m_idx)%idx_props(spec_idx)
@@ -848,8 +839,8 @@ subroutine rad_aer_get_bin_props_by_idx(list_idx, &
    num_to_mass_aer, spectype, specmorph)
    use shr_kind_mod,   only: r8 => shr_kind_r8
    use phys_prop,      only: physprop_get, ot_length
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list, bins
 
    ! Return requested properties for the aerosol from the specified
@@ -897,14 +888,13 @@ subroutine rad_aer_get_bin_props_by_idx(list_idx, &
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       slist => sectional_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    ! Check for valid mode index
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    ! Get the index for the corresponding mode in the mode definition object
@@ -912,8 +902,8 @@ subroutine rad_aer_get_bin_props_by_idx(list_idx, &
 
    ! Check for valid specie index
    if (spec_idx < 1  .or.  spec_idx > bins%comps(m_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', bins%comps(m_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(bins%comps(m_idx)%nspec))
    end if
 
    idx = bins%comps(m_idx)%idx_props(spec_idx)
@@ -963,8 +953,8 @@ subroutine rad_aer_get_mode_props(list_idx, mode_idx, opticstype, &
 
    use shr_kind_mod,   only: r8 => shr_kind_r8
    use phys_prop,      only: physprop_get, ot_length
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list
 
    ! Return requested properties for the mode from the specified
@@ -1002,14 +992,13 @@ subroutine rad_aer_get_mode_props(list_idx, mode_idx, opticstype, &
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       mlist => modal_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    ! Check for valid mode index
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    ! Get the physprop index for the requested mode
@@ -1320,8 +1309,8 @@ end subroutine rad_aer_init
 ! Return the physprop ID for a mode in the modal aerosol list
 !------------------------------------------------------------------------
 integer function rad_aer_mode_physprop_id(list_idx, mode_idx)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list
 
    integer, intent(in) :: list_idx
@@ -1333,13 +1322,12 @@ integer function rad_aer_mode_physprop_id(list_idx, mode_idx)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       mlist => modal_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    if (mode_idx < 1 .or. mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    rad_aer_mode_physprop_id = mlist%idx_props(mode_idx)
@@ -1350,8 +1338,8 @@ end function rad_aer_mode_physprop_id
 ! Return the physprop ID for an aerosol in the bulk aerosol list
 !------------------------------------------------------------------------
 integer function rad_aer_bulk_physprop_id(list_idx, aer_idx)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
 
    integer, intent(in) :: list_idx
@@ -1363,13 +1351,12 @@ integer function rad_aer_bulk_physprop_id(list_idx, aer_idx)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       aerlist => bulk_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    if (aer_idx < 1 .or. aer_idx > aerlist%numaerosols) then
-      write(iulog,*) subname//': aer_idx= ', aer_idx, '  list index: ', list_idx
-      call endrun(subname//': aer_idx out of range')
+      call endrun(subname//': aer_idx out of range: aer_idx = '// &
+           to_str(aer_idx)//', list_idx = '//to_str(list_idx))
    end if
 
    rad_aer_bulk_physprop_id = aerlist%aer(aer_idx)%physprop_id
@@ -1380,8 +1367,8 @@ end function rad_aer_bulk_physprop_id
 ! Return the physprop ID for a bin in the sectional (CARMA) aerosol list
 !------------------------------------------------------------------------
 integer function rad_aer_bin_physprop_id(list_idx, bin_idx)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list
 
    integer, intent(in) :: list_idx
@@ -1393,13 +1380,12 @@ integer function rad_aer_bin_physprop_id(list_idx, bin_idx)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       slist => sectional_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    if (bin_idx < 1 .or. bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    rad_aer_bin_physprop_id = slist%idx_props(bin_idx)

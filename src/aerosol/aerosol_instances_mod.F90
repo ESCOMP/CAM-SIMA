@@ -139,7 +139,7 @@ contains
     aerosol_instances_get_num_models = num_aero_models_
   end function aerosol_instances_get_num_models
 
-  logical function aerosol_instances_is_active(model_name)
+  pure logical function aerosol_instances_is_active(model_name)
     character(len=*), intent(in) :: model_name
 
     select case (trim(model_name))

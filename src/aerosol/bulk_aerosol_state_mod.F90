@@ -16,6 +16,10 @@ module bulk_aerosol_state_mod
   ! former microp_aero_bulk_scale namelist parameter (always 2.0).
   real(r8), parameter :: bam_sulfate_scale = 2.0_r8
 
+  ! Denominator of the empirical size weight factor (1./25.)
+  ! applied to BAM ice nucleation number densities:
+  real(r8), parameter :: bam_icenuc_size_wght_denom = 25._r8
+
   public :: bulk_aerosol_state
 
   type, extends(aerosol_state) :: bulk_aerosol_state
@@ -79,6 +83,7 @@ contains
     type(bulk_aerosol_state), pointer :: newobj
 
     integer :: ierr
+    character(len=256) :: alloc_errmsg
 
     allocate(newobj,stat=ierr)
     if( ierr /= 0 ) then
@@ -95,11 +100,15 @@ contains
     if (present(list_idx)) call newobj%set_list_idx(list_idx)
 
     ! Allocate per-object workspace for derived number fields.
-    allocate(newobj%num_work_(ncol, pver), stat=ierr)
-    if (ierr /= 0) call endrun('bulk_aerosol_state constructor: num_work_ allocation error')
+    allocate(newobj%num_work_(ncol, pver), stat=ierr, errmsg=alloc_errmsg)
+    if (ierr /= 0) then
+       call endrun('bulk_aerosol_state constructor: num_work_ allocation error: '//trim(alloc_errmsg))
+    end if
     newobj%num_work_(:,:) = 0._r8
-    allocate(newobj%zero_fld_(ncol, pver), stat=ierr)
-    if (ierr /= 0) call endrun('bulk_aerosol_state constructor: zero_fld_ allocation error')
+    allocate(newobj%zero_fld_(ncol, pver), stat=ierr, errmsg=alloc_errmsg)
+    if (ierr /= 0) then
+       call endrun('bulk_aerosol_state constructor: zero_fld_ allocation error: '//trim(alloc_errmsg))
+    end if
     newobj%zero_fld_(:,:) = 0._r8
 
   end function constructor
@@ -266,9 +275,7 @@ contains
     logical, intent(in) :: use_preexisting_ice ! pre-existing ice flag
     real(r8), intent(out) :: wght(:,:)
 
-    ! Empirical 1/25 scaling factor for BAM ice nucleation number densities.
-    ! This was previously hardcoded inline in nucleate_ice_cam.F90:633.
-    wght(:ncol,:nlev) = 1._r8 / 25._r8
+    wght(:ncol,:nlev) = 1._r8 / bam_icenuc_size_wght_denom
 
   end subroutine icenuc_size_wght_arr
 
@@ -284,8 +291,7 @@ contains
     logical, intent(in) :: use_preexisting_ice    ! pre-existing ice flag
     real(r8), intent(out) :: wght
 
-    ! Empirical 1/25 scaling factor for BAM ice nucleation number densities.
-    wght = 1._r8 / 25._r8
+    wght = 1._r8 / bam_icenuc_size_wght_denom
 
   end subroutine icenuc_size_wght_val
 
@@ -461,6 +467,9 @@ contains
 
     real(r8) :: vol(ncol,nlev)       ! m3/kg
 
+    ! BAM carries no prognostic aerosol water.
+    ! Hygroscopic growth is applied through the RH-dependent optics lookup tables instead,
+    ! so the aerosol water volume is always zero:
     vol = 0._r8
 
   end function water_volume
@@ -529,7 +538,7 @@ contains
   !------------------------------------------------------------------------------
   ! Compute BAM number concentration (#/m3) and mass concentration (kg/m3)
   ! for a single bin. Applies bam_sulfate_scale only to SULFATE (not volcanic).
-  ! b4b operation order: (mmr * rho) first, then * ntm [* 2.0 for sulfate].
+  ! b4b operation order: (mmr * rho) first, then * ntm [* bam_sulfate_scale for sulfate].
   !------------------------------------------------------------------------------
   subroutine get_bulk_num_and_mass(self, bin_ndx, ncol, rho, naer2, maerosol)
     class(bulk_aerosol_state), intent(in) :: self
@@ -546,7 +555,7 @@ contains
     call self%get_ambient_mmr(species_ndx=1, bin_ndx=bin_ndx, mmr=mmr)
     call rad_aer_get_props(self%list_idx_, bin_ndx, num_to_mass_aer=ntm, aername=aname)
 
-    ! b4b operation order: (mmr * rho) first, then * ntm [* 2.0 for sulfate]
+    ! b4b operation order: (mmr * rho) first, then * ntm [* bam_sulfate_scale for sulfate]
     !
     ! Note: only SULFATE gets the scale factor here.
     ! Volcanic aerosol (which also has spectype 'sulfate') does not get scaled in the
@@ -622,12 +631,12 @@ contains
           do i = 1, ncol
              select case (trim(spectype))
              case ('dust')
-                dust_num_col(i,k) = dust_num_col(i,k) + naer2_1bin(i,k) / 25._r8 * per_cm3
+                dust_num_col(i,k) = dust_num_col(i,k) + naer2_1bin(i,k) / bam_icenuc_size_wght_denom * per_cm3
              case ('sulfate')
-                sulf_num_col(i,k) = sulf_num_col(i,k) + naer2_1bin(i,k) / 25._r8 * per_cm3
-                sulf_num_tot_col(i,k) = sulf_num_tot_col(i,k) + naer2_1bin(i,k) / 25._r8 * per_cm3
+                sulf_num_col(i,k) = sulf_num_col(i,k) + naer2_1bin(i,k) / bam_icenuc_size_wght_denom * per_cm3
+                sulf_num_tot_col(i,k) = sulf_num_tot_col(i,k) + naer2_1bin(i,k) / bam_icenuc_size_wght_denom * per_cm3
              case ('black-c')
-                soot_num_col(i,k) = soot_num_col(i,k) + naer2_1bin(i,k) / 25._r8 * per_cm3
+                soot_num_col(i,k) = soot_num_col(i,k) + naer2_1bin(i,k) / bam_icenuc_size_wght_denom * per_cm3
              end select
           end do
        end do

@@ -89,11 +89,19 @@ contains
 !==============================================================================
 
 subroutine aerosol_mmr_init()
-   use physics_grid, only: columns_on_task
-   use vert_coord,   only: pver
+   use physics_grid,   only: columns_on_task
+   use vert_coord,     only: pver
+   use shr_kind_mod,   only: shr_kind_cl
+   use cam_abortutils, only: check_allocate
+
+   integer                    :: ierr
+   character(len=shr_kind_cl) :: errmsg
+
    ! Allocate zero_cols array (must be called after grid/vert is set up)
    if (.not. allocated(zero_cols)) then
-      allocate(zero_cols(columns_on_task, pver))
+      allocate(zero_cols(columns_on_task, pver), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, 'aerosol_mmr_init', 'zero_cols(columns_on_task, pver)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
       zero_cols = 0._r8
    end if
 end subroutine aerosol_mmr_init
@@ -192,7 +200,7 @@ integer function get_host_idx(source, name, routine)
    else if (source(1:1) == 'Z') then
       idx = -1
    else
-      call endrun(routine//' ERROR: invalid source for specie '//trim(name))
+      call endrun(routine//' ERROR: invalid source for species '//trim(name))
    end if
 
    get_host_idx = idx
@@ -206,8 +214,9 @@ subroutine resolve_mode_idx(modes)
    ! Initialize the mode definitions by looking up the relevant indices in the
    ! CCPP constituents array, and getting the physprop IDs
 
+   use shr_kind_mod,   only: shr_kind_cl
    use phys_prop,      only: physprop_get_id
-   use cam_abortutils, only: endrun
+   use cam_abortutils, only: endrun, check_allocate
    use radiative_aerosol_definitions, only: modes_t
 
    ! Arguments
@@ -215,6 +224,8 @@ subroutine resolve_mode_idx(modes)
 
    ! Local variables
    integer :: m, ispec, nspec
+   integer :: ierr
+   character(len=shr_kind_cl) :: errmsg
 
    character(len=*), parameter :: routine = 'resolve_mode_idx'
    !-----------------------------------------------------------------------------
@@ -230,7 +241,10 @@ subroutine resolve_mode_idx(modes)
       allocate( &
          modes%comps(m)%idx_mmr_a(nspec), &
          modes%comps(m)%idx_mmr_c(nspec), &
-         modes%comps(m)%idx_props(nspec)  )
+         modes%comps(m)%idx_props(nspec), &
+         stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, routine, 'modes%comps(m)%idx_mmr_a/idx_mmr_c/idx_props(nspec)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ispec = 1, nspec
 
@@ -259,8 +273,9 @@ subroutine resolve_bin_idx(bins)
    ! Initialize the bin definitions by looking up the relevant indices in the
    ! CCPP constituents array, and getting the physprop IDs
 
+   use shr_kind_mod,   only: shr_kind_cl
    use phys_prop,      only: physprop_get_id
-   use cam_abortutils, only: endrun
+   use cam_abortutils, only: endrun, check_allocate
    use radiative_aerosol_definitions, only: bins_t
 
    ! Arguments
@@ -268,6 +283,8 @@ subroutine resolve_bin_idx(bins)
 
    ! Local variables
    integer :: m, ispec, nspec
+   integer :: ierr
+   character(len=shr_kind_cl) :: errmsg
 
    character(len=*), parameter :: routine = 'resolve_bin_idx'
    !-----------------------------------------------------------------------------
@@ -289,7 +306,10 @@ subroutine resolve_bin_idx(bins)
       allocate( &
          bins%comps(m)%idx_mmr_a(nspec), &
          bins%comps(m)%idx_mmr_c(nspec), &
-         bins%comps(m)%idx_props(nspec)  )
+         bins%comps(m)%idx_props(nspec), &
+         stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, routine, 'bins%comps(m)%idx_mmr_a/idx_mmr_c/idx_props(nspec)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ispec = 1, nspec
 
@@ -340,7 +360,7 @@ subroutine rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, constituents, mmr)
    ! Return pointer to mass mixing ratio for the bulk aerosol from the specified
    ! climate or diagnostic list, using the CCPP constituents array.
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
 
@@ -360,14 +380,13 @@ subroutine rad_cnst_get_aer_mmr_by_idx(list_idx, aer_idx, constituents, mmr)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       aerlist => bulk_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    ! Check for valid input aerosol index
    if (aer_idx < 1  .or.  aer_idx > aerlist%numaerosols) then
-      write(iulog,*) subname//': aer_idx= ', aer_idx, '  numaerosols= ', aerlist%numaerosols
-      call endrun(subname//': aerosol list index out of range')
+      call endrun(subname//': aerosol list index out of range: aer_idx = '// &
+           to_str(aer_idx)//', numaerosols = '//to_str(aerlist%numaerosols))
    end if
 
    ! Get data source
@@ -404,7 +423,7 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
    ! Return pointer to mass mixing ratio for the modal aerosol specie from the specified
    ! climate or diagnostic list, using the CCPP constituents array.
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list, modes
 
@@ -427,14 +446,13 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       mlist => modal_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    ! Check for valid mode index
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    ! Get the index for the corresponding mode in the mode definition object
@@ -442,8 +460,8 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
 
    ! Check for valid specie index
    if (spec_idx < 1  .or.  spec_idx > modes%comps(m_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', modes%comps(m_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(modes%comps(m_idx)%nspec))
    end if
 
    ! Get data source
@@ -454,8 +472,7 @@ subroutine rad_cnst_get_mam_mmr_by_idx(list_idx, mode_idx, spec_idx, phase, cons
       source = modes%comps(m_idx)%source_mmr_c(spec_idx)
       idx    = modes%comps(m_idx)%idx_mmr_c(spec_idx)
    else
-      write(iulog,*) subname//': phase= ', phase
-      call endrun(subname//': unrecognized phase; must be "a" or "c"')
+      call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
    select case( source )
@@ -490,7 +507,7 @@ subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, 
 
    ! Return pointer to mass mixing ratio for the sectional aerosol specie.
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list, bins
 
@@ -512,20 +529,19 @@ subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, 
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       slist => sectional_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    s_idx = slist%idx(bin_idx)
 
    if (spec_idx < 1  .or.  spec_idx > bins%comps(s_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', bins%comps(s_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(bins%comps(s_idx)%nspec))
    end if
 
    if (phase == 'a') then
@@ -535,8 +551,7 @@ subroutine rad_cnst_get_bin_mmr_by_idx_ccpp(list_idx, bin_idx, spec_idx, phase, 
       source = bins%comps(s_idx)%source_mmr_c(spec_idx)
       idx    = bins%comps(s_idx)%idx_mmr_c(spec_idx)
    else
-      write(iulog,*) subname//': phase= ', phase
-      call endrun(subname//': unrecognized phase; must be "a" or "c"')
+      call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
    select case( source )
@@ -572,7 +587,7 @@ subroutine rad_cnst_get_mam_mmr_idx(mode_idx, spec_idx, idx)
    ! Return constituent index of mam specie mass mixing ratio for aerosol modes in
    ! the climate list.
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: modelist_t, modes, modal_aerosol_list
 
@@ -588,15 +603,15 @@ subroutine rad_cnst_get_mam_mmr_idx(mode_idx, spec_idx, idx)
    mlist => modal_aerosol_list(0)
 
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    m_idx = mlist%idx(mode_idx)
 
    if (spec_idx < 1  .or.  spec_idx > modes%comps(m_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', modes%comps(m_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(modes%comps(m_idx)%nspec))
    end if
 
    idx = modes%comps(m_idx)%idx_mmr_a(spec_idx)
@@ -607,7 +622,7 @@ end subroutine rad_cnst_get_mam_mmr_idx
 
 subroutine rad_cnst_get_carma_mmr_idx(bin_idx, spec_idx, idx)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: binlist_t, bins, sectional_aerosol_list
 
@@ -623,15 +638,15 @@ subroutine rad_cnst_get_carma_mmr_idx(bin_idx, spec_idx, idx)
    slist => sectional_aerosol_list(0)
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    b_idx = slist%idx(bin_idx)
 
    if (spec_idx < 1  .or.  spec_idx > bins%comps(b_idx)%nspec) then
-      write(iulog,*) subname//': spec_idx= ', spec_idx, '  nspec= ', bins%comps(b_idx)%nspec
-      call endrun(subname//': specie list index out of range')
+      call endrun(subname//': species list index out of range: spec_idx = '// &
+           to_str(spec_idx)//', nspec = '//to_str(bins%comps(b_idx)%nspec))
    end if
 
    idx = bins%comps(b_idx)%idx_mmr_a(spec_idx)
@@ -642,7 +657,7 @@ end subroutine rad_cnst_get_carma_mmr_idx
 
 subroutine rad_cnst_get_bin_mmr(list_idx, bin_idx, phase, constituents, mmr)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list, bins
 
@@ -661,13 +676,12 @@ subroutine rad_cnst_get_bin_mmr(list_idx, bin_idx, phase, constituents, mmr)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       slist => sectional_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    m_idx = slist%idx(bin_idx)
@@ -679,8 +693,7 @@ subroutine rad_cnst_get_bin_mmr(list_idx, bin_idx, phase, constituents, mmr)
       source = bins%comps(m_idx)%source_mass_c
       idx    = bins%comps(m_idx)%idx_mass_c
    else
-      write(iulog,*) subname//': phase= ', phase
-      call endrun(subname//': unrecognized phase; must be "a" or "c"')
+      call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
    select case( source )
@@ -696,7 +709,7 @@ end subroutine rad_cnst_get_bin_mmr
 
 subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, num)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, modelist_t, modal_aerosol_list, modes
 
@@ -715,13 +728,12 @@ subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, n
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       mlist => modal_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    m_idx = mlist%idx(mode_idx)
@@ -733,8 +745,7 @@ subroutine rad_cnst_get_mode_num_ccpp(list_idx, mode_idx, phase, constituents, n
       source = modes%comps(m_idx)%source_num_c
       idx    = modes%comps(m_idx)%idx_num_c
    else
-      write(iulog,*) subname//': phase= ', phase
-      call endrun(subname//': unrecognized phase; must be "a" or "c"')
+      call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
    select case( source )
@@ -766,7 +777,7 @@ end subroutine rad_cnst_get_mode_num_host
 
 subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: N_DIAG, binlist_t, sectional_aerosol_list, bins
 
@@ -785,13 +796,12 @@ subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       slist => sectional_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx =', list_idx
-      call endrun(subname//': list_idx out of bounds')
+      call endrun(subname//': list_idx out of bounds: list_idx = '//to_str(list_idx))
    endif
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    m_idx = slist%idx(bin_idx)
@@ -803,8 +813,7 @@ subroutine rad_cnst_get_bin_num_ccpp(list_idx, bin_idx, phase, constituents, num
       source = bins%comps(m_idx)%source_num_c
       idx    = bins%comps(m_idx)%idx_num_c
    else
-      write(iulog,*) subname//': phase= ', phase
-      call endrun(subname//': unrecognized phase; must be "a" or "c"')
+      call endrun(subname//': unrecognized phase "'//phase//'"; must be "a" or "c"')
    end if
 
    select case( source )
@@ -836,7 +845,7 @@ end subroutine rad_cnst_get_bin_num_host
 
 subroutine rad_cnst_get_mode_num_idx(mode_idx, cnst_idx)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: modelist_t, modes, modal_aerosol_list
 
@@ -852,16 +861,15 @@ subroutine rad_cnst_get_mode_num_idx(mode_idx, cnst_idx)
    mlist => modal_aerosol_list(0)
 
    if (mode_idx < 1  .or.  mode_idx > mlist%nmodes) then
-      write(iulog,*) subname//': mode_idx= ', mode_idx, '  nmodes= ', mlist%nmodes
-      call endrun(subname//': mode list index out of range')
+      call endrun(subname//': mode list index out of range: mode_idx = '// &
+           to_str(mode_idx)//', nmodes = '//to_str(mlist%nmodes))
    end if
 
    m_idx = mlist%idx(mode_idx)
 
    source = modes%comps(m_idx)%source_num_a
    if (source /= 'A') then
-      write(iulog,*) subname//': source= ', source
-      call endrun(subname//': requested mode number index not in constituent array')
+      call endrun(subname//': requested mode number index not in constituent array; source = '//source)
    end if
 
    cnst_idx = modes%comps(m_idx)%idx_num_a
@@ -872,7 +880,7 @@ end subroutine rad_cnst_get_mode_num_idx
 
 subroutine rad_cnst_get_bin_num_idx(bin_idx, cnst_idx)
 
-   use cam_logfile,    only: iulog
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
    use radiative_aerosol_definitions, only: binlist_t, bins, sectional_aerosol_list
 
@@ -888,16 +896,15 @@ subroutine rad_cnst_get_bin_num_idx(bin_idx, cnst_idx)
    slist => sectional_aerosol_list(0)
 
    if (bin_idx < 1  .or.  bin_idx > slist%nbins) then
-      write(iulog,*) subname//': bin_idx= ', bin_idx, '  nbins= ', slist%nbins
-      call endrun(subname//': bin list index out of range')
+      call endrun(subname//': bin list index out of range: bin_idx = '// &
+           to_str(bin_idx)//', nbins = '//to_str(slist%nbins))
    end if
 
    b_idx = slist%idx(bin_idx)
 
    source = bins%comps(b_idx)%source_num_a
    if (source /= 'A') then
-      write(iulog,*) subname//': source= ', source
-      call endrun(subname//': requested bin number index not in constituent array')
+      call endrun(subname//': requested bin number index not in constituent array; source = '//source)
    end if
 
    cnst_idx = bins%comps(b_idx)%idx_num_a
@@ -912,7 +919,6 @@ subroutine rad_aer_diag_init(alist)
 
    use cam_history,         only: history_add_field
    use cam_history_support, only: horiz_only
-   use cam_logfile,         only: iulog
    use cam_abortutils,      only: endrun
    use radiative_aerosol_definitions, only: aerlist_t
 
@@ -954,8 +960,7 @@ subroutine rad_aer_diag_init(alist)
 
       ! error check for name length
       if (len_trim(name) > 64) then
-         write(iulog,*) 'rad_aer_diag_init: '//trim(name)//' longer than 64 characters'
-         call endrun('rad_aer_diag_init: name too long: '//trim(name))
+         call endrun('rad_aer_diag_init: name longer than 64 characters: '//trim(name))
       end if
 
    end do
@@ -970,10 +975,11 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
    ! constituents in either the climate or diagnostic lists.
    ! Uses CCPP constituents array instead of physics state / pbuf.
 
+   use shr_kind_mod,   only: shr_kind_cl
    use physconst,      only: rga
    use cam_history,    only: history_out_field
-   use cam_logfile,    only: iulog
-   use cam_abortutils, only: endrun
+   use string_utils,   only: to_str
+   use cam_abortutils, only: endrun, check_allocate
    use radiative_aerosol_definitions, only: N_DIAG, aerlist_t, bulk_aerosol_list
 
    ! Arguments
@@ -991,6 +997,8 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
    real(r8), allocatable :: cb(:)
    real(r8), pointer :: mmr(:,:)
    type(aerlist_t), pointer :: aerlist
+   integer :: ierr
+   character(len=shr_kind_cl) :: errmsg
    character(len=*), parameter :: subname = 'rad_aer_diag_out'
    !-----------------------------------------------------------------------------
 
@@ -1000,15 +1008,18 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
    if (list_idx >= 0 .and. list_idx <= N_DIAG) then
       aerlist => bulk_aerosol_list(list_idx)
    else
-      write(iulog,*) subname//': list_idx = ', list_idx
-      call endrun(subname//': list_idx out of range')
+      call endrun(subname//': list_idx out of range: list_idx = '//to_str(list_idx))
    endif
 
    naer = aerlist%numaerosols
    if (naer == 0) return
 
-   allocate(mass(ncol, nlev))
-   allocate(cb(ncol))
+   allocate(mass(ncol, nlev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, subname, 'mass(ncol, nlev)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+   allocate(cb(ncol), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, subname, 'cb(ncol)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    do i = 1, naer
 
@@ -1017,17 +1028,18 @@ subroutine rad_aer_diag_out(list_idx, constituents, pdeldry, ncol)
       name   = aerlist%aer(i)%mass_name
       cbname = 'cb_' // name(3:len_trim(name))
 
+      ! 'Z' sources are identically zero; output zero fields without doing the math
       select case( source )
       case ('A','N')
          mmr => constituents(:,:,idx)
+         mass(:ncol,:) = mmr(:ncol,:) * pdeldry(:ncol,:) * rga
+         cb(:ncol) = sum(mass(:ncol,:), 2)
       case ('Z')
-         mmr => zero_cols
+         mass(:ncol,:) = 0._r8
+         cb(:ncol) = 0._r8
       end select
 
-      mass(:ncol,:) = mmr(:ncol,:) * pdeldry(:ncol,:) * rga
       call history_out_field(trim(name), mass(:ncol,:))
-
-      cb(:ncol) = sum(mass(:ncol,:), 2)
       call history_out_field(trim(cbname), cb(:ncol))
 
    end do

@@ -77,17 +77,17 @@ module radiative_aerosol_definitions
      character(len=  1) :: source_num_c
      ! name registered in pbuf or constituents for number mixing ratio of cloud borne species
      character(len= 32) :: camname_num_c
-     ! source of interstitial specie mmr fields
+     ! source of interstitial species mmr fields
      character(len=  1),         pointer :: source_mmr_a(:)
      ! name registered in pbuf or constituents for mmr of interstitial components
      character(len= 32),         pointer :: camname_mmr_a(:)
-     ! source of cloud borne specie mmr fields
+     ! source of cloud borne species mmr fields
      character(len=  1),         pointer :: source_mmr_c(:)
      ! name registered in pbuf or constituents for mmr of cloud borne components
      character(len= 32),         pointer :: camname_mmr_c(:)
-     ! specie type (as used in MAM code)
+     ! species type (as used in MAM code)
      character(len= 32),         pointer :: type(:)
-     ! file containing specie properties
+     ! file containing species properties
      character(len=256),         pointer :: props(:)
 
      ! index in pbuf or constituents for number mixing ratio of interstitial species
@@ -134,7 +134,7 @@ module radiative_aerosol_definitions
      character(len=  1),         pointer :: source_mmr_a(:)
      ! name registered in pbuf or constituents for mmr species
      character(len= 32),         pointer :: camname_mmr_a(:)
-     ! source of cloud borne specie mmr fields
+     ! source of cloud borne species mmr fields
      character(len=  1),         pointer :: source_mmr_c(:)
      ! name registered in pbuf or constituents for mmr of cloud borne components
      character(len= 32),         pointer :: camname_mmr_c(:)
@@ -142,7 +142,7 @@ module radiative_aerosol_definitions
      character(len= 32),         pointer :: type(:)
      ! species morphology
      character(len= 32),         pointer :: morph(:)
-     ! file containing specie properties
+     ! file containing species properties
      character(len=256),         pointer :: props(:)
 
      ! index in pbuf or constituents for number mixing ratio of interstitial species
@@ -301,6 +301,7 @@ subroutine list_populate(namelist, aerlist, modal_aerosol_list, sectional_aeroso
    integer :: ii, m, naero, nmodes, nbins
    integer :: ba_idx, ma_idx, sa_idx
    integer :: istat
+   character(len=256) :: alloc_errmsg
    character(len=*), parameter :: subname = 'list_populate'
    !-----------------------------------------------------------------------------
 
@@ -326,8 +327,10 @@ subroutine list_populate(namelist, aerlist, modal_aerosol_list, sectional_aeroso
       sectional_aerosol_list%idx(sectional_aerosol_list%nbins),           &
       sectional_aerosol_list%physprop_files(sectional_aerosol_list%nbins), &
       sectional_aerosol_list%idx_props(sectional_aerosol_list%nbins),     &
-      stat=istat)
-   if (istat /= 0) call endrun(subname//': allocate ERROR; aero list components')
+      stat=istat, errmsg=alloc_errmsg)
+   if (istat /= 0) then
+      call endrun(subname//': allocate ERROR; aero list components: '//trim(alloc_errmsg))
+   end if
 
    if (masterproc .and. verbose) then
       if (len_trim(aerlist%list_id) == 0) then
@@ -465,8 +468,8 @@ end subroutine list_resolve_physprops
 !===========================
 
 subroutine parse_mode_defs(nl_in, modes)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
 
    ! Parse the mode definition specifiers.  The specifiers are of the form:
    !
@@ -487,6 +490,7 @@ subroutine parse_mode_defs(nl_in, modes)
    integer :: nspec, ispec
    integer :: strlen, iend, ipos
    logical :: num_mr_found
+   character(len=256) :: alloc_errmsg
    character(len=*), parameter :: subname = 'parse_mode_defs'
    character(len=len(nl_in(1))) :: tmpstr
    character(len=1)  :: tmp_src_a
@@ -531,10 +535,10 @@ subroutine parse_mode_defs(nl_in, modes)
       modes%names(nmodes),  &
       modes%types(nmodes),  &
       modes%comps(nmodes),  &
-      stat=istat )
+      stat=istat, errmsg=alloc_errmsg )
    if (istat > 0) then
-      write(iulog,*) subname//': ERROR: cannot allocate storage for modes.  nmodes=', nmodes
-      call endrun(subname//': ERROR allocating storage for modes')
+      call endrun(subname//': ERROR allocating storage for modes: nmodes = '// &
+                  to_str(nmodes)//': '//trim(alloc_errmsg))
    end if
 
    mcur = 1              ! index of current string being processed
@@ -570,11 +574,11 @@ subroutine parse_mode_defs(nl_in, modes)
          modes%comps(m)%camname_mmr_c(nspec), &
          modes%comps(m)%type(nspec),          &
          modes%comps(m)%props(nspec),         &
-         stat=istat)
+         stat=istat, errmsg=alloc_errmsg)
 
       if (istat > 0) then
-         write(iulog,*) subname//': ERROR: cannot allocate storage for species.  nspec=', nspec
-         call endrun(subname//': ERROR allocating storage for species')
+         call endrun(subname//': ERROR allocating storage for species: nspec = '// &
+                     to_str(nspec)//': '//trim(alloc_errmsg))
       end if
 
       ! initialize components
@@ -670,8 +674,8 @@ subroutine parse_mode_defs(nl_in, modes)
 
          else
 
-            ! check for valid specie type
-            call check_specie_type(tmpstr, 1, ipos-1)
+            ! check for valid species type
+            call check_species_type(tmpstr, 1, ipos-1)
             tmp_type = tmpstr(:ipos-1)
             tmpstr   = tmpstr(ipos+1:)
 
@@ -725,15 +729,13 @@ subroutine parse_mode_defs(nl_in, modes)
       character(len=*), intent(in) :: msg
       character(len=*), intent(in) :: str
 
-      write(iulog,*) subname//': ERROR: '//msg
-      write(iulog,*) ' input string: '//trim(str)
-      call endrun(subname//': ERROR: '//msg)
+      call endrun(subname//': ERROR: '//msg//'; input string: '//trim(str))
 
    end subroutine parse_error
 
    !------------------------------------------------------------------------------------------------
 
-   subroutine check_specie_type(str, ib, ie)
+   subroutine check_species_type(str, ib, ie)
 
       character(len=*), intent(in) :: str
       integer,          intent(in) :: ib, ie
@@ -744,9 +746,9 @@ subroutine parse_mode_defs(nl_in, modes)
          if (str(ib:ie) == trim(spec_type_names(i))) return
       end do
 
-      call parse_error('specie type not valid', str(ib:ie))
+      call parse_error('species type not valid', str(ib:ie))
 
-   end subroutine check_specie_type
+   end subroutine check_species_type
 
    !------------------------------------------------------------------------------------------------
 
@@ -772,8 +774,8 @@ end subroutine parse_mode_defs
 !===========================
 
 subroutine parse_bin_defs(nl_in, bins)
+   use string_utils,   only: to_str
    use cam_abortutils, only: endrun
-   use cam_logfile,    only: iulog
 
    ! Parse the bin definition specifiers.
 
@@ -788,6 +790,7 @@ subroutine parse_bin_defs(nl_in, bins)
    integer :: mbeg, mcur
    integer :: nspec, ispec
    integer :: strlen, iend, ipos
+   character(len=256) :: alloc_errmsg
    character(len=*), parameter :: subname = 'parse_bin_defs'
    character(len=len(nl_in(1))) :: tmpstr
    character(len=1)  :: tmp_src_a
@@ -832,10 +835,10 @@ subroutine parse_bin_defs(nl_in, bins)
    allocate( &
       bins%names(nbins),  &
       bins%comps(nbins),  &
-      stat=istat )
+      stat=istat, errmsg=alloc_errmsg )
    if (istat > 0) then
-      write(iulog,*) subname//': ERROR: cannot allocate storage for bins.  nbins=', nbins
-      call endrun(subname//': ERROR allocating storage for bins')
+      call endrun(subname//': ERROR allocating storage for bins: nbins = '// &
+                  to_str(nbins)//': '//trim(alloc_errmsg))
    end if
 
    mcur = 1              ! index of current string being processed
@@ -872,11 +875,11 @@ subroutine parse_bin_defs(nl_in, bins)
          bins%comps(m)%type(nspec),          &
          bins%comps(m)%morph(nspec),          &
          bins%comps(m)%props(nspec),         &
-         stat=istat)
+         stat=istat, errmsg=alloc_errmsg)
 
       if (istat > 0) then
-         write(iulog,*) subname//': ERROR: cannot allocate storage for species.  nspec=', nspec
-         call endrun(subname//': ERROR allocating storage for species')
+         call endrun(subname//': ERROR allocating storage for species: nspec = '// &
+                     to_str(nspec)//': '//trim(alloc_errmsg))
       end if
 
       ! initialize components
@@ -1055,9 +1058,7 @@ subroutine parse_bin_defs(nl_in, bins)
       character(len=*), intent(in) :: msg
       character(len=*), intent(in) :: str
 
-      write(iulog,*) subname//': ERROR: '//msg
-      write(iulog,*) ' input string: '//trim(str)
-      call endrun(subname//': ERROR: '//msg)
+      call endrun(subname//': ERROR: '//msg//'; input string: '//trim(str))
 
    end subroutine parse_error
 
