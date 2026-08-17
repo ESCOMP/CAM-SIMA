@@ -874,9 +874,9 @@ contains
 
     ! Retrieve all requested parameters from physprop.
     ! Absent optional arguments are passed through as absent to physprop_get.
-    ! Pointer fields that are not populated for this physprop are nullified
-    ! during physprop_init, so physprop_get returns disassociated pointers
-    ! for unused optics types.
+    ! Table components that are not populated for this physprop are left
+    ! unallocated, so physprop_get returns disassociated pointers for unused
+    ! optics types.
     !
     ! Several parameter names differ between this interface and physprop_get:
     !   lw_hygro_ext_wtp       -> lw_hygro_abs_wtp

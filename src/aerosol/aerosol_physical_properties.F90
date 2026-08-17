@@ -28,64 +28,64 @@ module phys_prop
     character(len=ot_length)  :: opticsmethod ! one of {hygro,nonhygro}
 
     ! for hygroscopic species of externally mixed aerosols
-    real(r8), pointer :: sw_hygro_ext(:, :)
-    real(r8), pointer :: sw_hygro_ssa(:, :)
-    real(r8), pointer :: sw_hygro_asm(:, :)
-    real(r8), pointer :: lw_hygro_abs(:, :)
+    real(r8), allocatable :: sw_hygro_ext(:, :)
+    real(r8), allocatable :: sw_hygro_ssa(:, :)
+    real(r8), allocatable :: sw_hygro_asm(:, :)
+    real(r8), allocatable :: lw_hygro_abs(:, :)
 
     ! for nonhygroscopic species of externally mixed aerosols
-    real(r8), pointer :: sw_nonhygro_ext(:)
-    real(r8), pointer :: sw_nonhygro_ssa(:)
-    real(r8), pointer :: sw_nonhygro_asm(:)
-    real(r8), pointer :: sw_nonhygro_scat(:)
-    real(r8), pointer :: sw_nonhygro_ascat(:)
-    real(r8), pointer :: lw_abs(:)
+    real(r8), allocatable :: sw_nonhygro_ext(:)
+    real(r8), allocatable :: sw_nonhygro_ssa(:)
+    real(r8), allocatable :: sw_nonhygro_asm(:)
+    real(r8), allocatable :: sw_nonhygro_scat(:)
+    real(r8), allocatable :: sw_nonhygro_ascat(:)
+    real(r8), allocatable :: lw_abs(:)
 
     ! complex refractive index
-    complex(r8), pointer :: refindex_aer_sw(:)
-    complex(r8), pointer :: refindex_aer_lw(:)
+    complex(r8), allocatable :: refindex_aer_sw(:)
+    complex(r8), allocatable :: refindex_aer_lw(:)
 
     ! for radius-dependent mass-specific quantities
-    real(r8), pointer :: r_sw_ext(:, :)
-    real(r8), pointer :: r_sw_scat(:, :)
-    real(r8), pointer :: r_sw_ascat(:, :)
-    real(r8), pointer :: r_lw_abs(:, :)
-    real(r8), pointer :: mu(:)
+    real(r8), allocatable :: r_sw_ext(:, :)
+    real(r8), allocatable :: r_sw_scat(:, :)
+    real(r8), allocatable :: r_sw_ascat(:, :)
+    real(r8), allocatable :: r_lw_abs(:, :)
+    real(r8), allocatable :: mu(:)
 
     ! for modal optics
-    real(r8), pointer :: extpsw(:, :, :, :) ! specific extinction
-    real(r8), pointer :: abspsw(:, :, :, :) ! specific absorption
-    real(r8), pointer :: asmpsw(:, :, :, :) ! asymmetry factor
-    real(r8), pointer :: absplw(:, :, :, :) ! specific absorption
-    real(r8), pointer :: refrtabsw(:, :)  ! table of real refractive indices for aerosols visible
-    real(r8), pointer :: refitabsw(:, :)  ! table of imag refractive indices for aerosols visible
-    real(r8), pointer :: refrtablw(:, :)  ! table of real refractive indices for aerosols infrared
-    real(r8), pointer :: refitablw(:, :)  ! table of imag refractive indices for aerosols infrared
+    real(r8), allocatable :: extpsw(:, :, :, :) ! specific extinction
+    real(r8), allocatable :: abspsw(:, :, :, :) ! specific absorption
+    real(r8), allocatable :: asmpsw(:, :, :, :) ! asymmetry factor
+    real(r8), allocatable :: absplw(:, :, :, :) ! specific absorption
+    real(r8), allocatable :: refrtabsw(:, :)  ! table of real refractive indices for aerosols visible
+    real(r8), allocatable :: refitabsw(:, :)  ! table of imag refractive indices for aerosols visible
+    real(r8), allocatable :: refrtablw(:, :)  ! table of real refractive indices for aerosols infrared
+    real(r8), allocatable :: refitablw(:, :)  ! table of imag refractive indices for aerosols infrared
 
     ! for core/shell optics
-    real(r8), pointer :: extpsw2(:, :) ! specific extinction
-    real(r8), pointer :: abspsw2(:, :) ! specific absorption
-    real(r8), pointer :: asmpsw2(:, :) ! asymmetry factor
-    real(r8), pointer :: absplw2(:, :) ! specific absorption
-    real(r8), pointer :: corefrac(:)   ! table of real refractive indices for aerosols visible
+    real(r8), allocatable :: extpsw2(:, :) ! specific extinction
+    real(r8), allocatable :: abspsw2(:, :) ! specific absorption
+    real(r8), allocatable :: asmpsw2(:, :) ! asymmetry factor
+    real(r8), allocatable :: absplw2(:, :) ! specific absorption
+    real(r8), allocatable :: corefrac(:)   ! table of real refractive indices for aerosols visible
     integer :: nfraC       ! number of Chebyshev coefficients
 
     ! for hygroscopic species of pure sulfate
-    real(r8), pointer :: sw_hygro_ext_wtp(:, :)
-    real(r8), pointer :: sw_hygro_ssa_wtp(:, :)
-    real(r8), pointer :: sw_hygro_asm_wtp(:, :)
-    real(r8), pointer :: lw_hygro_abs_wtp(:, :)
-    real(r8), pointer :: wgtpct(:)      ! weight percent
+    real(r8), allocatable :: sw_hygro_ext_wtp(:, :)
+    real(r8), allocatable :: sw_hygro_ssa_wtp(:, :)
+    real(r8), allocatable :: sw_hygro_asm_wtp(:, :)
+    real(r8), allocatable :: lw_hygro_abs_wtp(:, :)
+    real(r8), allocatable :: wgtpct(:)      ! weight percent
     integer :: nwtp                     ! number weight percent
 
     ! for hygroscopic species of externally mixed aerosols
-    real(r8), pointer :: sw_hygro_coreshell_ext(:, :, :, :, :)
-    real(r8), pointer :: sw_hygro_coreshell_ssa(:, :, :, :, :)
-    real(r8), pointer :: sw_hygro_coreshell_asm(:, :, :, :, :)
-    real(r8), pointer :: lw_hygro_coreshell_abs(:, :, :, :, :)
-    real(r8), pointer :: bcdust(:)  ! table of bc-dust mass ratio
-    real(r8), pointer :: kap(:)         ! table of kappa
-    real(r8), pointer :: relh(:)         ! table of relative humidity
+    real(r8), allocatable :: sw_hygro_coreshell_ext(:, :, :, :, :)
+    real(r8), allocatable :: sw_hygro_coreshell_ssa(:, :, :, :, :)
+    real(r8), allocatable :: sw_hygro_coreshell_asm(:, :, :, :, :)
+    real(r8), allocatable :: lw_hygro_coreshell_abs(:, :, :, :, :)
+    real(r8), allocatable :: bcdust(:)  ! table of bc-dust mass ratio
+    real(r8), allocatable :: kap(:)         ! table of kappa
+    real(r8), allocatable :: relh(:)         ! table of relative humidity
     integer :: nbcdust
     integer :: nkap
     integer :: nrelh
@@ -115,7 +115,9 @@ module phys_prop
   ! This module stores data in an array of physprop_type structures.  The way this data
   ! is accessed outside the module is via a physprop ID, which is an index into the array.
   integer :: numphysprops = 0 ! an incremental total across ALL clim and diag constituents
-  type(physprop_type), pointer :: physprop(:)
+  ! The target attribute is needed so physprop_get can return pointers to the
+  ! allocatable table components.
+  type(physprop_type), allocatable, target :: physprop(:)
 
   ! Temporary storage location for filenames in namelist, and construction of dynamic index
   ! to properties.  The unique filenames specified in the namelist are the identifiers of
@@ -126,6 +128,16 @@ module phys_prop
   ! Number of evenly spaced intervals in rh used in this module and in the aer_rad_props module
   ! for calculations of aerosol hygroscopic growth.
   integer, parameter, public :: nrh = 1000
+
+  ! Associate a pointer with a table component of the physprop array, or
+  ! nullify the pointer if the table is not populated for that dataset's
+  ! optics type.
+  ! Callers of physprop_get test the returned pointers with associated()
+  ! to determine which tables a dataset provides so the nullify is needed.
+  interface assoc_or_null
+    module procedure assoc_or_null_r1, assoc_or_null_r2, assoc_or_null_r4, &
+                     assoc_or_null_r5, assoc_or_null_c1
+  end interface assoc_or_null
 
 contains
 
@@ -224,57 +236,9 @@ contains
     if (ierr /= 0) then
       call endrun('physprop_init: allocation error: physprop')
     end if
+    ! The allocatable table components start unallocated; only the tables for
+    ! the dataset's optics type are allocated by the *_optics_init routines.
     do fileindex = 1, numphysprops
-      nullify (physprop(fileindex)%sw_hygro_ext)
-      nullify (physprop(fileindex)%sw_hygro_ssa)
-      nullify (physprop(fileindex)%sw_hygro_asm)
-      nullify (physprop(fileindex)%lw_hygro_abs)
-
-      nullify (physprop(fileindex)%sw_hygro_ext_wtp)
-      nullify (physprop(fileindex)%sw_hygro_ssa_wtp)
-      nullify (physprop(fileindex)%sw_hygro_asm_wtp)
-      nullify (physprop(fileindex)%lw_hygro_abs_wtp)
-      nullify (physprop(fileindex)%wgtpct)
-
-      nullify (physprop(fileindex)%sw_hygro_coreshell_ext)
-      nullify (physprop(fileindex)%sw_hygro_coreshell_ssa)
-      nullify (physprop(fileindex)%sw_hygro_coreshell_asm)
-      nullify (physprop(fileindex)%lw_hygro_coreshell_abs)
-      nullify (physprop(fileindex)%bcdust)
-      nullify (physprop(fileindex)%kap)
-      nullify (physprop(fileindex)%relh)
-
-      nullify (physprop(fileindex)%sw_nonhygro_ext)
-      nullify (physprop(fileindex)%sw_nonhygro_ssa)
-      nullify (physprop(fileindex)%sw_nonhygro_asm)
-      nullify (physprop(fileindex)%sw_nonhygro_scat)
-      nullify (physprop(fileindex)%sw_nonhygro_ascat)
-      nullify (physprop(fileindex)%lw_abs)
-
-      nullify (physprop(fileindex)%refindex_aer_sw)
-      nullify (physprop(fileindex)%refindex_aer_lw)
-
-      nullify (physprop(fileindex)%r_sw_ext)
-      nullify (physprop(fileindex)%r_sw_scat)
-      nullify (physprop(fileindex)%r_sw_ascat)
-      nullify (physprop(fileindex)%r_lw_abs)
-      nullify (physprop(fileindex)%mu)
-
-      nullify (physprop(fileindex)%extpsw)
-      nullify (physprop(fileindex)%abspsw)
-      nullify (physprop(fileindex)%asmpsw)
-      nullify (physprop(fileindex)%absplw)
-      nullify (physprop(fileindex)%refrtabsw)
-      nullify (physprop(fileindex)%refitabsw)
-      nullify (physprop(fileindex)%refrtablw)
-      nullify (physprop(fileindex)%refitablw)
-
-      nullify (physprop(fileindex)%extpsw2)
-      nullify (physprop(fileindex)%abspsw2)
-      nullify (physprop(fileindex)%asmpsw2)
-      nullify (physprop(fileindex)%absplw2)
-      nullify (physprop(fileindex)%corefrac)
-
       call cam_get_file(uniquefilenames(fileindex), locfn)
       physprop(fileindex)%sourcefile = locfn
 
@@ -408,50 +372,50 @@ contains
 
     if (present(sourcefile)) sourcefile = physprop(id)%sourcefile
     if (present(opticstype)) opticstype = physprop(id)%opticsmethod
-    if (present(sw_hygro_ext)) sw_hygro_ext => physprop(id)%sw_hygro_ext
-    if (present(sw_hygro_ssa)) sw_hygro_ssa => physprop(id)%sw_hygro_ssa
-    if (present(sw_hygro_asm)) sw_hygro_asm => physprop(id)%sw_hygro_asm
-    if (present(lw_hygro_abs)) lw_hygro_abs => physprop(id)%lw_hygro_abs
-    if (present(sw_hygro_ext_wtp)) sw_hygro_ext_wtp => physprop(id)%sw_hygro_ext_wtp
-    if (present(sw_hygro_ssa_wtp)) sw_hygro_ssa_wtp => physprop(id)%sw_hygro_ssa_wtp
-    if (present(sw_hygro_asm_wtp)) sw_hygro_asm_wtp => physprop(id)%sw_hygro_asm_wtp
-    if (present(lw_hygro_abs_wtp)) lw_hygro_abs_wtp => physprop(id)%lw_hygro_abs_wtp
-    if (present(wgtpct)) wgtpct => physprop(id)%wgtpct
+    if (present(sw_hygro_ext)) call assoc_or_null(sw_hygro_ext, physprop(id)%sw_hygro_ext)
+    if (present(sw_hygro_ssa)) call assoc_or_null(sw_hygro_ssa, physprop(id)%sw_hygro_ssa)
+    if (present(sw_hygro_asm)) call assoc_or_null(sw_hygro_asm, physprop(id)%sw_hygro_asm)
+    if (present(lw_hygro_abs)) call assoc_or_null(lw_hygro_abs, physprop(id)%lw_hygro_abs)
+    if (present(sw_hygro_ext_wtp)) call assoc_or_null(sw_hygro_ext_wtp, physprop(id)%sw_hygro_ext_wtp)
+    if (present(sw_hygro_ssa_wtp)) call assoc_or_null(sw_hygro_ssa_wtp, physprop(id)%sw_hygro_ssa_wtp)
+    if (present(sw_hygro_asm_wtp)) call assoc_or_null(sw_hygro_asm_wtp, physprop(id)%sw_hygro_asm_wtp)
+    if (present(lw_hygro_abs_wtp)) call assoc_or_null(lw_hygro_abs_wtp, physprop(id)%lw_hygro_abs_wtp)
+    if (present(wgtpct)) call assoc_or_null(wgtpct, physprop(id)%wgtpct)
     if (present(nwtp)) nwtp = physprop(id)%nwtp
-    if (present(sw_hygro_coreshell_ext)) sw_hygro_coreshell_ext => physprop(id)%sw_hygro_coreshell_ext
-    if (present(sw_hygro_coreshell_ssa)) sw_hygro_coreshell_ssa => physprop(id)%sw_hygro_coreshell_ssa
-    if (present(sw_hygro_coreshell_asm)) sw_hygro_coreshell_asm => physprop(id)%sw_hygro_coreshell_asm
-    if (present(lw_hygro_coreshell_abs)) lw_hygro_coreshell_abs => physprop(id)%lw_hygro_coreshell_abs
-    if (present(kap)) kap => physprop(id)%kap
+    if (present(sw_hygro_coreshell_ext)) call assoc_or_null(sw_hygro_coreshell_ext, physprop(id)%sw_hygro_coreshell_ext)
+    if (present(sw_hygro_coreshell_ssa)) call assoc_or_null(sw_hygro_coreshell_ssa, physprop(id)%sw_hygro_coreshell_ssa)
+    if (present(sw_hygro_coreshell_asm)) call assoc_or_null(sw_hygro_coreshell_asm, physprop(id)%sw_hygro_coreshell_asm)
+    if (present(lw_hygro_coreshell_abs)) call assoc_or_null(lw_hygro_coreshell_abs, physprop(id)%lw_hygro_coreshell_abs)
+    if (present(kap)) call assoc_or_null(kap, physprop(id)%kap)
     if (present(nkap)) nkap = physprop(id)%nkap
-    if (present(bcdust)) bcdust => physprop(id)%bcdust
+    if (present(bcdust)) call assoc_or_null(bcdust, physprop(id)%bcdust)
     if (present(nbcdust)) nbcdust = physprop(id)%nbcdust
-    if (present(relh)) relh => physprop(id)%relh
+    if (present(relh)) call assoc_or_null(relh, physprop(id)%relh)
     if (present(nrelh)) nrelh = physprop(id)%nrelh
-    if (present(sw_nonhygro_ext)) sw_nonhygro_ext => physprop(id)%sw_nonhygro_ext
-    if (present(sw_nonhygro_ssa)) sw_nonhygro_ssa => physprop(id)%sw_nonhygro_ssa
-    if (present(sw_nonhygro_asm)) sw_nonhygro_asm => physprop(id)%sw_nonhygro_asm
-    if (present(sw_nonhygro_scat)) sw_nonhygro_scat => physprop(id)%sw_nonhygro_scat
-    if (present(sw_nonhygro_ascat)) sw_nonhygro_ascat => physprop(id)%sw_nonhygro_ascat
-    if (present(lw_abs)) lw_abs => physprop(id)%lw_abs
+    if (present(sw_nonhygro_ext)) call assoc_or_null(sw_nonhygro_ext, physprop(id)%sw_nonhygro_ext)
+    if (present(sw_nonhygro_ssa)) call assoc_or_null(sw_nonhygro_ssa, physprop(id)%sw_nonhygro_ssa)
+    if (present(sw_nonhygro_asm)) call assoc_or_null(sw_nonhygro_asm, physprop(id)%sw_nonhygro_asm)
+    if (present(sw_nonhygro_scat)) call assoc_or_null(sw_nonhygro_scat, physprop(id)%sw_nonhygro_scat)
+    if (present(sw_nonhygro_ascat)) call assoc_or_null(sw_nonhygro_ascat, physprop(id)%sw_nonhygro_ascat)
+    if (present(lw_abs)) call assoc_or_null(lw_abs, physprop(id)%lw_abs)
 
-    if (present(refindex_aer_sw)) refindex_aer_sw => physprop(id)%refindex_aer_sw
-    if (present(refindex_aer_lw)) refindex_aer_lw => physprop(id)%refindex_aer_lw
+    if (present(refindex_aer_sw)) call assoc_or_null(refindex_aer_sw, physprop(id)%refindex_aer_sw)
+    if (present(refindex_aer_lw)) call assoc_or_null(refindex_aer_lw, physprop(id)%refindex_aer_lw)
 
-    if (present(r_sw_ext)) r_sw_ext => physprop(id)%r_sw_ext
-    if (present(r_sw_scat)) r_sw_scat => physprop(id)%r_sw_scat
-    if (present(r_sw_ascat)) r_sw_ascat => physprop(id)%r_sw_ascat
-    if (present(r_lw_abs)) r_lw_abs => physprop(id)%r_lw_abs
-    if (present(mu)) mu => physprop(id)%mu
+    if (present(r_sw_ext)) call assoc_or_null(r_sw_ext, physprop(id)%r_sw_ext)
+    if (present(r_sw_scat)) call assoc_or_null(r_sw_scat, physprop(id)%r_sw_scat)
+    if (present(r_sw_ascat)) call assoc_or_null(r_sw_ascat, physprop(id)%r_sw_ascat)
+    if (present(r_lw_abs)) call assoc_or_null(r_lw_abs, physprop(id)%r_lw_abs)
+    if (present(mu)) call assoc_or_null(mu, physprop(id)%mu)
 
-    if (present(extpsw)) extpsw => physprop(id)%extpsw
-    if (present(abspsw)) abspsw => physprop(id)%abspsw
-    if (present(asmpsw)) asmpsw => physprop(id)%asmpsw
-    if (present(absplw)) absplw => physprop(id)%absplw
-    if (present(refrtabsw)) refrtabsw => physprop(id)%refrtabsw
-    if (present(refitabsw)) refitabsw => physprop(id)%refitabsw
-    if (present(refrtablw)) refrtablw => physprop(id)%refrtablw
-    if (present(refitablw)) refitablw => physprop(id)%refitablw
+    if (present(extpsw)) call assoc_or_null(extpsw, physprop(id)%extpsw)
+    if (present(abspsw)) call assoc_or_null(abspsw, physprop(id)%abspsw)
+    if (present(asmpsw)) call assoc_or_null(asmpsw, physprop(id)%asmpsw)
+    if (present(absplw)) call assoc_or_null(absplw, physprop(id)%absplw)
+    if (present(refrtabsw)) call assoc_or_null(refrtabsw, physprop(id)%refrtabsw)
+    if (present(refitabsw)) call assoc_or_null(refitabsw, physprop(id)%refitabsw)
+    if (present(refrtablw)) call assoc_or_null(refrtablw, physprop(id)%refrtablw)
+    if (present(refitablw)) call assoc_or_null(refitablw, physprop(id)%refitablw)
 
     if (present(aername)) aername = physprop(id)%aername
     if (present(density_aer)) density_aer = physprop(id)%density_aer
@@ -471,17 +435,80 @@ contains
     if (present(rhdeliques)) rhdeliques = physprop(id)%rhdeliques
 
     ! For core/shell bins
-    if (present(extpsw2)) extpsw2 => physprop(id)%extpsw2
-    if (present(abspsw2)) abspsw2 => physprop(id)%abspsw2
-    if (present(asmpsw2)) asmpsw2 => physprop(id)%asmpsw2
-    if (present(absplw2)) absplw2 => physprop(id)%absplw2
-    if (present(corefrac)) corefrac => physprop(id)%corefrac
+    if (present(extpsw2)) call assoc_or_null(extpsw2, physprop(id)%extpsw2)
+    if (present(abspsw2)) call assoc_or_null(abspsw2, physprop(id)%abspsw2)
+    if (present(asmpsw2)) call assoc_or_null(asmpsw2, physprop(id)%asmpsw2)
+    if (present(absplw2)) call assoc_or_null(absplw2, physprop(id)%absplw2)
+    if (present(corefrac)) call assoc_or_null(corefrac, physprop(id)%corefrac)
     if (present(nfrac)) nfrac = physprop(id)%nfrac
 
   end subroutine physprop_get
 
 !================================================================================================
 ! Private methods
+!================================================================================================
+
+  ! assoc_or_null specifics: associate ptr with table tbl if it is allocated, otherwise nullify ptr.
+  ! tbl is always a component of the module physprop array,
+  ! whose target attribute keeps the association valid after return.
+  ! tbl has no intent because an intent(in) dummy cannot be the target of
+  ! a pointer assignment (F2003 12.4.1.2), but it is not actually modified here.
+
+  subroutine assoc_or_null_r1(ptr, tbl)
+    real(r8), pointer     :: ptr(:)
+    real(r8), allocatable, target :: tbl(:)
+
+    if (allocated(tbl)) then
+      ptr => tbl
+    else
+      nullify (ptr)
+    end if
+  end subroutine assoc_or_null_r1
+
+  subroutine assoc_or_null_r2(ptr, tbl)
+    real(r8), pointer     :: ptr(:, :)
+    real(r8), allocatable, target :: tbl(:, :)
+
+    if (allocated(tbl)) then
+      ptr => tbl
+    else
+      nullify (ptr)
+    end if
+  end subroutine assoc_or_null_r2
+
+  subroutine assoc_or_null_r4(ptr, tbl)
+    real(r8), pointer     :: ptr(:, :, :, :)
+    real(r8), allocatable, target :: tbl(:, :, :, :)
+
+    if (allocated(tbl)) then
+      ptr => tbl
+    else
+      nullify (ptr)
+    end if
+  end subroutine assoc_or_null_r4
+
+  subroutine assoc_or_null_r5(ptr, tbl)
+    real(r8), pointer     :: ptr(:, :, :, :, :)
+    real(r8), allocatable, target :: tbl(:, :, :, :, :)
+
+    if (allocated(tbl)) then
+      ptr => tbl
+    else
+      nullify (ptr)
+    end if
+  end subroutine assoc_or_null_r5
+
+  subroutine assoc_or_null_c1(ptr, tbl)
+    complex(r8), pointer     :: ptr(:)
+    complex(r8), allocatable, target :: tbl(:)
+
+    if (allocated(tbl)) then
+      ptr => tbl
+    else
+      nullify (ptr)
+    end if
+  end subroutine assoc_or_null_c1
+
 !================================================================================================
 
   ! Determine the opticstype, then call the appropriate routine to read the data.
@@ -1034,7 +1061,7 @@ contains
     integer :: i
     integer :: istat1, istat2, istat3     ! status flags
     integer :: vid_real, vid_im           ! variable ids
-    real(r8), pointer :: ref_real(:), ref_im(:)  ! tmp storage for components of complex index
+    real(r8), allocatable :: ref_real(:), ref_im(:)  ! tmp storage for components of complex index
     character(len=*), parameter :: subname = 'refindex_aer_init'
     !------------------------------------------------------------------------------------
 
@@ -1125,7 +1152,7 @@ contains
     integer :: did
     integer :: ival
     type(var_desc_t) :: vid
-    real(r8), pointer :: rval(:, :, :, :, :) ! temp array used to eliminate a singleton dimension
+    real(r8), allocatable :: rval(:, :, :, :, :) ! temp array used to eliminate a singleton dimension
 
     character(len=*), parameter :: subname = 'modal_optics_init'
     !------------------------------------------------------------------------------------
