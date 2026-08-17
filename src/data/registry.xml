@@ -1631,7 +1631,7 @@
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
     <variable local_name="naer_mmr"
-              standard_name="aerosol_number_mixing_ratio_of_modal_aerosol"
+              standard_name="mass_number_concentration_of_modal_aerosol_wrt_moist_air_and_condensed_water"
               units="kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <long_name>aerosol number mixing ratio per mode</long_name>
@@ -1663,7 +1663,7 @@
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
     <variable local_name="qaerwat_aer"
-              standard_name="aerosol_water_mixing_ratio_of_modal_aerosol"
+              standard_name="aerosol_water_mixing_ratio_of_modal_aerosol_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable, target">
       <long_name>aerosol water mass mixing ratio per mode</long_name>

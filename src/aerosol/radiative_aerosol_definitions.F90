@@ -178,7 +178,7 @@ module radiative_aerosol_definitions
      character(len=1)           :: source         ! A for state (advected), N for pbuf (non-advected), Z for zero
      character(len=64)          :: camname        ! name of constituent in physics state or buffer
      character(len=256)         :: physprop_file  ! physprop filename
-     character(len=32)          :: mass_name      ! name for mass per layer field in history output
+     character(len=64)          :: mass_name      ! name for mass per layer field in history output
      integer                    :: idx            ! index of constituent in physics state or buffer
      integer                    :: physprop_id    ! ID used to access physical properties from phys_prop module
   end type aerosol_t
@@ -186,9 +186,9 @@ module radiative_aerosol_definitions
 !! \section arg_table_aerlist_t
 !! \htmlinclude aerlist_t.html
   type, public :: aerlist_t
-     integer                  :: numaerosols = 0  ! number of aerosols
-     character(len=2)         :: list_id      ! set to "  " for climate list, or two character integer
-                                              ! (include leading zero) to identify diagnostic list
+     integer                  :: numaerosols = 0   ! number of aerosols
+     character(len=2)         :: list_id = '  '    ! set to "  " for climate list, or two character integer
+                                                   ! (include leading zero) to identify diagnostic list
      type(aerosol_t), pointer :: aer(:) => null()  ! dimension(numaerosols)
   end type aerlist_t
 
@@ -467,6 +467,21 @@ end subroutine list_resolve_physprops
 
 !===========================
 
+subroutine parse_error(subname, msg, str)
+   use cam_abortutils, only: endrun
+
+   ! Abort on a parsing error, including the offending input string in the message.
+
+   character(len=*), intent(in) :: subname   ! name of the calling parser
+   character(len=*), intent(in) :: msg
+   character(len=*), intent(in) :: str
+
+   call endrun(subname//': ERROR: '//msg//'; input string: '//trim(str))
+
+end subroutine parse_error
+
+!===========================
+
 subroutine parse_mode_defs(nl_in, modes)
    use string_utils,   only: to_str
    use cam_abortutils, only: endrun
@@ -550,7 +565,7 @@ subroutine parse_mode_defs(nl_in, modes)
 
       ! check that first string in mode definition is ':=' terminated
       iend = len_trim(nl_in(mcur))
-      if (nl_in(mcur)(iend-1:iend) /= ':=') call parse_error('= not found', nl_in(mcur))
+      if (nl_in(mcur)(iend-1:iend) /= ':=') call parse_error(subname, '= not found', nl_in(mcur))
 
       ! count species in mode definition.  definition will contain 1 string with
       ! with a ':+' terminator for each specie
@@ -564,7 +579,7 @@ subroutine parse_mode_defs(nl_in, modes)
       end do
 
       ! a mode must have at least one specie
-      if (nspec == 0) call parse_error('mode must have at least one specie', nl_in(mbeg))
+      if (nspec == 0) call parse_error(subname, 'mode must have at least one specie', nl_in(mbeg))
 
       ! allocate components that depend on number of species
       allocate( &
@@ -602,20 +617,20 @@ subroutine parse_mode_defs(nl_in, modes)
 
       ! mode name
       ipos = index(tmpstr, ':')
-      if (ipos < 2) call parse_error('mode name not found', tmpstr)
+      if (ipos < 2) call parse_error(subname, 'mode name not found', tmpstr)
       modes%names(m) = tmpstr(:ipos-1)
       tmpstr         = tmpstr(ipos+1:)
 
       ! mode type
       ipos = index(tmpstr, ':')
-      if (ipos == 0) call parse_error('mode type not found', tmpstr)
+      if (ipos == 0) call parse_error(subname, 'mode type not found', tmpstr)
       ! check for valid mode type
       call check_mode_type(tmpstr, 1, ipos-1)
       modes%types(m) = tmpstr(:ipos-1)
       tmpstr         = tmpstr(ipos+1:)
 
       ! mode type must be followed by '='
-      if (tmpstr(1:1) /= '=') call parse_error('= not found', tmpstr)
+      if (tmpstr(1:1) /= '=') call parse_error(subname, '= not found', tmpstr)
 
       ! move to next string
       mcur = mcur + 1
@@ -628,42 +643,42 @@ subroutine parse_mode_defs(nl_in, modes)
 
          ! source of interstitial component
          ipos = index(tmpstr, ':')
-         if (ipos < 2) call parse_error('expect to find source field first', tmpstr)
+         if (ipos < 2) call parse_error(subname, 'expect to find source field first', tmpstr)
          ! check for valid source
          if (tmpstr(:ipos-1) /= 'A' .and. tmpstr(:ipos-1) /= 'N' .and. tmpstr(:ipos-1) /= 'Z') &
-            call parse_error('source must be A, N or Z', tmpstr)
+            call parse_error(subname, 'source must be A, N or Z', tmpstr)
          tmp_src_a = tmpstr(:ipos-1)
          tmpstr    = tmpstr(ipos+1:)
 
          ! name of interstitial component
          ipos = index(tmpstr, ':')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
          tmp_name_a = tmpstr(:ipos-1)
          tmpstr     = tmpstr(ipos+1:)
 
          ! source of cloud borne component
          ipos = index(tmpstr, ':')
-         if (ipos < 2) call parse_error('expect to find a source field', tmpstr)
+         if (ipos < 2) call parse_error(subname, 'expect to find a source field', tmpstr)
          ! check for valid source
          if (tmpstr(:ipos-1) /= 'A' .and. tmpstr(:ipos-1) /= 'N' .and. tmpstr(:ipos-1) /= 'Z') &
-            call parse_error('source must be A, N or Z', tmpstr)
+            call parse_error(subname, 'source must be A, N or Z', tmpstr)
          tmp_src_c = tmpstr(:ipos-1)
          tmpstr    = tmpstr(ipos+1:)
 
          ! name of cloud borne component
          ipos = index(tmpstr, ':')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
          tmp_name_c = tmpstr(:ipos-1)
          tmpstr     = tmpstr(ipos+1:)
 
          ! component type
          ipos = scan(tmpstr, ': ')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
 
          if (tmpstr(:ipos-1) == 'num_mr') then
 
             ! there can only be one number mixing ratio component
-            if (num_mr_found) call parse_error('more than 1 number component', nl_in(mcur))
+            if (num_mr_found) call parse_error(subname, 'more than 1 number component', nl_in(mcur))
 
             num_mr_found = .true.
             modes%comps(m)%source_num_a  = tmp_src_a
@@ -681,10 +696,10 @@ subroutine parse_mode_defs(nl_in, modes)
 
             ! get the properties file
             ipos = scan(tmpstr, ': ')
-            if (ipos == 0) call parse_error('next separator not found', tmpstr)
+            if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
             ! check for valid filename -- must have .nc extension
             if (tmpstr(ipos-3:ipos-1) /= '.nc') &
-               call parse_error('filename not valid', tmpstr)
+               call parse_error(subname, 'filename not valid', tmpstr)
 
             ispec = ispec + 1
             modes%comps(m)%source_mmr_a(ispec)  = tmp_src_a
@@ -702,7 +717,7 @@ subroutine parse_mode_defs(nl_in, modes)
          if (tmpstr(1:1) == ' ') exit
 
          if (tmpstr(1:1) /= '+') &
-               call parse_error('+ field not found', tmpstr)
+               call parse_error(subname, '+ field not found', tmpstr)
 
          ! continue to next component...
          mcur = mcur + 1
@@ -710,10 +725,10 @@ subroutine parse_mode_defs(nl_in, modes)
       end do
 
       ! check that a number component was found
-      if (.not. num_mr_found) call parse_error('number component not found', nl_in(mbeg))
+      if (.not. num_mr_found) call parse_error(subname, 'number component not found', nl_in(mbeg))
 
       ! check that the right number of species were found
-      if (ispec /= nspec) call parse_error('component parsing got wrong number of species', nl_in(mbeg))
+      if (ispec /= nspec) call parse_error(subname, 'component parsing got wrong number of species', nl_in(mbeg))
 
       ! continue to next mode...
       mcur = mcur + 1
@@ -722,17 +737,6 @@ subroutine parse_mode_defs(nl_in, modes)
 
    !------------------------------------------------------------------------------------------------
    contains
-   !------------------------------------------------------------------------------------------------
-
-   subroutine parse_error(msg, str)
-
-      character(len=*), intent(in) :: msg
-      character(len=*), intent(in) :: str
-
-      call endrun(subname//': ERROR: '//msg//'; input string: '//trim(str))
-
-   end subroutine parse_error
-
    !------------------------------------------------------------------------------------------------
 
    subroutine check_species_type(str, ib, ie)
@@ -746,7 +750,7 @@ subroutine parse_mode_defs(nl_in, modes)
          if (str(ib:ie) == trim(spec_type_names(i))) return
       end do
 
-      call parse_error('species type not valid', str(ib:ie))
+      call parse_error(subname, 'species type not valid', str(ib:ie))
 
    end subroutine check_species_type
 
@@ -763,7 +767,7 @@ subroutine parse_mode_defs(nl_in, modes)
          if (str(ib:ie) == trim(mode_type_names(i))) return
       end do
 
-      call parse_error('mode type not valid', str(ib:ie))
+      call parse_error(subname, 'mode type not valid', str(ib:ie))
 
    end subroutine check_mode_type
 
@@ -850,7 +854,7 @@ subroutine parse_bin_defs(nl_in, bins)
 
       ! check that first string in bin definition is ':=' terminated
       iend = len_trim(nl_in(mcur))
-      if (nl_in(mcur)(iend-1:iend) /= ':=') call parse_error('= not found', nl_in(mcur))
+      if (nl_in(mcur)(iend-1:iend) /= ':=') call parse_error(subname, '= not found', nl_in(mcur))
 
       ! count species in bin definition.  definition will contain 1 string with
       ! with a ':+' terminator for each specie
@@ -864,7 +868,7 @@ subroutine parse_bin_defs(nl_in, bins)
       end do
 
       ! a bin must have at least one specie
-      if (nspec == 0) call parse_error('bin must have at least one specie', nl_in(mbeg))
+      if (nspec == 0) call parse_error(subname, 'bin must have at least one specie', nl_in(mbeg))
 
       ! allocate components that depend on number of species
       allocate( &
@@ -907,12 +911,12 @@ subroutine parse_bin_defs(nl_in, bins)
 
       ! bin name
       ipos = index(tmpstr, ':')
-      if (ipos < 2) call parse_error('bin name not found', tmpstr)
+      if (ipos < 2) call parse_error(subname, 'bin name not found', tmpstr)
       bins%names(m)  = tmpstr(:ipos-1)
       tmpstr         = tmpstr(ipos+1:)
 
       ! bin name must be followed by '='
-      if (tmpstr(1:1) /= '=') call parse_error('= not found', tmpstr)
+      if (tmpstr(1:1) /= '=') call parse_error(subname, '= not found', tmpstr)
 
       ! move to next string
       mcur = mcur + 1
@@ -926,42 +930,42 @@ subroutine parse_bin_defs(nl_in, bins)
 
          ! source of interstitial component
          ipos = index(tmpstr, ':')
-         if (ipos < 2) call parse_error('expect to find source field first', tmpstr)
+         if (ipos < 2) call parse_error(subname, 'expect to find source field first', tmpstr)
          ! check for valid source
          if (tmpstr(:ipos-1) /= 'A' .and. tmpstr(:ipos-1) /= 'N' .and. tmpstr(:ipos-1) /= 'Z') &
-            call parse_error('source must be A, N or Z', tmpstr)
+            call parse_error(subname, 'source must be A, N or Z', tmpstr)
          tmp_src_a = tmpstr(:ipos-1)
          tmpstr    = tmpstr(ipos+1:)
 
          ! name of interstitial component
          ipos = index(tmpstr, ':')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
          tmp_name_a = tmpstr(:ipos-1)
          tmpstr     = tmpstr(ipos+1:)
 
          ! source of cloud borne component
          ipos = index(tmpstr, ':')
-         if (ipos < 2) call parse_error('expect to find a source field', tmpstr)
+         if (ipos < 2) call parse_error(subname, 'expect to find a source field', tmpstr)
          ! check for valid source
          if (tmpstr(:ipos-1) /= 'A' .and. tmpstr(:ipos-1) /= 'N' .and. tmpstr(:ipos-1) /= 'Z') &
-            call parse_error('source must be A, N or Z', tmpstr)
+            call parse_error(subname, 'source must be A, N or Z', tmpstr)
          tmp_src_c = tmpstr(:ipos-1)
          tmpstr    = tmpstr(ipos+1:)
 
          ! name of cloud borne component
          ipos = index(tmpstr, ':')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
          tmp_name_c = tmpstr(:ipos-1)
          tmpstr     = tmpstr(ipos+1:)
 
          ! component type
          ipos = scan(tmpstr, ': ')
-         if (ipos == 0) call parse_error('next separator not found', tmpstr)
+         if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
 
          if (tmpstr(:ipos-1) == 'num') then
 
             ! there can only be one number mixing ratio component
-            if (num_mr_found) call parse_error('more than 1 number component', nl_in(mcur))
+            if (num_mr_found) call parse_error(subname, 'more than 1 number component', nl_in(mcur))
 
             num_mr_found = .true.
             bins%comps(m)%source_num_a  = tmp_src_a
@@ -973,7 +977,7 @@ subroutine parse_bin_defs(nl_in, bins)
          else if (tmpstr(:ipos-1) == 'mmr') then
 
             ! there can only be one number mixing ratio component
-            if (mass_mr_found) call parse_error('more than 1 mass mixing ratio component', nl_in(mcur))
+            if (mass_mr_found) call parse_error(subname, 'more than 1 mass mixing ratio component', nl_in(mcur))
 
             mass_mr_found = .true.
             bins%comps(m)%source_mass_a  = tmp_src_a
@@ -990,7 +994,7 @@ subroutine parse_bin_defs(nl_in, bins)
             tmpstr   = tmpstr(ipos+1:)
 
             ipos = index(tmpstr, ':')
-            if (ipos == 0) call parse_error('next separator not found', tmpstr)
+            if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
 
             ! check for valid species type
             call check_bin_morph(tmpstr, 1, ipos-1)
@@ -999,11 +1003,11 @@ subroutine parse_bin_defs(nl_in, bins)
 
             ! get the properties file
             ipos = scan(tmpstr, ': ')
-            if (ipos == 0) call parse_error('next separator not found', tmpstr)
+            if (ipos == 0) call parse_error(subname, 'next separator not found', tmpstr)
 
              ! check for valid filename -- must have .nc extension
             if (tmpstr(ipos-3:ipos-1) /= '.nc') &
-               call parse_error('filename not valid', tmpstr)
+               call parse_error(subname, 'filename not valid', tmpstr)
 
             ispec = ispec + 1
 
@@ -1027,7 +1031,7 @@ subroutine parse_bin_defs(nl_in, bins)
          endif
 
          if (tmpstr(1:1) /= '+') &
-               call parse_error('+ field not found', tmpstr)
+               call parse_error(subname, '+ field not found', tmpstr)
 
          ! continue to next component...
          mcur = mcur + 1
@@ -1036,12 +1040,12 @@ subroutine parse_bin_defs(nl_in, bins)
 
 
       ! check that a number component was found
-      if (.not. num_mr_found) call parse_error('number component not found', nl_in(mbeg))
+      if (.not. num_mr_found) call parse_error(subname, 'number component not found', nl_in(mbeg))
 
       ! check that the right number of species were found
       if (ispec /= nspec) then
          write(*,*) 'ispec, nspec = ',ispec, nspec
-         call parse_error('component parsing got wrong number of species', nl_in(mbeg))
+         call parse_error(subname, 'component parsing got wrong number of species', nl_in(mbeg))
       endif
 
       ! continue to next bin...
@@ -1051,17 +1055,6 @@ subroutine parse_bin_defs(nl_in, bins)
 
    !------------------------------------------------------------------------------------------------
    contains
-   !------------------------------------------------------------------------------------------------
-
-   subroutine parse_error(msg, str)
-
-      character(len=*), intent(in) :: msg
-      character(len=*), intent(in) :: str
-
-      call endrun(subname//': ERROR: '//msg//'; input string: '//trim(str))
-
-   end subroutine parse_error
-
    !------------------------------------------------------------------------------------------------
 
    subroutine check_bin_morph(str, ib, ie)
@@ -1075,7 +1068,7 @@ subroutine parse_bin_defs(nl_in, bins)
          if (str(ib:ie) == trim(bin_morph_names(i))) return
       end do
 
-      call parse_error('bin morph not valid', str(ib:ie))
+      call parse_error(subname, 'bin morph not valid', str(ib:ie))
 
    end subroutine check_bin_morph
 
@@ -1091,7 +1084,7 @@ subroutine parse_bin_defs(nl_in, bins)
          if (str(ib:ie) == trim(spec_type_names(i))) return
       end do
 
-      call parse_error('bin species type not valid', str(ib:ie))
+      call parse_error(subname, 'bin species type not valid', str(ib:ie))
 
    end subroutine check_bin_type
 

@@ -35,7 +35,7 @@ module aerosol_properties_mod
      real(r8), allocatable :: rhcrystal_(:)   ! crystallization RH
      real(r8), allocatable :: rhdeliques_(:)  ! deliquescence RH
      ! Abdul-Razzak, H., S.J. Ghan, and C. Rivera-Carpio, A parameterization of aerosol activation,
-     ! 1, Singleaerosoltype. J. Geophys. Res., 103, 6123-6132, 1998.
+     ! 1, Singleaerosoltype. J. Geophys. Res., 103, 6123-6132, 1998. https://doi.org/10.1029/97JD03735
      real(r8) :: soa_equivso4_factor_ = -huge(1._r8)
      real(r8) :: pom_equivso4_factor_ = -huge(1._r8)
      integer, public :: list_idx_ = 0 ! radiation list index (0=climate)
@@ -398,6 +398,8 @@ contains
     integer :: imas,ibin,indx
     character(len=*),parameter :: prefix = 'aerosol_properties::aero_props_init: '
 
+    character(len=256) :: alloc_errmsg
+
     real(r8), parameter :: spechygro_so4 = 0.507_r8          ! Sulfate hygroscopicity
     real(r8), parameter :: spechygro_soa = 0.14_r8           ! SOA hygroscopicity
     real(r8), parameter :: spechygro_pom = 0.1_r8            ! POM hygroscopicity
@@ -702,13 +704,14 @@ contains
   !------------------------------------------------------------------------------
   ! returns maximum supersaturation
   !------------------------------------------------------------------------------
-  function maxsat(self, zeta,eta,smc) result(smax)
+  pure function maxsat(self, zeta,eta,smc) result(smax)
 
     !-------------------------------------------------------------------------
     ! Calculates maximum supersaturation for multiple competing aerosols.
     !
     ! Abdul-Razzak and Ghan, A parameterization of aerosol activation.
     ! 2. Multiple aerosol types. J. Geophys. Res., 105, 6837-6844., 2000
+    ! https://doi.org/10.1029/1999JD901161Digital Object Identifier (DOI)
     !-------------------------------------------------------------------------
 
     class(aerosol_properties), intent(in) :: self

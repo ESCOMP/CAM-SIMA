@@ -621,7 +621,7 @@ CONTAINS
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
-      use runtime_obj,               only: wv_stdname
+      use runtime_obj,               only: wv_stdname, wv_longname
       use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
       use cam_constituents,          only: const_set_qmin, const_get_index
@@ -668,7 +668,7 @@ CONTAINS
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
               std_name=wv_stdname,              &
-              long_name=wv_stdname, &
+              long_name=wv_longname,            &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &

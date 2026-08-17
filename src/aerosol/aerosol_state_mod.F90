@@ -1,7 +1,6 @@
 module aerosol_state_mod
   use shr_kind_mod, only: r8 => shr_kind_r8
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
-  use physconst, only: pi
 
   implicit none
 
@@ -756,6 +755,8 @@ contains
   ! the same size and only species `species_ndx` contributes to the particle volume
   !------------------------------------------------------------------------------
   function mass_mean_radius(self, bin_ndx, species_ndx, ncol, nlev, aero_props, rho) result(radius)
+
+    use physconst, only: pi
 
     class(aerosol_state), intent(in) :: self
     integer, intent(in) :: bin_ndx                ! bin number
