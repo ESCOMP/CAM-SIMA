@@ -90,6 +90,7 @@ module dyn_mpas_subdriver
 
         ! Initialized by `dyn_mpas_define_scalar`.
         character(strkind), allocatable :: constituent_name(:)
+        character(strkind), allocatable :: input_alias(:)
         integer, allocatable :: index_constituent_to_mpas_scalar(:)
         integer, allocatable :: index_mpas_scalar_to_constituent(:)
         logical, allocatable :: is_water_species(:)
@@ -106,6 +107,7 @@ module dyn_mpas_subdriver
         procedure, pass, public :: init_phase2 => dyn_mpas_init_phase2
         procedure, pass, public :: init_phase3 => dyn_mpas_init_phase3
         procedure, pass, public :: define_scalar => dyn_mpas_define_scalar
+        procedure, pass :: define_scalar_field => dyn_mpas_define_scalar_field
         procedure, pass, public :: read_write_stream => dyn_mpas_read_write_stream
         procedure, pass :: init_stream_with_pool => dyn_mpas_init_stream_with_pool
         procedure, pass :: check_variable_status => dyn_mpas_check_variable_status
@@ -315,6 +317,12 @@ module dyn_mpas_subdriver
         var_info_type('uReconstructMeridional'          , 'real'      , 2), &
         var_info_type('uReconstructZonal'               , 'real'      , 2), &
         var_info_type('vorticity'                       , 'real'      , 2)  &
+    ]
+
+    !> This list consists of extra variables that are not defined in MPAS registry,
+    !> but are needed to support certain CAM-SIMA features.
+    type(var_info_type), parameter :: extra_var_info_list(*) = [ &
+        var_info_type('scalars_alias'                   , 'real'      , 3)  &
     ]
 contains
     !-------------------------------------------------------------------------------
@@ -840,9 +848,11 @@ contains
     !> author: Michael Duda
     !> date: 21 May 2020
     !>
-    !> Given arrays of constituent names and their corresponding waterness, which
-    !> must have sizes equal to the number of constituents used to call
-    !> `dyn_mpas_init_phase3`, this subroutine defines the scalars inside MPAS.
+    !> Given the arrays of constituent names, input aliases, and their corresponding
+    !> waterness, which must have sizes equal to the number of constituents used
+    !> to call `dyn_mpas_init_phase3`, this subroutine sanitizes input, determines
+    !> scalar dimensions, index mapping, and finishes by calling
+    !> `dyn_mpas_define_scalar_field` to define the scalars inside MPAS.
     !> Note that MPAS uses the term "scalar", but CAM-SIMA calls it "constituent".
     !> Furthermore, because MPAS expects all water scalars to appear in a
     !> contiguous index range, this subroutine may reorder the scalars to satisfy
@@ -852,14 +862,15 @@ contains
     !> Ported and refactored for CAM-SIMA. (KCW, 2024-05-19)
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_define_scalar(self, constituent_name, is_water_species)
+    subroutine dyn_mpas_define_scalar(self, constituent_name, input_alias, is_water_species)
         ! Module(s) from MPAS.
         use dyn_mpas_procedures, only: index_unique, stringify
-        use mpas_derived_types, only: field3dreal, mpas_pool_type
-        use mpas_pool_routines, only: mpas_pool_add_dimension, mpas_pool_get_field
+        use mpas_derived_types, only: mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_add_dimension
 
         class(mpas_dynamical_core_type), intent(inout) :: self
         character(*), intent(in) :: constituent_name(:)
+        character(*), intent(in) :: input_alias(:)
         logical, intent(in) :: is_water_species(:)
 
         !> Possible CCPP standard names of `qv`, which denotes water vapor mixing ratio.
@@ -882,16 +893,13 @@ contains
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar'
         character(strkind) :: cerr
-        integer :: i, j
+        integer :: i
         integer :: ierr
         integer :: index_qv, index_qc, index_tke, index_water_start, index_water_end
-        integer :: time_level
-        type(field3dreal), pointer :: field_3d_real
         type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
-        nullify(field_3d_real)
         nullify(mpas_pool)
 
         ! `dyn_mpas_init_phase3` must be called before this subroutine.
@@ -907,6 +915,14 @@ contains
                 subname, __LINE__)
         end if
 
+        allocate(self % input_alias(self % number_of_constituents), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate input_alias' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
+
         allocate(self % is_water_species(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
@@ -916,6 +932,10 @@ contains
         end if
 
         ! Input sanitization.
+
+        if (size(constituent_name) /= size(input_alias)) then
+            call self % model_error('Mismatch between numbers of constituent names and their input aliases', subname, __LINE__)
+        end if
 
         if (size(constituent_name) /= size(is_water_species)) then
             call self % model_error('Mismatch between numbers of constituent names and their waterness', subname, __LINE__)
@@ -932,6 +952,7 @@ contains
                 end if
 
                 self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
+                self % input_alias(1) = ''
                 self % is_water_species(1) = .true.
             else
                 ! If constituent definitions are empty and LES is enabled, `qv`, `qc`, and `tke` are the only
@@ -944,9 +965,11 @@ contains
                 end if
 
                 self % constituent_name(1) = mpas_scalar_qv_standard_name(1)
+                self % input_alias(1) = ''
                 self % is_water_species(1) = .true.
 
                 self % constituent_name(2) = mpas_scalar_qc_standard_name(1)
+                self % input_alias(2) = ''
                 self % is_water_species(2) = .true.
             end if
         else
@@ -958,11 +981,20 @@ contains
                 call self % model_error('Constituent names are too long', subname, __LINE__)
             end if
 
+            if (any(len_trim(adjustl(input_alias)) > len(self % input_alias))) then
+                call self % model_error('Input aliases are too long', subname, __LINE__)
+            end if
+
             self % constituent_name(:) = adjustl(constituent_name)
+            self % input_alias(:) = adjustl(input_alias)
             self % is_water_species(:) = is_water_species(:)
 
             if (size(self % constituent_name) /= size(index_unique(self % constituent_name))) then
                 call self % model_error('Constituent names must be unique', subname, __LINE__)
+            end if
+
+            if (count(self % input_alias /= '') /= size(index_unique(pack(self % input_alias, self % input_alias /= '')))) then
+                call self % model_error('Non-empty input aliases must be unique', subname, __LINE__)
             end if
         end if
 
@@ -1063,18 +1095,90 @@ contains
             call self % debug_print(log_level_verbose, 'Constituent index ' // stringify([i]))
             call self % debug_print(log_level_verbose, '    Constituent name: ' // &
                 trim(self % constituent_name(i)))
+            if (self % input_alias(i) /= '') then
+                call self % debug_print(log_level_verbose, '    Input alias: ' // &
+                    trim(self % input_alias(i)))
+            end if
             call self % debug_print(log_level_verbose, '    Is water species: ' // &
                 stringify([self % is_water_species(i)]))
             call self % debug_print(log_level_verbose, '    Index mapping from constituent to MPAS scalar: ' // &
                 stringify([i]) // ' -> ' // stringify([self % index_constituent_to_mpas_scalar(i)]))
         end do
 
-        ! Define "scalars" for MPAS.
+        ! For consistency, add scalar dimensions to MPAS "dimension" pool.
+
+        call self % get_pool_pointer(mpas_pool, 'dim')
+
+        call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
+        call mpas_pool_add_dimension(mpas_pool, 'index_qc', index_qc)
+        call mpas_pool_add_dimension(mpas_pool, 'index_tke', index_tke)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_start', index_water_start)
+        call mpas_pool_add_dimension(mpas_pool, 'moist_end', index_water_end)
+
+        nullify(mpas_pool)
+
+        call self % debug_print(log_level_debug, 'index_qv = ' // stringify([index_qv]))
+        call self % debug_print(log_level_debug, 'index_qc = ' // stringify([index_qc]))
+        call self % debug_print(log_level_debug, 'index_tke = ' // stringify([index_tke]))
+        call self % debug_print(log_level_debug, 'moist_start = ' // stringify([index_water_start]))
+        call self % debug_print(log_level_debug, 'moist_end = ' // stringify([index_water_end]))
+
+        call self % define_scalar_field()
+
+        call self % debug_print(log_level_debug, subname // ' completed')
+    end subroutine dyn_mpas_define_scalar
+
+    !-------------------------------------------------------------------------------
+    ! subroutine dyn_mpas_define_scalar_field
+    !
+    !> summary: Define the names of constituents at run-time.
+    !> author: Kuan-Chih Wang
+    !> date: 2026-08-14
+    !>
+    !> In the context of MPAS, a "field" is a data structure that wraps around
+    !> a raw array of an intrinsic data type, along with its associated metadata.
+    !> This subroutine uses the sanitized information gathered in
+    !> `dyn_mpas_define_scalar` to actually initialize the scalar field data
+    !> structure inside MPAS. Note that MPAS uses the term "scalar", but CAM-SIMA
+    !> calls it "constituent".
+    !
+    !-------------------------------------------------------------------------------
+    subroutine dyn_mpas_define_scalar_field(self)
+        ! Module(s) from MPAS.
+        use dyn_mpas_procedures, only: stringify
+        use mpas_derived_types, only: field3dreal, mpas_pool_type
+        use mpas_pool_routines, only: mpas_pool_add_dimension, mpas_pool_add_field, mpas_pool_get_field
+
+        class(mpas_dynamical_core_type), intent(in) :: self
+
+        character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_define_scalar_field'
+        character(strkind) :: cerr
+        integer :: i, j
+        integer :: ierr
+        integer :: time_level
+        integer, pointer :: index_qv, index_qc, index_tke, index_water_start, index_water_end
+        type(field3dreal), pointer :: field_3d_real, field_3d_real_alias(:)
+        type(mpas_pool_type), pointer :: mpas_pool
+
+        call self % debug_print(log_level_debug, subname // ' entered')
+
+        nullify(index_qv, index_qc, index_tke, index_water_start, index_water_end)
+        nullify(field_3d_real, field_3d_real_alias)
+        nullify(mpas_pool)
+
+        call self % get_variable_pointer(index_qv, 'dim', 'index_qv')
+        call self % get_variable_pointer(index_qc, 'dim', 'index_qc')
+        call self % get_variable_pointer(index_tke, 'dim', 'index_tke')
+        call self % get_variable_pointer(index_water_start, 'dim', 'moist_start')
+        call self % get_variable_pointer(index_water_end, 'dim', 'moist_end')
+
+        ! Define "scalars" field for MPAS.
 
         call self % debug_print(log_level_info, 'Defining MPAS scalars')
 
         call self % get_pool_pointer(mpas_pool, 'state')
 
+        ! Add scalar dimensions to MPAS "state" pool.
         call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
         call mpas_pool_add_dimension(mpas_pool, 'index_qc', index_qc)
         call mpas_pool_add_dimension(mpas_pool, 'index_tke', index_tke)
@@ -1083,6 +1187,14 @@ contains
 
         ! MPAS "state" pool has two time levels.
         time_level = 2
+
+        allocate(field_3d_real_alias(time_level), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate field_3d_real_alias' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
 
         do i = 1, time_level
             call mpas_pool_get_field(mpas_pool, 'scalars', field_3d_real, timelevel=i)
@@ -1100,6 +1212,10 @@ contains
                     call self % debug_print(log_level_verbose, 'MPAS scalar index ' // stringify([j]))
                     call self % debug_print(log_level_verbose, '    MPAS scalar name: ' // &
                         trim(field_3d_real % constituentnames(j)))
+                    if (self % input_alias(self % index_mpas_scalar_to_constituent(j)) /= '') then
+                        call self % debug_print(log_level_verbose, '    Input alias: ' // &
+                            trim(self % input_alias(self % index_mpas_scalar_to_constituent(j))))
+                    end if
                     call self % debug_print(log_level_verbose, '    Is water species: ' // &
                         stringify([self % is_water_species(self % index_mpas_scalar_to_constituent(j))]))
                     call self % debug_print(log_level_verbose, '    Index mapping from MPAS scalar to constituent: ' // &
@@ -1111,17 +1227,44 @@ contains
                 field_3d_real % constituentnames(index_tke) = 'tke_for_les'
             end if
 
+            ! Typically in MPAS, each constituent has a single authoritative name. However in CAM-SIMA, constituents may have
+            ! aliases for reading input. Construct an extra "scalars_alias" field in MPAS at run-time to support this feature.
+
+            ! Remember that an intrinsic assignment on a derived type works like a "shallow copy"; i.e., pointer components
+            ! on the LHS are simply pointer-assigned to the RHS. This is the desired behavior here because we want any
+            ! operations on the "scalars_alias" field to be reflected in the "scalars" field, including the underlying data.
+            field_3d_real_alias(i) = field_3d_real
+            field_3d_real_alias(i) % fieldname = 'scalars_alias'
+
+            allocate(field_3d_real_alias(i) % constituentnames, source=field_3d_real % constituentnames, errmsg=cerr, stat=ierr)
+
+            if (ierr /= 0) then
+                call self % model_error('Failed to allocate field_3d_real_alias % constituentnames' // new_line('') // &
+                    'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                    subname, __LINE__)
+            end if
+
+            field_3d_real_alias(i) % constituentnames(1:size(self % input_alias)) = &
+                adjustl(self % input_alias(self % index_mpas_scalar_to_constituent))
+
             nullify(field_3d_real)
         end do
 
+        ! Inform MPAS about the newly constructed field.
+        call self % get_pool_pointer(mpas_pool, 'all')
+
+        call mpas_pool_add_field(mpas_pool, 'scalars_alias', field_3d_real_alias)
+
+        nullify(field_3d_real_alias)
         nullify(mpas_pool)
 
-        ! Define "scalars_tend" for MPAS.
+        ! Define "scalars_tend" field for MPAS.
 
         call self % debug_print(log_level_info, 'Defining MPAS scalar tendencies')
 
         call self % get_pool_pointer(mpas_pool, 'tend')
 
+        ! Add scalar dimensions to MPAS "tend" pool.
         call mpas_pool_add_dimension(mpas_pool, 'index_qv', index_qv)
         call mpas_pool_add_dimension(mpas_pool, 'index_qc', index_qc)
         call mpas_pool_add_dimension(mpas_pool, 'index_tke', index_tke)
@@ -1163,22 +1306,8 @@ contains
 
         nullify(mpas_pool)
 
-        ! For consistency, also add dimension variables to MPAS "dimension" pool.
-
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qv', index_qv)
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_qc', index_qc)
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'index_tke', index_tke)
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_start', index_water_start)
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'moist_end', index_water_end)
-
-        call self % debug_print(log_level_debug, 'index_qv = ' // stringify([index_qv]))
-        call self % debug_print(log_level_debug, 'index_qc = ' // stringify([index_qc]))
-        call self % debug_print(log_level_debug, 'index_tke = ' // stringify([index_tke]))
-        call self % debug_print(log_level_debug, 'moist_start = ' // stringify([index_water_start]))
-        call self % debug_print(log_level_debug, 'moist_end = ' // stringify([index_water_end]))
-
         call self % debug_print(log_level_debug, subname // ' completed')
-    end subroutine dyn_mpas_define_scalar
+    end subroutine dyn_mpas_define_scalar_field
 
     !-------------------------------------------------------------------------------
     ! subroutine dyn_mpas_read_write_stream
@@ -1804,6 +1933,8 @@ contains
                 allocate(var_info_list, source=restart_var_info_list)
             case ('output')
                 allocate(var_info_list, source=output_var_info_list)
+            case ('extra')
+                allocate(var_info_list, source=extra_var_info_list)
             case default
                 allocate(var_info_list(0))
 
@@ -1832,6 +1963,13 @@ contains
 
                 if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
                     var_info_list_buffer = pack(output_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
+                    var_info_list = [var_info_list, var_info_list_buffer]
+                end if
+
+                var_name_list = extra_var_info_list % name
+
+                if (any(var_name_list == trim(adjustl(stream_name_fragment)))) then
+                    var_info_list_buffer = pack(extra_var_info_list, var_name_list == trim(adjustl(stream_name_fragment)))
                     var_info_list = [var_info_list, var_info_list_buffer]
                 end if
         end select
@@ -3177,7 +3315,7 @@ contains
         use mpas_atm_halos, only: atm_destroy_halo_groups, exchange_halo_group
         use mpas_atm_threading, only: mpas_atm_threading_finalize
         use mpas_decomp, only: mpas_decomp_destroy_decomp_list
-        use mpas_derived_types, only: field2dreal
+        use mpas_derived_types, only: field2dreal, field3dreal, mpas_pool_type
         use mpas_field_routines, only: mpas_deallocate_scratch_field
         use mpas_framework, only: mpas_framework_finalize
         use mpas_log, only: mpas_log_finalize
@@ -3190,10 +3328,16 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_final'
         integer :: ierr
         type(field2dreal), pointer :: field_2d_real
+        type(field3dreal), pointer :: field_3d_real
+        type(mpas_pool_type), pointer :: mpas_pool
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
         nullify(field_2d_real)
+        nullify(field_3d_real)
+        nullify(mpas_pool)
+
+        call self % get_pool_pointer(mpas_pool, 'all')
 
         ! First, wind down MPAS dynamical core by calling its own finalization procedures.
 
@@ -3206,6 +3350,18 @@ contains
         call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
         call mpas_deallocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
+
+        call mpas_pool_get_field(mpas_pool, 'scalars_alias', field_3d_real, timelevel=1)
+        deallocate(field_3d_real % constituentnames)
+        nullify(field_3d_real % array, field_3d_real % attlists, field_3d_real % constituentnames)
+        nullify(field_3d_real)
+
+        call mpas_pool_get_field(mpas_pool, 'scalars_alias', field_3d_real, timelevel=2)
+        deallocate(field_3d_real % constituentnames)
+        nullify(field_3d_real % array, field_3d_real % attlists, field_3d_real % constituentnames)
+        nullify(field_3d_real)
+
+        nullify(mpas_pool)
 
         call self % debug_print(log_level_info, 'Finalizing dynamics')
 
