@@ -2,8 +2,7 @@
 ! (1) set -chem none in CAM_CONFIG_OPTS in a FHIST_LTso (or any other CAM7 case)
 !     n.b. only CAM7 is supported as its PUMAS accepts tendencies from microp_aero/nucleate_ice
 !          and CAM7 PUMAS is the target for CAM-SIMA CCPPization, not pumas-frozen.
-! (2) isolating the microp_aero section in physpkg.F90
-! as the default 'microp_section' snapshot point will also include the actual microphysics (e.g., PUMAS)
+! (2) isolating the microp_aero section in physpkg.F90 as a snapshot point
 ! (3) cld_macmic_num_steps = 1 also has to be set in CAM user_nl_cam when creating the snapshot.
 
 ! this is a CAM7 LT nochem snapshot
@@ -24,15 +23,15 @@ use_hetfrz_classnuc            = .false.
 nucleate_ice_incloud           = .false.
 nucleate_ice_strat             = 1.0D0
 nucleate_ice_subgrid           = 1.2D0
-nucleate_ice_subgrid_strat             = 1.2D0
-nucleate_ice_use_troplev               = .true.
+nucleate_ice_subgrid_strat     = 1.2D0
+nucleate_ice_use_troplev       = .true.
 use_preexisting_ice            = .true.
 
 ! microp_aero:
 microp_aero_wsub_min           =   0.1D0
 microp_aero_wsub_scale         =   0.9D0
 microp_aero_wsubi_min          =   0.001D0
-microp_aero_wsubi_scale                =   1.5D0
+microp_aero_wsubi_scale        =   1.5D0
 
 ! BAM aerosols:
 rad_aer_climate = 'N:sulf:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/sulfate_rrtmg_c080918.nc', 'N:dust1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/dust1_rrtmg_c080918.nc',
