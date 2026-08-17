@@ -58,6 +58,8 @@ add_pfunit_ctest(test_table_interp
 add_library(rad_aer_defs_testlib
     mock_phys_prop.F90
     ${AEROSOL_SRC}/radiative_aerosol_definitions.F90
+    ${UTILS_SRC}/string_utils.F90
+    ${CORE_UTILS}/string_core_utils.F90
 )
 target_link_libraries(rad_aer_defs_testlib PUBLIC aerosol_test_mocks)
 target_compile_options(rad_aer_defs_testlib PRIVATE -ffree-line-length-none)
