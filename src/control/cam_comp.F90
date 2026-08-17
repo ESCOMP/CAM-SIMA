@@ -732,7 +732,8 @@ CONTAINS
 
    subroutine rad_aer_init_all()
       ! Initialize aerosol optics infrastructure.
-      ! Called after phys_init and before history_init_files.
+      ! Called before phys_init (physics init phases query the aerosol
+      ! objects) and before history_init_files (registers history fields).
       use radiative_aerosol,     only: rad_aer_init
       use aerosol_instances_mod, only: aerosol_instances_init, aerosol_instances_init_states
       use cam_ccpp_cap,          only: cam_constituents_array

@@ -1303,8 +1303,14 @@ subroutine rad_aer_init()
       end if
    end do
 
-   ! Register aerosol diagnostic history fields
-   call rad_aer_diag_init(bulk_aerosol_list(0))
+   ! Register aerosol mass/burden history fields for the climate list and all
+   ! active diagnostic lists (output by the aerosol_optics_diagnostics scheme
+   ! via rad_aer_diag_out).
+   do i = 0, N_DIAG
+      if (active_calls(i)) then
+         call rad_aer_diag_init(bulk_aerosol_list(i))
+      end if
+   end do
 
 end subroutine rad_aer_init
 
