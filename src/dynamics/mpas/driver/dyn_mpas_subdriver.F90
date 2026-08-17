@@ -966,20 +966,15 @@ contains
             end if
         end if
 
-        index_qv = 0
-
         ! Lower index in `mpas_scalar_qv_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
-        set_index_qv: do i = 1, size(mpas_scalar_qv_standard_name)
-            do j = 1, self % number_of_constituents
-                if (trim(adjustl(self % constituent_name(j))) == trim(adjustl(mpas_scalar_qv_standard_name(i))) .and. &
-                    self % is_water_species(j)) then
-                    index_qv = j
+        do i = 1, size(mpas_scalar_qv_standard_name)
+            index_qv = findloc(self % constituent_name, mpas_scalar_qv_standard_name(i), dim=1, mask=self % is_water_species)
 
-                    ! The best candidate of `qv` has been found. Exit prematurely.
-                    exit set_index_qv
-                end if
-            end do
-        end do set_index_qv
+            ! The best candidate of `qv` has been found. Exit prematurely.
+            if (index_qv > 0) then
+                exit
+            end if
+        end do
 
         ! `qv` must be present in constituents as per MPAS requirements. It is a water species by definition.
         ! See `dyn_mpas_init_phase3` for details.
@@ -988,21 +983,17 @@ contains
                 stringify(mpas_scalar_qv_standard_name) // ', and it must be a water species', subname, __LINE__)
         end if
 
-        index_qc = 0
-        index_tke = 0
-
         ! Lower index in `mpas_scalar_qc_standard_name` has higher precedence, with index 1 being exactly what MPAS wants.
-        set_index_qc: do i = 1, size(mpas_scalar_qc_standard_name)
-            do j = 1, self % number_of_constituents
-                if (trim(adjustl(self % constituent_name(j))) == trim(adjustl(mpas_scalar_qc_standard_name(i))) .and. &
-                    self % is_water_species(j)) then
-                    index_qc = j
+        do i = 1, size(mpas_scalar_qc_standard_name)
+            index_qc = findloc(self % constituent_name, mpas_scalar_qc_standard_name(i), dim=1, mask=self % is_water_species)
 
-                    ! The best candidate of `qc` has been found. Exit prematurely.
-                    exit set_index_qc
-                end if
-            end do
-        end do set_index_qc
+            ! The best candidate of `qc` has been found. Exit prematurely.
+            if (index_qc > 0) then
+                exit
+            end if
+        end do
+
+        index_tke = 0
 
         ! If LES is enabled, `qc` and `tke` must be present in constituents as per MPAS requirements.
         ! Otherwise, it is fine to not have them.
