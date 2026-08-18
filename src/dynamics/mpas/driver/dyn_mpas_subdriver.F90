@@ -770,14 +770,18 @@ contains
         ! it is operating as a dynamical core, and therefore it needs to allocate scalars separately
         ! from other Registry-defined fields. The special logic is located in `atm_setup_block`.
         ! This must be done before calling `mpas_bootstrap_framework_phase1`.
+        call self % get_pool_pointer(mpas_pool, 'cfg')
+
         if (.not. self % les_model) then
             ! No need to add an extra "phantom" constituent, `tke`.
-            call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents)
+            call mpas_pool_add_config(mpas_pool, 'cam_pcnst', self % number_of_constituents)
         else
             ! Need to add an extra "phantom" constituent, `tke`. There is additional logic
             ! for it in `dyn_mpas_define_scalar`.
-            call mpas_pool_add_config(self % domain_ptr % configs, 'cam_pcnst', self % number_of_constituents + 1)
+            call mpas_pool_add_config(mpas_pool, 'cam_pcnst', self % number_of_constituents + 1)
         end if
+
+        nullify(mpas_pool)
 
         ! Not actually used because a PIO file descriptor is directly supplied.
         mesh_filename = 'external mesh'
@@ -824,7 +828,9 @@ contains
             end if
         end if
 
-        call mpas_pool_add_dimension(self % domain_ptr % blocklist % dimensions, 'num_scalars', num_scalars)
+        call self % get_pool_pointer(mpas_pool, 'dim')
+
+        call mpas_pool_add_dimension(mpas_pool, 'num_scalars', num_scalars)
 
         nullify(mpas_pool)
         nullify(num_scalars)
@@ -3164,13 +3170,17 @@ contains
 
         ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not initialized by
         ! `mpas_atm_dynamics_init`. Initialize them below.
-        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call self % get_pool_pointer(mpas_pool, 'all')
+
+        call mpas_pool_get_field(mpas_pool, 'tend_uzonal', field_2d_real, timelevel=1)
         call mpas_allocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
 
-        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_pool_get_field(mpas_pool, 'tend_umerid', field_2d_real, timelevel=1)
         call mpas_allocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
+
+        nullify(mpas_pool)
 
         call self % debug_print(log_level_debug, subname // ' completed')
 
@@ -3343,11 +3353,11 @@ contains
 
         ! Some additional "scratch" fields are needed for interoperability with CAM-SIMA, but they are not finalized by
         ! `mpas_atm_dynamics_finalize`. Finalize them below.
-        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_uzonal', field_2d_real, timelevel=1)
+        call mpas_pool_get_field(mpas_pool, 'tend_uzonal', field_2d_real, timelevel=1)
         call mpas_deallocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
 
-        call mpas_pool_get_field(self % domain_ptr % blocklist % allfields, 'tend_umerid', field_2d_real, timelevel=1)
+        call mpas_pool_get_field(mpas_pool, 'tend_umerid', field_2d_real, timelevel=1)
         call mpas_deallocate_scratch_field(field_2d_real)
         nullify(field_2d_real)
 
