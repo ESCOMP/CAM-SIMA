@@ -191,17 +191,18 @@ contains
       character(len=256), intent(inout), allocatable :: array(:)
       character(len=256), allocatable :: tmp(:)
       integer :: ierr
+      character(len=256) :: errmsg
 
-      allocate (tmp(size(array)*2), stat=ierr)
+      allocate(tmp(size(array)*2), stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
-        call endrun('physprop_accum_unique_files: Allocation error.')
+        call endrun('physprop_accum_unique_files: Allocation error '//errmsg)
       end if
 
       tmp(:size(array)) = array
 
-      deallocate (array, stat=ierr)
+      deallocate(array, stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
-        call endrun('physprop_accum_unique_files: Deallocation error.')
+        call endrun('physprop_accum_unique_files: Deallocation error '//errmsg)
       end if
 
       call move_alloc(tmp, array)
@@ -259,7 +260,7 @@ contains
   ! If found, return it's index in the list.  Otherwise return -1.
   integer function physprop_get_id(filename)
     character(len=*), intent(in) :: filename
-    integer iphysprop
+    integer :: iphysprop
 
     physprop_get_id = -1
     do iphysprop = 1, numphysprops
@@ -530,7 +531,7 @@ contains
 
     ierr = pio_inq_dimid(nc_id, 'opticsmethod_len', opticslength_id)
     ierr = pio_inq_dimlen(nc_id, opticslength_id, opticslength)
-    if (opticslength .gt. ot_length) then
+    if (opticslength > ot_length) then
       call endrun(" optics type length in "//phys_prop%sourcefile//" excedes maximum length of 32")
     end if
     ierr = pio_inq_varid(nc_id, 'opticsmethod', op_type_id)
@@ -626,12 +627,12 @@ contains
 
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
 
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
 
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ierr = pio_inq_varid(nc_id, 'rh', rh_id)
@@ -745,12 +746,12 @@ contains
 
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
 
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
 
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ! read file data
@@ -809,12 +810,12 @@ contains
 
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
 
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
 
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ! read file data
@@ -865,13 +866,13 @@ contains
 
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
 
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
     if (masterproc) write (iulog, *) 'swbands', swbands
 
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ! read file data
@@ -931,12 +932,12 @@ contains
 
     ierr = pio_inq_dimid(nc_id, 'lw_band', lw_band_id)
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimid(nc_id, 'sw_band', sw_band_id)
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ierr = pio_inq_varid(nc_id, 'rh', rh_id)
@@ -1020,12 +1021,12 @@ contains
 
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
 
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
 
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ! read file data
@@ -1163,12 +1164,12 @@ contains
 
     ierr = pio_inq_dimid(ncid, 'lw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nlwbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nlwbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of lw bands')
 
     ierr = pio_inq_dimid(ncid, 'sw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nswbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nswbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of sw bands')
 
     ! Get other dimensions
@@ -1274,12 +1275,12 @@ contains
 
     ierr = pio_inq_dimid(ncid, 'lw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nlwbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nlwbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of lw bands')
 
     ierr = pio_inq_dimid(ncid, 'sw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nswbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nswbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of sw bands')
 
     ! Get other dimensions
@@ -1335,12 +1336,12 @@ contains
 
     ierr = pio_inq_dimid(ncid, 'lw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nlwbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nlwbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of lw bands')
 
     ierr = pio_inq_dimid(ncid, 'sw_band', did)
     ierr = pio_inq_dimlen(ncid, did, ival)
-    if (ival .ne. nswbands) call endrun(subname//':'//props%sourcefile// &
+    if (ival /= nswbands) call endrun(subname//':'//props%sourcefile// &
                                         ' has the wrong number of sw bands')
 
     ierr = pio_inq_varid(ncid, 'density', vid)
@@ -1508,12 +1509,12 @@ contains
 
     ierr = pio_inq_dimid(nc_id, 'lw_band', lw_band_id)
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
-    if (nbnd .ne. nlwbands) call endrun(trim(phys_prop%sourcefile)// &
+    if (nbnd /= nlwbands) call endrun(trim(phys_prop%sourcefile)// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimid(nc_id, 'sw_band', sw_band_id)
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
-    if (swbands .ne. nswbands) call endrun(trim(phys_prop%sourcefile)// &
+    if (swbands /= nswbands) call endrun(trim(phys_prop%sourcefile)// &
                                            ' has the wrong number of sw bands')
 
     ierr = pio_inq_dimid(nc_id, 'coreshellratio', did)
@@ -1598,12 +1599,12 @@ contains
 
     ierr = pio_inq_dimid(nc_id, 'lw_band', lw_band_id)
     ierr = pio_inq_dimlen(nc_id, lw_band_id, nbnd)
-    if (nbnd .ne. nlwbands) call endrun(phys_prop%sourcefile// &
+    if (nbnd /= nlwbands) call endrun(phys_prop%sourcefile// &
                                         ' has the wrong number of lwbands')
 
     ierr = pio_inq_dimid(nc_id, 'sw_band', sw_band_id)
     ierr = pio_inq_dimlen(nc_id, sw_band_id, swbands)
-    if (swbands .ne. nswbands) call endrun(phys_prop%sourcefile// &
+    if (swbands /= nswbands) call endrun(phys_prop%sourcefile// &
                                            ' has the wrong number of sw bands')
 
     ierr = pio_inq_varid(nc_id, 'ext_sw_wtp', sw_ext_wtp_id)

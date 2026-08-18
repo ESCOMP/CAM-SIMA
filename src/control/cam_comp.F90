@@ -64,7 +64,7 @@ module cam_comp
 
 
 !-----------------------------------------------------------------------
-CONTAINS
+contains
 !-----------------------------------------------------------------------
 
    subroutine cam_init(caseid, ctitle, model_doi_url,                         &
@@ -600,8 +600,8 @@ CONTAINS
       !   message printed by masterproc below.  The test-model script
       !   searches for this message in the output log to figure out if
       !   CAM completed successfully.
-      call shr_sys_flush( 0 )       ! Flush all output to standard error
-      call shr_sys_flush( iulog )   ! Flush all output to the CAM log file
+      call shr_sys_flush(0)       ! Flush all output to standard error
+      call shr_sys_flush(iulog)   ! Flush all output to the CAM log file
 
       if (masterproc) then
          write(iulog,9300) nstep-1,nstep
@@ -667,13 +667,13 @@ CONTAINS
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
-              std_name=wv_stdname,              &
-              long_name=wv_longname,            &
-              units="kg kg-1",                                                          &
-              default_value=0._kind_phys,                                               &
-              vertical_dim="vertical_layer_dimension",                                  &
-              advected=.true.,                                                          &
-              diag_name="Q",                                                            &
+              std_name=wv_stdname,                       &
+              long_name=wv_longname,                     &
+              units='kg kg-1',                           &
+              default_value=0._kind_phys,                &
+              vertical_dim='vertical_layer_dimension',   &
+              advected=.true.,                           &
+              diag_name='Q',                             &
            errcode=errflg, errmsg=errmsg)
 
          if (errflg /= 0) then
