@@ -605,7 +605,7 @@
               units="kg kg-1" type="real" constituent="true">
       <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>Q cnst_Q</ic_file_input_names>
+      <ic_file_input_names>Q cnst_Q qv</ic_file_input_names>
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
