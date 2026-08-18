@@ -26,7 +26,7 @@ module bulk_aerosol_state_mod
      private
 
       ! Opaque host-binding handle used to retrieve aerosol fields from
-      ! host model data; built by host-side wiring (aerosol_instances_mod).
+      ! host model data; built by aerosol_instances_mod.
       ! This keeps model-specific data structures outside of the aerosol interface.
       type(aero_host_binding_t) :: host_
 
@@ -84,13 +84,14 @@ contains
     integer, intent(in), optional :: list_idx
     type(bulk_aerosol_state), pointer :: newobj
 
+    character(len=*), parameter :: subname = 'bulk_aerosol_state::constructor'
     integer :: ierr
     character(len=256) :: alloc_errmsg
 
-    allocate(newobj,stat=ierr)
+    allocate(newobj, stat=ierr, errmsg=alloc_errmsg)
     if( ierr /= 0 ) then
        nullify(newobj)
-       return
+       call endrun(subname//': newobj allocation error: '//trim(alloc_errmsg))
     end if
 
     newobj%host_ = host
@@ -104,12 +105,12 @@ contains
     ! Allocate per-object workspace for derived number fields.
     allocate(newobj%num_work_(ncol, pver), stat=ierr, errmsg=alloc_errmsg)
     if (ierr /= 0) then
-       call endrun('bulk_aerosol_state constructor: num_work_ allocation error: '//trim(alloc_errmsg))
+       call endrun(subname//': num_work_ allocation error: '//trim(alloc_errmsg))
     end if
     newobj%num_work_(:,:) = 0._r8
     allocate(newobj%zero_fld_(ncol, pver), stat=ierr, errmsg=alloc_errmsg)
     if (ierr /= 0) then
-       call endrun('bulk_aerosol_state constructor: zero_fld_ allocation error: '//trim(alloc_errmsg))
+       call endrun(subname//': zero_fld_ allocation error: '//trim(alloc_errmsg))
     end if
     newobj%zero_fld_(:,:) = 0._r8
 
