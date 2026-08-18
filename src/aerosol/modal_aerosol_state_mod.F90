@@ -300,8 +300,8 @@ contains
                    end if
                 end do
              end do
-          endif
-       endif
+          end if
+       end if
     case('black-c')
        if (modetype=='accum') then
           wght(:ncol,:) = 1._r8
@@ -309,7 +309,7 @@ contains
     case('sulfate_strat')
        if (modetype=='accum' .or. modetype=='coarse' .or. modetype=='coarse_strat') then
           wght(:ncol,:) = 1._r8
-       endif
+       end if
     end select
 
   end subroutine icenuc_size_wght_arr
@@ -354,21 +354,25 @@ contains
 
              if (dgnum(col_ndx,lyr_ndx,bin_ndx) > 0._r8) then
                 ! only allow so4 with D>0.1 um in ice nucleation
+                ! Gettelman et al., 2010. https://doi.org/10.1029/2009JD013797
+                ! 0.5 * erfc[ ln(d/dgnum) / (sqrt(2) * ln(sigmag)) ]
+                ! assumes a lognormal distribution to get the number fraction
+                ! above a cutoff diameter d.
                 wght = max(0._r8,(0.5_r8 - 0.5_r8* &
                      erf(log(0.1e-6_r8/dgnum(col_ndx,lyr_ndx,bin_ndx))/ &
                      (2._r8**0.5_r8*log(sigmag_aitken)))  ))
 
              end if
-          endif
-       endif
+          end if
+       end if
     case('black-c')
        if (modetype=='accum') then
           wght = 1._r8
-       endif
+       end if
     case('sulfate_strat')
        if (modetype=='accum' .or. modetype=='coarse' .or. modetype=='coarse_strat') then
           wght = 1._r8
-       endif
+       end if
     end select
 
   end subroutine icenuc_size_wght_val
