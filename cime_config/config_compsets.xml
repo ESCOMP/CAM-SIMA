@@ -105,8 +105,8 @@
   <!-- ****************************** -->
 
   <compset>
-    <alias>FCAM7</alias>
-    <lname>2000_CAM70_CLM50%SP_CICE%PRES_DOCN%DOM_SROF_SGLC_SWAV</lname>
+    <alias>F2000_C7</alias>
+    <lname>2000_CAM70_CLM60%SP_CICE%PRES_DOCN%DOM_SROF_SGLC_SWAV</lname>
   </compset>
 
   <compset>
