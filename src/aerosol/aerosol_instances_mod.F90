@@ -65,15 +65,16 @@ contains
     use modal_aerosol_properties_mod, only: modal_aerosol_properties
     use carma_aerosol_properties_mod, only: carma_aerosol_properties
     use bulk_aerosol_properties_mod,  only: bulk_aerosol_properties
-    use cam_abortutils, only: endrun
+    use cam_abortutils, only: check_allocate
 
     use spmd_utils, only: masterproc
     use cam_logfile, only: iulog
 
     integer :: nmodes, nbins, nbulk_aerosols
     integer :: iaermod, ilist, istat
+    character(len=256) :: errmsg
 
-    character(len=*), parameter :: subname = 'aerosol_instances_init: '
+    character(len=*), parameter :: subname = 'aerosol_instances_init'
 
     num_aero_models_ = 0
 
@@ -83,7 +84,7 @@ contains
     bulk_active_  = nbulk_aerosols > 0
 
     if (masterproc) then
-       write(iulog,*) subname,'nmodes,nbins,nbulk_aerosols: ',nmodes,nbins,nbulk_aerosols
+       write(iulog,*) subname,': nmodes,nbins,nbulk_aerosols: ',nmodes,nbins,nbulk_aerosols
     end if
 
     if (modal_active_) num_aero_models_ = num_aero_models_ + 1
@@ -92,10 +93,10 @@ contains
 
     if (num_aero_models_ < 1) return
 
-    allocate(aero_props_all(num_aero_models_, 0:N_DIAG), stat=istat)
-    if (istat /= 0) then
-       call endrun(subname//'allocation error: aero_props_all')
-    end if
+    allocate(aero_props_all(num_aero_models_, 0:N_DIAG), stat=istat, errmsg=errmsg)
+    call check_allocate(istat, subname, &
+         'aero_props_all(num_aero_models_, 0:N_DIAG)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     do ilist = 0, N_DIAG
        ! only populate aerosol properties for active climate/diagnostic lists.
@@ -202,21 +203,21 @@ contains
     use aerosol_mmr_host, only: aero_host_binding, aero_host_binding_t
 
     use ccpp_kinds,     only: kind_phys
-    use cam_abortutils, only: endrun
+    use cam_abortutils, only: check_allocate
     use physics_grid,            only: ncol => columns_on_task
 
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
 
     integer :: iaermod, ilist, istat
     type(aero_host_binding_t) :: host
-    character(len=*), parameter :: subname = 'aerosol_instances_init_states: '
+    character(len=*), parameter :: subname = 'aerosol_instances_init_states'
 
     if (num_aero_models_ < 1) return
 
     allocate(aero_states_all(num_aero_models_, 0:N_DIAG), stat=istat)
-    if (istat /= 0) then
-       call endrun(subname//'allocation error: aero_states_all')
-    end if
+    call check_allocate(istat, subname, &
+         'aero_states_all(num_aero_models_, 0:N_DIAG)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     host = aero_host_binding(constituents)
 

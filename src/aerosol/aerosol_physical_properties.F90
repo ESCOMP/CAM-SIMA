@@ -152,14 +152,15 @@ contains
 
     integer :: ncnst, i
     integer :: ierr
+    character(len=256) :: alloc_errmsg
     character(len=*), parameter :: subname = 'physprop_accum_unique_files'
     !------------------------------------------------------------------------------------
 
     ! Initial guess for number of files we need.
     if (.not. allocated(uniquefilenames)) then
-      allocate (uniquefilenames(50), stat=ierr)
+      allocate (uniquefilenames(50), stat=ierr, errmsg=alloc_errmsg)
       if (ierr /= 0) then
-        call endrun(subname//': allocation error: uniquefilenames')
+        call endrun(subname//': allocation error: uniquefilenames ' // alloc_errmsg)
       end if
     end if
 
@@ -228,13 +229,14 @@ contains
                                       ! nulls which aren't dealt with by trim()
 
     integer            :: ierr        ! error code
+    character(len=256) :: alloc_errmsg
 
     ! numphysprops is the number of unique physical properties files
     ! as counted by the physprop_accum_unique_files subroutine, which is called
     ! multiple times for different lists of radiatively active aerosol.
-    allocate (physprop(numphysprops), stat=ierr)
+    allocate (physprop(numphysprops), stat=ierr, errmsg=alloc_errmsg)
     if (ierr /= 0) then
-      call endrun('physprop_init: allocation error: physprop')
+      call endrun('physprop_init: allocation error: physprop ' // alloc_errmsg)
     end if
     ! The allocatable table components start unallocated; only the tables for
     ! the dataset's optics type are allocated by the *_optics_init routines.
