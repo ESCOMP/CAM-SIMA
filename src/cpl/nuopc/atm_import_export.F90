@@ -57,17 +57,27 @@ contains
   subroutine read_surface_fields_namelists()
 
     use shr_drydep_mod    , only : shr_drydep_readnl
+    use shr_drydep_mod    , only : shr_drydep_list => drydep_list
     use shr_megan_mod     , only : shr_megan_readnl
     use shr_fire_emis_mod , only : shr_fire_emis_readnl
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_ndep_mod      , only : shr_ndep_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
+    use drydep_coupling   , only : drydep_coupling_set_nflds, drydep_coupling_set_list
 
     character(len=*), parameter :: nl_file_name = 'drv_flds_in'
 
     ! read mediator fields options
     call shr_ndep_readnl(nl_file_name, ndep_nflds)
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
+
+    ! mirror the dry deposition field count and species names for physics.
+    ! registry fields dimensioned by the count are allocated later,
+    ! during physics initialization.
+    ! the order of the fields in Sl_ddvel is shared with the land model.
+    call drydep_coupling_set_nflds(drydep_nflds)
+    call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
+
     call shr_megan_readnl(nl_file_name, megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
@@ -647,19 +657,6 @@ contains
        end if
     end if
 
-    ! dry deposition fluxes from land
-    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (exists) then
-       if ( associated(cam_in%dstflx) ) then
-          do i = 1, columns_on_task
-             do n = 1, size(fldptr2d, dim=1)
-                cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
-             end do
-          end do
-       end if
-    end if
-
     ! MEGAN VOC emis fluxes from land
     call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -693,9 +690,6 @@ contains
     end if
 #endif
 
-#if 0
-! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species)
-! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -706,7 +700,17 @@ contains
           end do
        end do
     end if
-#endif
+
+    ! dust emission fluxes from land
+    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          do n = 1, size(fldptr2d, dim=1)
+             cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
+          end do
+       end do
+    end if
 
 #if 0
 ! Commented out until water isotopes or carbon cycle fluxes are implemented in CAM-SIMA

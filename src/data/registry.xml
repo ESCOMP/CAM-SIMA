@@ -22,6 +22,7 @@
   <metadata_file>$SRCROOT/src/physics/utils/physics_grid.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/radiation_namelist.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/drydep_coupling.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/gravity_wave_drag_ridge_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
@@ -742,14 +743,22 @@
 
     <!-- data_flux_fuel is being intentionally ignored as it will only be needed for the online carbon cycle -->
     <!-- data_flux_ocn is being intentionally ignored as it will only be needed for the online carbon cycle -->
-    <!-- depvel (dry_deposition_velocity_from_coupler) is being intentionally ignored as one of the dimensions is problematic
-         and it was determined that it probably will not be used in CAM-SIMA for some time -->
+
+    <!-- CLM computes and sends Sl_ddvel in cm/s; gas dry deposition
+         consumes it as-is in the Wesely land-type merge. -->
+    <variable local_name="depvel"
+              standard_name="dry_deposition_velocity_from_coupler"
+              units="cm s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension number_of_dry_deposition_species</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
 
     <variable local_name="dstflx"
               standard_name="surface_upward_dust_fluxes_from_coupler"
               units="kg m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
+      <dimensions>horizontal_dimension dust_size_bin_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dstflx cam_in_dstflx</ic_file_input_names>
     </variable>
@@ -1340,6 +1349,7 @@
        <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
        <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
        <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
+       <data>dry_deposition_velocity_from_coupler</data>
        <data>surface_upward_dust_fluxes_from_coupler</data>
        <data>co2_flux_from_land_from_coupler</data>
        <data>co2_flux_from_ocean_from_coupler</data>
@@ -1505,6 +1515,18 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
+    </variable>
+
+    <!-- Aerosol model properties -->
+    <variable local_name="ndust"
+              standard_name="dust_size_bin_dimension"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>number of dust size bins used in aerosol model</long_name>
+      <initial_value>4</initial_value>
+      <!-- this is not runtime configurable, and
+           not even easily compile-time configurable, because the assumption that
+           there are four dust bins is deeply embedded in the microphysics and
+           coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
     </variable>
 
     <!-- Gravity wave variables - need to be kept in the CAM registry -->

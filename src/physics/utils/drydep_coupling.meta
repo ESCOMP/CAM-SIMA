@@ -1,0 +1,13 @@
+[ccpp-table-properties]
+  name = drydep_coupling
+  type = module
+
+[ccpp-arg-table]
+  name  = drydep_coupling
+  type  = module
+[ n_drydep ]
+  standard_name = number_of_dry_deposition_species
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True
