@@ -215,7 +215,7 @@ contains
 
     if (num_aero_models_ < 1) return
 
-    allocate(aero_states_all(num_aero_models_, 0:N_DIAG), stat=istat)
+    allocate(aero_states_all(num_aero_models_, 0:N_DIAG), stat=istat, errmsg=errmsg)
     call check_allocate(istat, subname, &
          'aero_states_all(num_aero_models_, 0:N_DIAG)', &
          file=__FILE__, line=__LINE__, errmsg=errmsg)

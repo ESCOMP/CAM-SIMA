@@ -8,6 +8,7 @@ module cam_abortutils
   private
 
   public :: endrun
+  public :: check_allocate
 
 contains
 
@@ -22,5 +23,19 @@ contains
     end if
     error stop 1
   end subroutine endrun
+
+  subroutine check_allocate(errcode, subname, fieldname, file, line, errmsg)
+    integer,                    intent(in) :: errcode
+    character(len=*),           intent(in) :: subname
+    character(len=*),           intent(in) :: fieldname
+    character(len=*), optional, intent(in) :: file
+    integer,          optional, intent(in) :: line
+    character(len=*), optional, intent(in) :: errmsg
+
+    if (errcode /= 0) then
+       call endrun(trim(subname)//': failed to allocate '//trim(fieldname), &
+            file=file, line=line)
+    end if
+  end subroutine check_allocate
 
 end module cam_abortutils

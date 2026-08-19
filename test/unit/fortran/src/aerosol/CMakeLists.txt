@@ -132,3 +132,21 @@ add_pfunit_ctest(test_modal_aerosol_properties
 add_pfunit_ctest(test_modal_aerosol_state
     TEST_SOURCES test_modal_aerosol_state.pf
     LINK_LIBRARIES modal_aero_testlib)
+
+# ========================================================================
+# Tier 5: aerosol_instances lifecycle (all aerosol models registered
+# together; CARMA is a stub so its path is compile-only)
+# ========================================================================
+add_library(aero_instances_testlib
+    ${AEROSOL_SRC}/radiative_aerosol_definitions.F90
+    ${AEROSOL_SRC}/carma_aerosol_properties_mod.F90
+    ${AEROSOL_SRC}/carma_aerosol_state_mod.F90
+    ${AEROSOL_SRC}/aerosol_instances_mod.F90
+    mock_physics_grid.F90
+)
+target_link_libraries(aero_instances_testlib PUBLIC modal_aero_testlib)
+target_compile_options(aero_instances_testlib PRIVATE -ffree-line-length-none)
+
+add_pfunit_ctest(test_aerosol_instances
+    TEST_SOURCES test_aerosol_instances.pf
+    LINK_LIBRARIES aero_instances_testlib)
