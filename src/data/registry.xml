@@ -1493,6 +1493,7 @@
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_WSEDL</ic_file_input_names>
     </variable>
     <variable local_name="wp2_nadv"
@@ -2009,6 +2010,7 @@
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
     </variable>
     <variable local_name="cldfrc"
