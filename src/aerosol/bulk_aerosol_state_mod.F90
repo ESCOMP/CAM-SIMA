@@ -61,8 +61,6 @@ module bulk_aerosol_state_mod
      procedure :: aqu_gain_binfraction
      procedure :: surf_area_dens
      procedure :: get_bulk_num_and_mass
-     ! for bit-for-bit
-     procedure :: nuclice_get_numdens => nuclice_get_numdens_bam
 
      final :: destructor
 
