@@ -209,6 +209,7 @@ contains
     real(kind_phys), pointer, intent(in) :: constituents(:,:,:)
 
     integer :: iaermod, ilist, istat
+    character(len=256) :: errmsg
     type(aero_host_binding_t) :: host
     character(len=*), parameter :: subname = 'aerosol_instances_init_states'
 
