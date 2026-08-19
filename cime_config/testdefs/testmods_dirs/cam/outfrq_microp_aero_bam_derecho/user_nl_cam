@@ -14,8 +14,8 @@ debug_output = 1
 ncdata_check_err = .true.
 min_difference = 2e-15
 
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_microp_aero_derecho_gnu_before_c20260518.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_microp_aero_derecho_gnu_after_c20260518.nc'
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196dev_ne3pg3_fhistc_ltso_microp_aero_bam_snapshot_derecho_gnu_before_c20260819.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196dev_ne3pg3_fhistc_ltso_microp_aero_bam_snapshot_derecho_gnu_after_c20260819.nc'
 
 use_hetfrz_classnuc            = .false.
 
