@@ -1,4 +1,4 @@
-name: MPAS Dynamical Core CI
+name: CAM-SIMA Fortran CI
 
 permissions:
   contents: read
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v7
 
-      - name: Check if there are changes to MPAS dynamical core
+      - name: Check if there are changes to Fortran source code
         id: conditional
         run: |
           set -euo pipefail
@@ -122,19 +122,19 @@ jobs:
           echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
           git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
 
-          if grep -E '^\.github/workflows/mpas_dynamical_core_ci\.yml$|^src/dynamics/mpas/.+$' changed-paths.txt > matched-paths.txt; then
+          if grep -E '^\.github/workflows/cam_sima_fortran_ci\.yml$|^share$|^src/.+$|^test/unit/.+$' changed-paths.txt > matched-paths.txt; then
             write_result_and_exit true
           else
             write_result_and_exit false
           fi
-  # This job evaluates the overall status of MPAS dynamical core CI for the purpose of inclusion as a required status check.
+  # This job evaluates the overall status of CAM-SIMA Fortran CI for the purpose of inclusion as a required status check.
   # It exists solely due to, again, the peculiar limitations of GitHub Actions, quoted below for reference:
   #
   # "The `jobs.<job_id>.if` conditional is evaluated before `jobs.<job_id>.strategy.matrix` is applied." This implies that
   # when a matrix job is set as a required status check, skipping it due to the conditional will cause a pull request to be
   # blocked from merging.
   overall-status:
-    name: Overall status (MPAS Dynamical Core CI)
+    name: Overall status (CAM-SIMA Fortran CI)
     needs:
       - conditional-check
       - source-code-linting
@@ -208,7 +208,7 @@ jobs:
     runs-on: ubuntu-slim
     env:
       FORTITUDE_VERSION: 0.9.*
-      SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
+      SOURCE_CODE_PATH: ${{ github.workspace }}
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
@@ -229,14 +229,36 @@ jobs:
 
       - name: Lint Fortran source code
         run: |
-          source venv-fortitude/bin/activate
-          fortitude \
-            --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" \
-            check \
-            --exit-zero \
-            --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
-            "$SOURCE_CODE_PATH"
-          cat "$SOURCE_CODE_PATH/source-code-linting.log"
+          # Retrieve the matched paths.
+          echo "${{ needs.conditional-check.outputs.matched-paths }}" | base64 -d > matched-paths.txt
+
+          # Filter Fortran files for Fortitude.
+          # Fortitude will choke if it encounters non-Fortran files in the command line arguments.
+          if grep -E '[^/]+\.(F|f|F90|f90|pf)$' matched-paths.txt > filtered-paths.txt; then
+            set --
+            while IFS="" read -r LINE || [ -n "$LINE" ]; do
+              [ -f "$LINE" ] && set -- "$@" "$LINE"
+            done < filtered-paths.txt
+
+            # Fortitude will still choke if there are no command line arguments.
+            if [ "$#" -gt 0 ]; then
+              source venv-fortitude/bin/activate
+              # First run: Annotated output for GitHub Actions.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-format github \
+                "$@" | sed -e "s|file=$SOURCE_CODE_PATH/|file=|g"
+              # Second run: Output to a log file for uploading.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
+                "$@"
+            fi
+          fi
 
       - name: Upload Fortran source code linting log
         if: ${{ always() }}
@@ -254,9 +276,11 @@ jobs:
     container:
       image: ghcr.io/kuanchihwang/atm-sci-container:2026-06-12_${{ matrix.compiler }}_${{ matrix.mpi }}
     env:
+      CONTAINER_PRESET: cesm
       CONTAINER_ENVIRONMENT: pfunit
+      RRTMGP_DATA_REFERENCE: v1.9
       UNIT_TESTS_BUILD_TYPE: Debug
-      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
+      UNIT_TESTS_PATH: ${{ github.workspace }}/test/unit/fortran
     strategy:
       fail-fast: false
       matrix:
@@ -268,20 +292,41 @@ jobs:
           - gnu-15
           - intel-2024
           - intel-2025
-        # The unit tests in MPAS dynamical core currently do not involve any MPI functionalities.
-        # Testing with a single MPI implementation is sufficient for now.
+        # Uncomment the following lines to test with more MPI implementations. Currently only `open-mpi-5`
+        # (Open MPI 5.0.x series) is enabled. We may expand this matrix as our test coverage grows in the future.
         mpi:
+          # - mpich-4
+          # - open-mpi-4
           - open-mpi-5
+        # include:
+        #   - compiler: intel-2024
+        #     mpi: intel-mpi
+        #   - compiler: intel-2025
+        #     mpi: intel-mpi
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
         uses: actions/checkout@v7
+
+      - name: Checkout dependencies
+        run: |
+          ./bin/git-fleximod update ncar-physics share
+
+      - name: Checkout rrtmgp-data for PIO file reader tests
+        uses: actions/checkout@v7
+        with:
+          repository: earth-system-radiation/rrtmgp-data
+          ref: ${{ env.RRTMGP_DATA_REFERENCE }}
+          path: ${{ env.UNIT_TESTS_PATH }}/rrtmgp-data
 
       - name: Build unit tests
         run: |
           source "$(command -v container-entrypoint-hook.sh)"
           cmake \
             -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" \
+            -D CAM_SIMA_ENABLE_CODE_COVERAGE=ON \
+            -D CAM_SIMA_ENABLE_IO_TESTS=ON \
+            -D CAM_SIMA_ENABLE_TESTS=ON \
             -B "$UNIT_TESTS_PATH/build" \
             -S "$UNIT_TESTS_PATH"
           cmake \
@@ -293,16 +338,51 @@ jobs:
           source "$(command -v container-entrypoint-hook.sh)"
           ctest \
             --build-config "$UNIT_TESTS_BUILD_TYPE" \
-            --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" \
+            --output-junit "$UNIT_TESTS_PATH/build/unit-tests.xml" \
             --output-on-failure \
             --test-dir "$UNIT_TESTS_PATH/build" \
+            --test-output-size-failed 524288 \
+            --test-output-size-passed 524288 \
             --verbose
 
-      - name: Upload unit tests log
+      - name: Upload unit test results
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           if-no-files-found: ignore
-          name: unit-tests-log-${{ matrix.compiler }}
-          path: ${{ env.UNIT_TESTS_PATH }}/build/unit-tests.log
+          name: unit-tests-xml-${{ matrix.compiler }}
+          path: ${{ env.UNIT_TESTS_PATH }}/build/unit-tests.xml
+          retention-days: 7
+
+      # Code coverage analysis only works reliably with the GNU Compiler Collection.
+      # Do it only with the latest version to save CI time.
+
+      - name: Install Gcovr
+        if: ${{ matrix.compiler == 'gnu-15' }}
+        run: |
+          python3 -m venv venv-gcovr
+          source venv-gcovr/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install gcovr
+
+      - name: Run Gcovr
+        if: ${{ matrix.compiler == 'gnu-15' }}
+        run: |
+          source venv-gcovr/bin/activate
+          export SOURCE_PATH="$PWD"
+          cd "$UNIT_TESTS_PATH/build"
+          gcovr \
+            --filter "$SOURCE_PATH/src" \
+            --html code-coverage.html \
+            --root "$SOURCE_PATH" \
+            --verbose \
+            .
+
+      - name: Upload code coverage results
+        if: ${{ always() && matrix.compiler == 'gnu-15' }}
+        uses: actions/upload-artifact@v7
+        with:
+          if-no-files-found: ignore
+          name: code-coverage-html
+          path: ${{ env.UNIT_TESTS_PATH }}/build/code-coverage.html
           retention-days: 7

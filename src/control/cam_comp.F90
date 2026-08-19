@@ -103,6 +103,7 @@ CONTAINS
       use phys_vars_init_check,      only: mark_as_initialized
       use tropopause_climo_read,     only: tropopause_climo_read_file
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
+      use topography_statics_read,   only: topography_statics_read_file
       use orbital_data,              only: orbital_data_init
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -223,6 +224,12 @@ CONTAINS
       ! Initialize constituent data
       call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
 
+      ! Ensure the constituents object is locked and allocated:
+      if (errflg /= 0) then
+         call endrun('cam_init: cam_ccpp_initialize_constituents failure: '//trim(errmsg), &
+                     file=__FILE__, line=__LINE__)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
@@ -270,6 +277,10 @@ CONTAINS
       call orbital_data_init(columns_on_task)
 
       call phys_init()
+
+      ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
+      ! from the topo file into the physics state
+      call topography_statics_read_file()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)

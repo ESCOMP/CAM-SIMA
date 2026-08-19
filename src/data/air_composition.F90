@@ -138,7 +138,8 @@ CONTAINS
       use physics_grid,         only: pcols => columns_on_task
       use vert_coord,           only: pver
       use runtime_obj,          only: wv_stdname
-      use cam_constituents,     only: const_name, num_advected
+      use cam_constituents,     only: num_constituents, num_advected
+      use cam_constituents,     only: const_name, const_is_advected
       use cam_constituents,     only: const_set_thermo_active
       use cam_constituents,     only: const_set_water_species
 
@@ -237,7 +238,8 @@ CONTAINS
       icnst = 1
       water_species_num = 0
       dry_species_num = 0
-      do idx = 1, num_advected
+      do idx = 1, num_constituents
+         if (.not. const_is_advected(idx)) cycle ! Skip all non-advected constituents
          cnst_stdname = const_name(idx)
          has_liq = .false.
          has_ice = .false.

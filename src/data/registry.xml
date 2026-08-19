@@ -424,7 +424,7 @@
               standard_name="dycore_calculates_geopotential_using_logarithms"
               units="flag" type="logical" access="protected">
       <initial_value>.false.</initial_value>
-      <initial_value dyn="SE,FV">.true.</initial_value>
+      <initial_value dyn="FV,FV3">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data>air_temperature</data>
@@ -594,8 +594,12 @@
     </variable>
 
     <!-- Constituent Variables -->
-    <!-- These are only used to set possible IC file input names, as the constituents object handles allocation. -->
-    <!-- Note: the first IC file input name should correspond to the short name of the constituent used in CAM, in order to facilitate reading constituent-dimensioned input fields. -->
+    <!-- These are only used to set possible IC file input names,
+         as the constituents object handles allocation/registration. -->
+    <!-- Only constituents with standard names that differ from the ic_file_input_name
+         needs to be listed in the registry. -->
+    <!-- Note: the first IC file input name should correspond to the short name of the constituent used in CAM,
+         in order to facilitate reading constituent-dimensioned input fields. -->
     <variable local_name="q"
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
@@ -655,35 +659,10 @@
 	      units="kg kg-1" type="real" constituent="true">
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
     </variable>
-    <variable local_name="CO2"
-	      standard_name="CO2"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CO2 cnst_CO2</ic_file_input_names>
-    </variable>
-    <variable local_name="N2O"
-	      standard_name="N2O"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>N2O cnst_N2O</ic_file_input_names>
-    </variable>
-    <variable local_name="CH4"
-	      standard_name="CH4"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CH4 cnst_CH4</ic_file_input_names>
-    </variable>
-    <variable local_name="CFC12"
-	      standard_name="CFC12"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>CFC12 cnst_CFC12</ic_file_input_names>
-    </variable>
     <variable local_name="CFC11"
 	      standard_name="CFC11"
 	      units="kg kg-1" type="real" constituent="true">
       <ic_file_input_names>CFC11STAR pbuf_CFC11STAR</ic_file_input_names>
-    </variable>
-    <variable local_name="O2"
-	      standard_name="O2"
-	      units="kg kg-1" type="real" constituent="true">
-      <ic_file_input_names>O2 pbuf_O2</ic_file_input_names>
     </variable>
     <variable local_name="O3"
 	      standard_name="O3"
@@ -692,15 +671,6 @@
     </variable>
 
     <!-- temporaries from pbuf for snapshot usage. -->
-    <variable local_name="landm"
-              standard_name="smoothed_land_area_fraction"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
-    </variable>
     <variable local_name="ast"
               standard_name="stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
@@ -1081,16 +1051,16 @@
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
     </variable>
     <variable local_name="co2diag"
-              standard_name="co2diag_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="diagnostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
     </variable>
     <variable local_name="co2prog"
-              standard_name="co2prog_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="prognostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1426,8 +1396,8 @@
        <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
-       <data>co2diag_tbd</data>
-       <data>co2prog_tbd</data>
+       <data>diagnostic_volume_mixing_ratio_of_co2_to_coupler</data>
+       <data>prognostic_volume_mixing_ratio_of_co2_to_coupler</data>
        <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
@@ -1469,6 +1439,32 @@
               standard_name="physics_fields_to_surface_coupler"
               units="None" type="cam_out_t">
       <long_name> </long_name>
+    </variable>
+
+    <!-- Topography dataset fields: default to 0 when no topo (aquap) -->
+    <variable local_name="sgh"
+              standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_SGH</ic_file_input_names>
+    </variable>
+    <variable local_name="sgh30"
+              standard_name="standard_deviation_of_subgrid_orography_for_turbulent_orographic_form_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_SGH30</ic_file_input_names>
+    </variable>
+    <variable local_name="landm"
+              standard_name="smoothed_land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_LANDM</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations from snapshot -->
@@ -1533,14 +1529,6 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_kvt</ic_file_input_names>
-    </variable>
-    <variable local_name="sgh"
-              standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
-              units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>pbuf_SGH</ic_file_input_names>
     </variable>
 
     <!-- Cloud fraction variables - need to be kept in the CAM registry -->
@@ -1630,7 +1618,6 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_kvh</ic_file_input_names>
     </variable>
-
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
               units="N m-2" type="real" kind="kind_phys"
@@ -2016,6 +2003,35 @@
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
     </variable>
+    <!-- Net radiative flux profiles for persistence across timesteps (including those without radiation) -->
+    <variable local_name="fns"
+              standard_name="shortwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcns"
+              standard_name="shortwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fnl"
+              standard_name="longwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcnl"
+              standard_name="longwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
     <variable local_name="two"
               standard_name="constant_dimension_two"
               units="count" type="integer"
@@ -2121,6 +2137,61 @@
               access="public" allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>273.15_kind_phys</initial_value>
+    </variable>
+    <!-- Variables for "bl_mynn" physics scheme -->
+    <variable local_name="nc"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nc</ic_file_input_names>
+    </variable>
+    <variable local_name="ni"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_ni</ic_file_input_names>
+    </variable>
+    <variable local_name="nwfa"
+              standard_name="mass_number_concentration_of_hygroscopic_aerosols_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nwfa</ic_file_input_names>
+    </variable>
+    <variable local_name="nifa"
+              standard_name="mass_number_concentration_of_nonhygroscopic_ice_nucleating_aerosols_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nifa</ic_file_input_names>
+    </variable>
+    <variable local_name="nbca"
+              standard_name="mass_number_concentration_of_hydrophobic_black_carbon_in_dry_air"
+              units="kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nbca</ic_file_input_names>
+    </variable>
+    <variable local_name="uoce"
+              standard_name="surface_eastward_sea_water_velocity"
+              units="m s-1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="voce"
+              standard_name="surface_northward_sea_water_velocity"
+              units="m s-1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
     </variable>
   </file>
 </registry>

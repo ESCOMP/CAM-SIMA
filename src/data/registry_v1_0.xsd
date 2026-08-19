@@ -29,7 +29,7 @@
 
   <xs:simpleType name="dycore_type">
     <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Z,]+"/>
+      <xs:pattern value="[A-Z0-9,]+"/>
     </xs:restriction>
   </xs:simpleType>
 
