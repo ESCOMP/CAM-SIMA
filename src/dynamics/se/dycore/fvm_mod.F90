@@ -397,8 +397,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         end if
 
         !       if (ns/=3) then
-        !         write(*,*) 'In fvm_reconstruction_mod function matmul_w has been hard-coded for ns=3 for performance'
-        !         write(*,*) 'Revert to general code - outcommented above'
+        !         write(iulog,*) 'In fvm_reconstruction_mod function matmul_w has been hard-coded for ns=3 for performance'
+        !         write(iulog,*) 'Revert to general code - outcommented above'
         !         call endrun('stopping')
         !       end if
       end if
@@ -468,11 +468,11 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     integer :: k, ie, klev
     real(kind=r8) :: one(np,np)
 
-    one = 1_r8
+    one = 1.0_r8
     do ie=nets,nete
       do k = 1, nlev
         fvm(ie)%dp_ref(k)         = (hyai(k+1) - hyai(k))*ps0 + (hybi(k+1) - hybi(k))*ps0
-        fvm(ie)%dp_ref_inverse(k) = 1_r8/fvm(ie)%dp_ref(k)
+        fvm(ie)%dp_ref_inverse(k) = 1.0_r8/fvm(ie)%dp_ref(k)
       end do
     end do
 
@@ -483,17 +483,17 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     do ie=nets,nete
       call fvm_set_cubeboundary(elem(ie),fvm(ie))
       call fvm_mesh(elem(ie),fvm(ie))
-      fvm(ie)%inv_area_sphere    = 1_r8/fvm(ie)%area_sphere
+      fvm(ie)%inv_area_sphere    = 1.0_r8/fvm(ie)%area_sphere
       !
       ! compute CSLAM areas consistent with SE area (at 1 degree they can be up to
       ! 1E-6 different than the correct spherical areas used in CSLAM)
       !
       call subcell_integration(one, np, nc, elem(ie)%metdet,fvm(ie)%inv_se_area_sphere)
-      fvm(ie)%inv_se_area_sphere = 1_r8/fvm(ie)%inv_se_area_sphere
+      fvm(ie)%inv_se_area_sphere = 1.0_r8/fvm(ie)%inv_se_area_sphere
 
-      fvm(ie)%fc(:,:,:,:) = 0_r8
-      fvm(ie)%fm(:,:,:,:) = 0_r8
-      fvm(ie)%ft(:,:,:  ) = 0_r8
+      fvm(ie)%fc(:,:,:,:) = 0.0_r8
+      fvm(ie)%fm(:,:,:,:) = 0.0_r8
+      fvm(ie)%ft(:,:,:  ) = 0.0_r8
     end do
     ! Need to allocate ghostBufQnhc after compute_ghost_corner_orientation because it
     ! changes the values for reverse
@@ -611,22 +611,22 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     do ie=nets,nete
        if (fvm(ie)%cubeboundary==nwest) then
          fvm(ie)%flux_orient     (:  ,1-nhc      :0     ,nc      +1 :nc      +nhc      ) = -1
-         fvm(ie)%spherecentroid  (:,    1-nhc      :0     ,nc      +1 :nc      +nhc    ) = -1e5_r8
+         fvm(ie)%spherecentroid  (:,    1-nhc      :0     ,nc      +1 :nc      +nhc    ) = -1.0e5_r8
          fvm(ie)%vtx_cart(:,1,1-nhc:0     ,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(4,1,1,nc)
          fvm(ie)%vtx_cart(:,2,1-nhc:0     ,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(4,2,1,nc)
        else if (fvm(ie)%cubeboundary==swest) then
          fvm(ie)%flux_orient     (:,1-nhc      :0     ,1-nhc      :0   ) = -1
-         fvm(ie)%spherecentroid  (:,1-nhc      :0     ,1-nhc      :0   ) = -1e5_r8
+         fvm(ie)%spherecentroid  (:,1-nhc      :0     ,1-nhc      :0   ) = -1.0e5_r8
          fvm(ie)%vtx_cart(:,1,1-nhc:0     ,1-nhc:0     ) = fvm(ie)%vtx_cart(1,1,1,1)
          fvm(ie)%vtx_cart(:,2,1-nhc:0     ,1-nhc:0     ) = fvm(ie)%vtx_cart(1,2,1,1)
        else if (fvm(ie)%cubeboundary==neast) then
          fvm(ie)%flux_orient     (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1
-         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1e5_r8
+         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1.0e5_r8
          fvm(ie)%vtx_cart(:,1,nc+1 :nc+nhc,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(3,1,nc,nc)
          fvm(ie)%vtx_cart(:,2,nc+1 :nc+nhc,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(3,2,nc,nc)
        else if (fvm(ie)%cubeboundary==seast) then
          fvm(ie)%flux_orient     (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1
-         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1e5_r8
+         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1.0e5_r8
          fvm(ie)%vtx_cart(:,1,nc+1 :nc+nhc,1-nhc:0     ) = fvm(ie)%vtx_cart(2,1,nc,1)
          fvm(ie)%vtx_cart(:,2,nc+1 :nc+nhc,1-nhc:0     ) = fvm(ie)%vtx_cart(2,2,nc,1)
        end if
@@ -654,7 +654,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
      !-------------------------------
 
      do ie=nets,nete
-       fvm(ie)%displ_max = 0_r8
+       fvm(ie)%displ_max = 0.0_r8
        do j=imin,imax
          do i=imin,imax
            !
@@ -725,9 +725,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              ! convert to element normalized coordinates
              !
              fvm(ie)%norm_elem_coord(1,i,j) =(tmpgnom%x-elem(ie)%corners(1)%x)/&
-                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1_r8
+                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1.0_r8
              fvm(ie)%norm_elem_coord(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
-                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1_r8
+                  (0.5_r8*real(nc, r8)*fvm(ie)%dalpha)-1.0_r8
            else
              fvm(ie)%norm_elem_coord(1,i,j) = 1D9
              fvm(ie)%norm_elem_coord(2,i,j) = 1D9
@@ -831,28 +831,28 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       do ie=nets,nete
         if (fvm(ie)%cubeboundary==nwest) then
           fvm(ie)%flux_orient_physgrid   (:  ,1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys) = -1
-          fvm(ie)%spherecentroid_physgrid(:,  1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys) = -1e5_r8
+          fvm(ie)%spherecentroid_physgrid(:,  1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys) = -1.0e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,1-nhc_phys:0     ,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(4,1,1,fv_nphys)
           fvm(ie)%vtx_cart_physgrid(:,2,1-nhc_phys:0     ,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(4,2,1,fv_nphys)
         else if (fvm(ie)%cubeboundary==swest) then
           fvm(ie)%flux_orient_physgrid   (:,1-nhc_phys      :0     ,1-nhc_phys      :0) = -1
-          fvm(ie)%spherecentroid_physgrid(:,1-nhc_phys      :0     ,1-nhc_phys      :0) = -1e5_r8
+          fvm(ie)%spherecentroid_physgrid(:,1-nhc_phys      :0     ,1-nhc_phys      :0) = -1.0e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,1-nhc_phys:0     ,1-nhc_phys:0) = fvm(ie)%vtx_cart_physgrid(1,1,1,1)
           fvm(ie)%vtx_cart_physgrid(:,2,1-nhc_phys:0     ,1-nhc_phys:0) = fvm(ie)%vtx_cart_physgrid(1,2,1,1)
         else if (fvm(ie)%cubeboundary==neast) then
           fvm(ie)%flux_orient_physgrid   (:,fv_nphys      +1 :fv_nphys      +nhc_phys      , &
                fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1
           fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      , &
-               fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1e5_r8
+               fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1.0e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,fv_nphys+1 :fv_nphys+nhc_phys,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(3,1,fv_nphys,fv_nphys)
           fvm(ie)%vtx_cart_physgrid(:,2,fv_nphys+1 :fv_nphys+nhc_phys,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(3,2,fv_nphys,fv_nphys)
         else if (fvm(ie)%cubeboundary==seast) then
           fvm(ie)%flux_orient_physgrid   (:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0) = -1
-          fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0) = -1e5_r8
+          fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0) = -1.0e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0) = &
                fvm(ie)%vtx_cart_physgrid(2,1,fv_nphys,1)
           fvm(ie)%vtx_cart_physgrid(:,2,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0) = &
@@ -939,8 +939,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
               fvm(ie)%norm_elem_coord_physgrid(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
                    (0.5_r8*real(fv_nphys, r8)*fvm(ie)%dalpha_physgrid)-1.0_r8
             else
-              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1E9_r8
-              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1.0E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1.0E9_r8
             end if
           end do
         end do

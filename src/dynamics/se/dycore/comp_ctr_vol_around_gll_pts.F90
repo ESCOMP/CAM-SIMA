@@ -99,11 +99,11 @@ contains
     use coordinate_systems_mod, only: cart2spherical
 
     ! Inputs
-    type(element_t),   intent(in) :: elem(:)
-    character(len=*),  intent(in) :: grid_format
-    character(len=*),  intent(in) :: filename_in
+    type(element_t),   intent(inout) :: elem(:)
+    character(len=*),  intent(in)    :: grid_format
+    character(len=*),  intent(in)    :: filename_in
 
-    real(r8), parameter :: rad2deg = 180_r8/pi
+    real(r8), parameter :: rad2deg = 180.0_r8/pi
 
     ! Local variables
 !!XXgoldyXX: v debug only
@@ -515,9 +515,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use hybrid_mod,   only: hybrid_t
     use control_mod,  only: refined_mesh
 
-    integer,         intent(in)         :: nets,nete
-    type(element_t), intent(in), target :: elem(:)
-    type(hybrid_t),  intent(in)         :: hybrid
+    integer,         intent(in)            :: nets,nete
+    type(element_t), intent(inout), target :: elem(:)
+    type(hybrid_t),  intent(in)            :: hybrid
 
     if (refined_mesh .or. (np /= 4)) then
       call InitControlVolumes_duel(elem, hybrid,nets,nete)
@@ -536,9 +536,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use quadrature_mod,         only: quadrature_t, gausslobatto
     use coordinate_systems_mod, only: cube_face_number_from_sphere
 
-    integer,         intent(in)         :: nets,nete
-    type(element_t), intent(in), target :: elem(:)
-    type(hybrid_t),  intent(in)         :: hybrid
+    integer,         intent(in)            :: nets,nete
+    type(element_t), intent(inout), target :: elem(:)
+    type(hybrid_t),  intent(in)            :: hybrid
 
     type(quadrature_t)  :: gll_pts
     type(cartesian3d_t) :: quad(4),corners3d(4)
@@ -589,7 +589,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       test(:,:,1) = cvlist(ie)%vol(:,:)
       call edgeVunpack(edge1, test, 1, 0, ie)
       cvlist(ie)%totvol(:,:) = test(:,:,1)
-      cvlist(ie)%invvol(:,:)=1_r8/cvlist(ie)%totvol(:,:)
+      cvlist(ie)%invvol(:,:)=1.0_r8/cvlist(ie)%totvol(:,:)
     end do
 
     call VerifyAreas(elem, hybrid, nets, nete)
@@ -607,8 +607,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do ie = nets, nete
       do j = 1, np
         do i = 1, np
-          cvlist(ie)%vert_latlon(:,i,j)%lat = 0_r8
-          cvlist(ie)%vert_latlon(:,i,j)%lon = 0_r8
+          cvlist(ie)%vert_latlon(:,i,j)%lat = 0.0_r8
+          cvlist(ie)%vert_latlon(:,i,j)%lon = 0.0_r8
           k = cvlist(ie)%nvert(i,j)
           !
           ! follow SCRIP protocol - of kk>k then repeat last vertex
@@ -640,9 +640,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     type(cartesian3d_t)             :: a
     integer                         :: i
 
-    a%x = 0_r8
-    a%y = 0_r8
-    a%z = 0_r8
+    a%x = 0.0_r8
+    a%y = 0.0_r8
+    a%z = 0.0_r8
     do i = 1, n
       a%x = a%x + t(i)%x
       a%y = a%y + t(i)%y
@@ -665,13 +665,13 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       do j=i+1,n
         !        if (ABS(a(j)-a(i)) < 1e-6)  a(j) = 9999
         delta = abs(a(j)-a(i))
-        if (delta < 1e-6_r8)  a(j) = 9999_r8
-        if (abs((2_r8*pi) - delta) < 1e-6_r8)  a(j) = 9999_r8
+        if (delta < 1e-6_r8)  a(j) = 9999.0_r8
+        if (abs((2.0_r8*pi) - delta) < 1.0e-6_r8)  a(j) = 9999.0_r8
       end do
     end do
     m = 0
     do i=1,n
-      if (a(i) < 9000_r8) m = m + 1
+      if (a(i) < 9000.0_r8) m = m + 1
     end do
     if (mod(m,2) /= 0) then
       do i=1,n
@@ -732,9 +732,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use dimensions_mod, only: max_corner_elem
     use control_mod,    only: north, south, east, west, neast, nwest, seast, swest
 
-    type(element_t), intent(in), target :: elem(:)
-    type(hybrid_t),  intent(in)         :: hybrid
-    integer, intent(in)                 :: nets,nete
+    type(element_t), intent(inout), target :: elem(:)
+    type(hybrid_t),  intent(in)            :: hybrid
+    integer, intent(in)                    :: nets,nete
     !   local
     integer             :: i,j,k,m,n,o,p,ie,m2
     real(r8)            :: vertpack  (    0:np,       0:np,    3)
@@ -862,9 +862,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
       do j=1,np
         do i=1,np
-          cvlist(ie)%vert(:,i,j)%x = 0_r8
-          cvlist(ie)%vert(:,i,j)%y = 0_r8
-          cvlist(ie)%vert(:,i,j)%z = 0_r8
+          cvlist(ie)%vert(:,i,j)%x = 0.0_r8
+          cvlist(ie)%vert(:,i,j)%y = 0.0_r8
+          cvlist(ie)%vert(:,i,j)%z = 0.0_r8
         end do
       end do
 
@@ -1078,8 +1078,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     real(kind=r8)                   :: area, area1, area2, area3
 
     if (abs(nvert) == 3) then
-      area2 = 0_r8
-      area3 = 0_r8
+      area2 = 0.0_r8
+      area3 = 0.0_r8
       if (cv(1)%x == 0) then
         call sphere_tri_area(cv(2), cv(3), cv(4), area1)
       else if (cv(2)%x == 0) then
@@ -1100,7 +1100,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     else if (abs(nvert) == 4) then
       call sphere_tri_area(cv(1), cv(2), cv(3), area1)
       call sphere_tri_area(cv(1), cv(3), cv(4), area2)
-      area3 = 0_r8
+      area3 = 0.0_r8
 
     else if (abs(nvert) == 5) then
       call sphere_tri_area(cv(1),cv(2),cv(3),area1)
@@ -1222,7 +1222,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     type(cartesian3D_t) :: sq1_3d(size(sq1)), sq2_3d(size(sq2)), pent_3d(size(pent))
     real(r8)            :: isq1, isq2, ipent, diff1, diff2, diffp, err
     real(r8), parameter :: dt = 0.5_r8
-    real(r8), parameter :: tol_pentagon_iteration = 1e-10_r8
+    real(r8), parameter :: tol_pentagon_iteration = 1.0e-10_r8
     type(cartesian2d_t) :: sq1com, sq2com, pentcom, ds1, ds2
     integer             :: i, iter
     integer,  parameter :: iter_max = 10000
@@ -1330,10 +1330,10 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     real(r8)                :: rvert,area1,area2,ave
     real(r8)                :: lat(4),lon(4)
     real(r8)                :: s,ds,triarea,triarea_target
-    real(r8)                :: xp1,xm1,yp1,ym1,sumdiff
-    real(r8), parameter     :: tiny = 1e-11_r8,norm
-    real(r8), parameter     :: tol = 2e-11_r8  ! convergece outer iteration
-    real(r8), parameter     :: tol_pentagons = 1e-13_r8  ! convergece pentagon iteration
+    real(r8)                :: xp1,xm1,yp1,ym1,sumdiff,norm
+    real(r8), parameter     :: tiny = 1.0e-11_r8
+    real(r8), parameter     :: tol = 2.0e-11_r8  ! convergece outer iteration
+    real(r8), parameter     :: tol_pentagons = 1.0e-13_r8  ! convergece pentagon iteration
 
     ! area difference to trigger pentagons.
     ! if it is too small, we will have pentagons with 1 very short edges
@@ -1343,7 +1343,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     ! ne=30  1e-5:  add 696 pentagons.  area ratio:  1.000004102
     ! ne=240 1e-4:  add 5688/ 345600 pentagons, area ratio: 1.0004
     ! ne=240 1e-5:  add 5736/ 345600 pentagons, area ratio: 1.000000078
-    real(r8), parameter     :: tol_use_pentagons=1e-5_r8
+    real(r8), parameter     :: tol_use_pentagons=1.0e-5_r8
     logical                 :: debug,keep
 
     integer                 :: face1,face2,found,ie_max,movex,movey,moved,ii,kmax,kk
@@ -1373,7 +1373,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     ! MNL: dx and dy are no longer part of element_t
     !      but they are easily computed for the
     !      uniform case
-    dx = pi/(2_r8*real(ne, r8))
+    dx = pi/(2.0_r8*real(ne, r8))
     dy = dx
 
     ! intialize local element dual grid, local element areas
@@ -1381,8 +1381,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do ie=nets,nete
 
       call convert_gbl_index(elem(ie)%vertex%number,ie1,je1,face_no)
-      start%x=-pi/4_r8 + ie1*dx
-      start%y=-1_r8*pi/4_r8 + je1*dy
+      start%x=-pi/4.0_r8 + ie1*dx
+      start%y=-1.0_r8*pi/4.0_r8 + je1*dy
       endd%x  =start%x + dx
       endd%y  =start%y + dy
       cartp_nm1(0:np,0:np) = element_coordinates(start,endd,gllnm1)
@@ -1697,7 +1697,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       end do
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      if (d1_global > 10_r8 .or. d1_global_mid < tol) then
+      if (d1_global > 10.0_r8 .or. d1_global_mid < tol) then
         if (hybrid%masterthread) then
           write(iulog, *) 'first iteration stopping:'
           write(iulog, *) iter, 'max error=', d1_global_mid
@@ -1856,7 +1856,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     nskip = global_shared_sum(1)
     npent = global_shared_sum(2)
     if (hybrid%masterthread) then
-      write(*,'(a,i7,a,i7)') 'no. elements where pentagons were added: ',npent,'/',npent+nskip
+      write(iulog,'(a,i7,a,i7)') 'no. elements where pentagons were added: ',npent,'/',npent+nskip
     end if
 
     ! compute output needed for SCRIP:  lat/lon coordinates, and for the
@@ -1865,8 +1865,8 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     do ie=nets,nete
       do j=1,np
         do i=1,np
-          cvlist(ie)%vert_latlon(:,i,j)%lat = 0_r8
-          cvlist(ie)%vert_latlon(:,i,j)%lon = 0_r8
+          cvlist(ie)%vert_latlon(:,i,j)%lat = 0.0_r8
+          cvlist(ie)%vert_latlon(:,i,j)%lon = 0.0_r8
           do k = 1, kmax
             rvert = cvlist(ie)%vert(k,i,j)%x**2+cvlist(ie)%vert(k,i,j)%y**2+cvlist(ie)%vert(k,i,j)%z**2
             if(rvert > 0.9_r8) then
@@ -1925,9 +1925,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
       do j=1,np
         do i=1,np
-          cvlist(ie)%vert(:,i,j)%x = 0_r8
-          cvlist(ie)%vert(:,i,j)%y = 0_r8
-          cvlist(ie)%vert(:,i,j)%z = 0_r8
+          cvlist(ie)%vert(:,i,j)%x = 0.0_r8
+          cvlist(ie)%vert(:,i,j)%y = 0.0_r8
+          cvlist(ie)%vert(:,i,j)%z = 0.0_r8
         end do
       end do
 
@@ -2047,7 +2047,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       kptr=0
       call edgeVunpack(edge1, cvlist(ie)%invvol(1,1),1, kptr, ie)
       cvlist(ie)%totvol(:,:)=cvlist(ie)%invvol(:,:)
-      cvlist(ie)%invvol(:,:)=1_r8/cvlist(ie)%invvol(:,:)
+      cvlist(ie)%invvol(:,:)=1.0_r8/cvlist(ie)%invvol(:,:)
     end do
 
     ! Create the polygon at the edges of the element
@@ -2109,9 +2109,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
       do j=2,np-1
         do i=2,np-1
-          vertpack(i,j,1) =0_r8
-          vertpack(i,j,2) =0_r8
-          vertpack(i,j,3) =0_r8
+          vertpack(i,j,1) =0.0_r8
+          vertpack(i,j,2) =0.0_r8
+          vertpack(i,j,3) =0.0_r8
         end do
       end do
 
@@ -2226,7 +2226,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
            - (v12%x*v23%z - v12%z*v23%x)*v12%y &
            + (v12%x*v23%y - v12%y*v23%x)*v12%z
 
-      if (test > 0_r8)then
+      if (test > 0.0_r8)then
         orient=.true.
       end if
 
@@ -2252,7 +2252,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 
     real(r8), pointer :: locvol(:,:)
 
-    dx = pi/(2_r8*real(ne, r8))
+    dx = pi/(2.0_r8*real(ne, r8))
     dy = dx
 
     if(.not. initialized) then
@@ -2301,7 +2301,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     rmin = ParallelMin(rmin,hybrid)
     rmax = ParallelMax(rmax,hybrid)
     if(hybrid%masterthread) then
-      write(*,'(a,2f12.9)') 'Min/max ratio spherical and GLL element area:',rmin,rmax
+      write(iulog,'(a,2f12.9)') 'Min/max ratio spherical and GLL element area:',rmin,rmax
     end if
 
     do ie=nets,nete
@@ -2316,7 +2316,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     end do
     call wrap_repro_sum(nvars=6, comm=hybrid%par%comm)
 
-    ptot=0_r8
+    ptot=0.0_r8
     do face=1,6
       red_sum%buf(1) = global_shared_sum(face)
       psum = red_sum%buf(1)
@@ -2324,14 +2324,14 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       ptot = ptot + psum
 
       if(hybrid%masterthread) then
-        write(*,'(a,i2,a,2e23.15)') 'cube face:',face,' : SURFACE FV =',&
-             6_r8*psum/(4_r8 * pi), &
-             6_r8*psum/(4_r8 * pi)-1
+        write(iulog,'(a,i2,a,2e23.15)') 'cube face:',face,' : SURFACE FV =',&
+             6.0_r8*psum/(4.0_r8 * pi), &
+             6.0_r8*psum/(4.0_r8 * pi)-1
       end if
     end do
 
     if(hybrid%masterthread) then
-      write(iulog, *) 'SURFACE FV (total)= ', ptot/(4_r8 * pi)
+      write(iulog, *) 'SURFACE FV (total)= ', ptot/(4.0_r8 * pi)
     end if
 
   end subroutine VerifVolumes

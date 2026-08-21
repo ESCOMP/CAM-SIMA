@@ -84,8 +84,6 @@ contains
     logical :: reorder
     integer :: sizeGroup, groupFull
 
-    character(len=256) :: errorstring
-
     nSched=SIZE(schedule)
     ! ================================================
     ! allocate some arrays for the call to MPI_gatherv
@@ -554,19 +552,19 @@ contains
 
   end subroutine genEdgeSched
 
-  logical function isIntraComm(commranks,rank) result(isIntraComm)
+  logical function isIntraComm(commranks,rank) result(is_intra_comm)
 
     integer, intent(in) :: commranks(:)
     integer, intent(in) :: rank
-    logical :: isIntraComm
+!    logical :: is_intra_comm
 
     integer :: i,nranks
 
     nranks = SIZE(commranks)
-    isIntraComm = .false.
+    is_intra_comm = .false.
     do i=1,nranks
         if(commranks(i) == rank) then
-           isIntraComm=.true.
+           is_intra_comm=.true.
         end if
     end do
 

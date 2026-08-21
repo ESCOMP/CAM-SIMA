@@ -100,7 +100,7 @@ module vertremap_mod
         ! modified FV3 vertical remapping
         !
         if (qdp_mass) then
-          inv_dp = 1_r8/dp1
+          inv_dp = 1.0_r8/dp1
           do itrac=1,qsize
             if (kord(itrac)<0) then
               Qdp(:,:,:,itrac) = Qdp(:,:,:,itrac)*inv_dp(:,:,:)
@@ -133,7 +133,7 @@ module vertremap_mod
               end if
             end do
             !      call mapn_tracer(qsize, nlev, pe1, pe2, Qdp, dp2_local, kord, j,     &
-            !           1, nx, 1, nx, 1, nx, 0_r8, fill)
+            !           1, nx, 1, nx, 1, nx, 0.0_r8, fill)
           end do
         else
           do j=1,nx
@@ -154,7 +154,7 @@ module vertremap_mod
               end if
             end do
             !      call mapn_tracer(qsize, nlev, pe1, pe2, Qdp, dp2_local, kord, j,     &
-            !           1, nx, 1, nx, 1, nx, 0_r8, fill)
+            !           1, nx, 1, nx, 1, nx, 0.0_r8, fill)
           end do
         end if
         if (qdp_mass) then
@@ -249,8 +249,8 @@ subroutine remap1_nofilter(Qdp,nx,qsize,dp1,dp2)
         end do kloop
 
         zgam  = (z2c(1:nlev+1)-z1c(zkr)) / (z1c(zkr+1)-z1c(zkr))
-        zgam(1)      = 0_r8
-        zgam(nlev+1) = 1_r8
+        zgam(1)      = 0.0_r8
+        zgam(nlev+1) = 1.0_r8
         zhdp = z1c(2:nlev+1)-z1c(1:nlev)
 
 
@@ -300,8 +300,8 @@ subroutine remap1_nofilter(Qdp,nx,qsize,dp1,dp2)
 
         zv1 = 0
         do k=1,nlev
-          if (zgam(k+1)>1_r8) then
-            write(*,*) 'r not in [0:1]', zgam(k+1)
+          if (zgam(k+1)>1.0_r8) then
+            write(iulog,*) 'r not in [0:1]', zgam(k+1)
             abort=.true.
           end if
           zv2 = zv(zkr(k+1))+(za0(zkr(k+1))*zgam(k+1)+(za1(zkr(k+1))/2)*(zgam(k+1)**2)+ &
@@ -363,10 +363,10 @@ subroutine remap_Q_ppm(Qdp,nx,qstart,qstop,qsize,dp1,dp2,kord)
 
 
 
-      pio(nlev+2) = pio(nlev+1) + 1_r8  !This is here to allow an entire block of k threads to run in the remapping phase.
-                                      !It makes sure there's an old interface value below the domain that is larger.
-      pin(nlev+1) = pio(nlev+1)       !The total mass in a column does not change.
-                                      !Therefore, the pressure of that mass cannot either.
+      pio(nlev+2) = pio(nlev+1) + 1.0_r8  !This is here to allow an entire block of k threads to run in the remapping phase.
+                                          !It makes sure there's an old interface value below the domain that is larger.
+      pin(nlev+1) = pio(nlev+1)           !The total mass in a column does not change.
+                                          !Therefore, the pressure of that mass cannot either.
       !Fill in the ghost regions with mirrored values. if vert_remap_q_alg is defined, this is of no consequence.
       do k = 1 , gs
         dpo(1   -k) = dpo(       k)
@@ -418,7 +418,7 @@ subroutine remap_Q_ppm(Qdp,nx,qstart,qstop,qsize,dp1,dp2,kord)
         !during remapping. Also, divide out the grid spacing so we're working with actual tracer
         !values and can conserve mass. The option for ifndef ZEROHORZ I believe is there to ensure
         !tracer consistency for an initially uniform field. I copied it from the old remap routine.
-        masso(1) = 0_r8
+        masso(1) = 0.0_r8
 
         do k = 1 , nlev
           ao(k) = Qdp(i,j,k,q)
@@ -444,7 +444,7 @@ subroutine remap_Q_ppm(Qdp,nx,qstart,qstop,qsize,dp1,dp2,kord)
         !cell interface to form a new grid mass accumulation. Taking the difference between
         !accumulation at successive interfaces gives the mass inside each cell. Since Qdp is
         !supposed to hold the full mass this needs no normalization.
-        massn1 = 0_r8
+        massn1 = 0.0_r8
         do k = 1 , nlev
           kk = kid(k)
           massn2 = masso(kk) + integrate_parabola(coefs(:,kk) , z1(k) , z2(k)) * dpo(kk)
@@ -494,19 +494,19 @@ function compute_ppm_grids(dx)   result(rslt)
   !Calculate grid-based coefficients for stage 1 of compute_ppm
   do j = 0 , nlev+1
     rslt( 1,j) = dx(j) / (dx(j-1) + dx(j) + dx(j+1))
-    rslt( 2,j) = (2_r8*dx(j-1) + dx(j)) / (dx(j+1) + dx(j))
-    rslt( 3,j) = (dx(j) + 2_r8*dx(j+1)) / (dx(j-1) + dx(j))
+    rslt( 2,j) = (2.0_r8*dx(j-1) + dx(j)) / (dx(j+1) + dx(j))
+    rslt( 3,j) = (dx(j) + 2.0_r8*dx(j+1)) / (dx(j-1) + dx(j))
   end do
 
   !Caculate grid-based coefficients for stage 2 of compute_ppm
   do j = 0 , nlev
     rslt( 4,j) = dx(j) / (dx(j) + dx(j+1))
-    rslt( 5,j) = 1_r8 / sum(dx(j-1:j+2))
-    rslt( 6,j) = (2_r8 * dx(j+1) * dx(j)) / (dx(j) + dx(j+1 ))
-    rslt( 7,j) = (dx(j-1) + dx(j  )) / (2_r8 * dx(j  ) + dx(j+1))
-    rslt( 8,j) = (dx(j+2) + dx(j+1)) / (2_r8 * dx(j+1) + dx(j  ))
-    rslt( 9,j) = dx(j  ) * (dx(j-1) + dx(j  )) / (2_r8*dx(j  ) +    dx(j+1))
-    rslt(10,j) = dx(j+1) * (dx(j+1) + dx(j+2)) / (   dx(j  ) + 2_r8*dx(j+1))
+    rslt( 5,j) = 1.0_r8 / sum(dx(j-1:j+2))
+    rslt( 6,j) = (2.0_r8 * dx(j+1) * dx(j)) / (dx(j) + dx(j+1 ))
+    rslt( 7,j) = (dx(j-1) + dx(j  )) / (2.0_r8 * dx(j  ) + dx(j+1))
+    rslt( 8,j) = (dx(j+2) + dx(j+1)) / (2.0_r8 * dx(j+1) + dx(j  ))
+    rslt( 9,j) = dx(j  ) * (dx(j-1) + dx(j  )) / (2.0_r8*dx(j  ) +    dx(j+1))
+    rslt(10,j) = dx(j+1) * (dx(j+1) + dx(j+2)) / (   dx(j  ) + 2.0_r8*dx(j+1))
   end do
 end function compute_ppm_grids
 
@@ -532,8 +532,8 @@ function compute_ppm(a , dx , kord)    result(coefs)
   ! Stage 1: Compute dma for each cell, allowing a 1-cell ghost stencil below and above the domain
   do j = 0 , nlev+1
     da = dx(1,j) * (dx(2,j) * (a(j+1) - a(j)) + dx(3,j) * (a(j) - a(j-1)))
-    dma(j) = minval([abs(da) , 2_r8 * abs(a(j) - a(j-1)) , 2_r8 * abs(a(j+1) - a(j))]) * sign(1_r8,da)
-    if ((a(j+1) - a(j)) * (a(j) - a(j-1)) <= 0_r8) dma(j) = 0_r8
+    dma(j) = minval([abs(da) , 2.0_r8 * abs(a(j) - a(j-1)) , 2.0_r8 * abs(a(j+1) - a(j))]) * sign(1.0_r8,da)
+    if ((a(j+1) - a(j)) * (a(j) - a(j-1)) <= 0.0_r8) dma(j) = 0.0_r8
   end do
 
   ! Stage 2: Compute ai for each cell interface in the physical domain (dimension nlev+1)
@@ -547,24 +547,24 @@ function compute_ppm(a , dx , kord)    result(coefs)
   do j = 1 , nlev
     al = ai(j-1)
     ar = ai(j  )
-    if ((ar - a(j)) * (a(j) - al) <= 0_r8) then
+    if ((ar - a(j)) * (a(j) - al) <= 0.0_r8) then
       al = a(j)
       ar = a(j)
     end if
-    if ((ar - al) * (a(j) - (al + ar)/2_r8) >  (ar - al)**2/6_r8) al = 3_r8*a(j) - 2_r8 * ar
-    if ((ar - al) * (a(j) - (al + ar)/2_r8) < -(ar - al)**2/6_r8) ar = 3_r8*a(j) - 2_r8 * al
+    if ((ar - al) * (a(j) - (al + ar)/2.0_r8) >  (ar - al)**2/6.0_r8) al = 3.0_r8*a(j) - 2.0_r8 * ar
+    if ((ar - al) * (a(j) - (al + ar)/2.0_r8) < -(ar - al)**2/6.0_r8) ar = 3.0_r8*a(j) - 2.0_r8 * al
     !Computed these coefficients from the edge values and cell mean in Maple. Assumes normalized coordinates: xi=(x-x0)/dx
-    coefs(0,j) = 1.5_r8 * a(j) - (al + ar) / 4_r8
+    coefs(0,j) = 1.5_r8 * a(j) - (al + ar) / 4.0_r8
     coefs(1,j) = ar - al
-    coefs(2,j) = 3_r8 * (-2_r8 * a(j) + (al + ar))
+    coefs(2,j) = 3.0_r8 * (-2.0_r8 * a(j) + (al + ar))
   end do
 
   !If kord == 2, use piecewise constant in the boundaries, and don't use ghost cells.
   if (kord == 2) then
     coefs(0,1:2) = a(1:2)
-    coefs(1:2,1:2) = 0_r8
+    coefs(1:2,1:2) = 0.0_r8
     coefs(0,nlev-1:nlev) = a(nlev-1:nlev)
-    coefs(1:2,nlev-1:nlev) = 0_r8
+    coefs(1:2,nlev-1:nlev) = 0.0_r8
   end if
 end function compute_ppm
 
@@ -597,9 +597,9 @@ end function integrate_parabola
     x3 = x2 + half*(dx2 + dx3)
     x4 = x3 + half*(dx3 + dx4)
     a  = (x3-x1)/(x2-x1)
-    y3 = (1_r8-a)*y1 + a*y2
+    y3 = (1.0_r8-a)*y1 + a*y2
     a  = (x4-x1)/(x2-x1)
-    y4 = (1_r8-a)*y1 + a*y2
+    y4 = (1.0_r8-a)*y1 + a*y2
     y3 = max(lo, min(hi, y3))
     y4 = max(lo, min(hi, y4))
   end subroutine linextrap

@@ -136,8 +136,8 @@ contains
 !===============================================================================
 
   subroutine SetServices(gcomp, rc)
-    type(ESMF_GridComp), intent(inout) :: gcomp
-    integer,               intent(out) :: rc
+    type(ESMF_GridComp)  :: gcomp
+    integer, intent(out) :: rc
 
     ! local variables
     character(len=*),parameter  :: subname=trim(modName)//':(SetServices) '
@@ -189,11 +189,11 @@ contains
 
   !===============================================================================
   subroutine InitializeP0(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),       intent(in) :: importState
-    type(ESMF_State),       intent(in) :: exportState
-    type(ESMF_Clock),       intent(in) :: clock
-    integer,               intent(out) :: rc
+    type(ESMF_GridComp):: gcomp
+    type(ESMF_State)   :: importState
+    type(ESMF_State)   :: exportState
+    type(ESMF_Clock)   :: clock
+    integer,         intent(out) :: rc
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -208,11 +208,11 @@ contains
   subroutine InitializeAdvertise(gcomp, importState, exportState, clock, rc)
 
     ! intput/output variables
-    type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),       intent(in) :: importState
-    type(ESMF_State),       intent(in) :: exportState
-    type(ESMF_Clock),       intent(in) :: clock
-    integer,               intent(out) :: rc
+    type(ESMF_GridComp) :: gcomp
+    type(ESMF_State)    :: importState
+    type(ESMF_State)    :: exportState
+    type(ESMF_Clock)    :: clock
+    integer,         intent(out) :: rc
 
     ! local variables
     type(ESMF_VM)     :: vm
@@ -332,10 +332,10 @@ contains
     use physics_grid, only : lsize => columns_on_task
 
     ! input/output variables
-    type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_State),       intent(in) :: importState
-    type(ESMF_State),    intent(inout) :: exportState
-    type(ESMF_Clock),       intent(in) :: clock
+    type(ESMF_GridComp) :: gcomp
+    type(ESMF_State)    :: importState
+    type(ESMF_State)    :: exportState
+    type(ESMF_Clock)    :: clock
     integer, intent(out) :: rc
 
     ! local variables
@@ -824,7 +824,7 @@ contains
 
     use physics_types, only: nextsw_cday
 
-    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
@@ -1032,7 +1032,7 @@ contains
     ! Run CAM
 
     ! Input/output variables
-    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer,               intent(out) :: rc
 
     ! local variables
@@ -1288,7 +1288,7 @@ contains
   subroutine ModelSetRunClock(gcomp, rc)
 
     ! input/output variables
-    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer,               intent(out) :: rc
 
     ! local variables
@@ -1407,7 +1407,7 @@ contains
 
   !===============================================================================
   subroutine ModelFinalize(gcomp, rc)
-    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer,               intent(out) :: rc
 
     ! local variables
@@ -1642,7 +1642,7 @@ contains
 
     ! input/output variables
     type(ESMF_GridComp), intent(inout) :: gcomp
-    type(ESMF_Clock),       intent(in) :: clock
+    type(ESMF_Clock),    intent(inout) :: clock
     integer,               intent(out) :: rc
 
     ! local variables
@@ -1709,7 +1709,7 @@ contains
     ! Read in import and export fields
     ! ------------------------------
 
-    importexport: do nloop = 1,2
+    importexport_loop: do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
@@ -1804,7 +1804,7 @@ contains
           end if ! end lrank if block
        end do fields
        deallocate(fieldnameList)
-    end do importexport
+    end do importexport_loop
 
     ! ------------------------------
     ! Close file
@@ -1882,7 +1882,7 @@ contains
     ! Define import and export variable ids
     ! ----------------------
 
-    importexport: do nloop = 1,2
+    importexport_loop: do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
@@ -1943,7 +1943,7 @@ contains
 
        end do fields ! end loop over import or export fieldsfields
        deallocate(fieldNameList)
-    end do importexport
+    end do importexport_loop
 
     ! ----------------------
     ! End definition phase
@@ -1955,7 +1955,7 @@ contains
     ! Write the restart data for the import fields and export fields
     ! ----------------------
 
-    importexport:do nloop = 1,2
+    importexport_loop2:do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
@@ -1977,9 +1977,9 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       fields: do nf = 1,fieldCount
+       fields_loop: do nf = 1,fieldCount
 
-          if (trim(fieldNameList(nf)) == flds_scalar_name) cycle fields
+          if (trim(fieldNameList(nf)) == flds_scalar_name) cycle fields_loop
 
           if (nloop == 1) then
              call ESMF_StateGet(importState, itemName=trim(fieldnameList(nf)), field=lfield, rc=rc)
@@ -2019,10 +2019,10 @@ contains
              end do
 
           end if
-       end do fields ! end loop over import or export fields
+       end do fields_loop ! end loop over import or export fields
        deallocate(fieldNameList)
 
-    end do importexport ! end of nloop
+    end do importexport_loop2 ! end of nloop
 
     ! ----------------------
     ! close the file
