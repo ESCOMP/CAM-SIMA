@@ -622,20 +622,6 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
-    <variable local_name="numliq"
-              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water"
-              units="kg-1" type="real" constituent="true">
-      <long_name>Cloud liquid number with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
-    </variable>
-    <variable local_name="numice"
-              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water"
-              units="kg-1" type="real" constituent="true">
-      <long_name>Cloud ice number with respect to moist air plus all airborne condensates</long_name>
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <ic_file_input_names>NUMICE cnst_NUMICE</ic_file_input_names>
-    </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
@@ -654,6 +640,39 @@
               units="kg kg-1" type="real" constituent="true">
       <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
+    </variable>
+    <variable local_name="numliq"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of cloud liquid water wrt moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="numice"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of cloud ice water crystals with respect to mass of moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMICE cnst_NUMICE</ic_file_input_names>
+    </variable>
+    <variable local_name="numrai"
+              standard_name="mass_number_concentration_of_rain_drops_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of rain drops with respect to mass of moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMRAI cnst_NUMRAI</ic_file_input_names>
+    </variable>
+    <variable local_name="numsno"
+              standard_name="mass_number_concentration_of_snow_crystals_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of snow crystals with respect to the mass of moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>NUMSNO cnst_NUMSNO</ic_file_input_names>
+    </variable>
+    <variable local_name="numgra"
+              standard_name="mass_number_concentration_of_graupel_particles_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of graupel particles with respect to the mass of moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>NUMGRA cnst_NUMGRA</ic_file_input_names>
     </variable>
     <variable local_name="H2O"
 	      standard_name="H2O"
