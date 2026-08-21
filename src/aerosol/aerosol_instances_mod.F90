@@ -11,11 +11,13 @@ module aerosol_instances_mod
   !      aerosol_instances_init().  Creates persistent aerosol_state objects
   !      for each (aerosol_model, list_idx) pair.  States store a pointer
   !      to the CCPP constituents array, which persists for the run.
-  !   3. aerosol_instances_get_props()   -- returns a pointer to a properties
+  !   3. aerosol_instances_is_active()   -- returns whether an aerosol model
+  !      is active for a given list_idx.
+  !   4. aerosol_instances_get_props()   -- returns a pointer to a properties
   !      object for a given (aerosol_model, list_idx).
-  !   4. aerosol_instances_get_state()   -- returns a pointer to a state
+  !   5. aerosol_instances_get_state()   -- returns a pointer to a state
   !      object for a given (aerosol_model, list_idx).
-  !   5. aerosol_instances_final()       -- deallocates all objects at shutdown.
+  !   6. aerosol_instances_final()       -- deallocates all objects at shutdown.
 
   use aerosol_properties_mod,        only: aerosol_properties
   use aerosol_state_mod,             only: aerosol_state
