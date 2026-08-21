@@ -8,7 +8,7 @@ NOTE:  Only developmental code exists at the moment.  This README will be update
 ## Current code status:
 
 [![Python Unit Tests](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/python_unit_tests.yml/badge.svg)](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/python_unit_tests.yml)
-[![Fortran Unit Tests](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/fortran_unit_tests.yml/badge.svg?branch=development)](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/fortran_unit_tests.yml)
+[![CAM-SIMA Fortran CI](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/cam_sima_fortran_ci.yml/badge.svg?branch=development)](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/cam_sima_fortran_ci.yml)
 
 ## How to checkout and use CAM-SIMA:
 
