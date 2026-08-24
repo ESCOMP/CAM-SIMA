@@ -7,7 +7,7 @@
 [submodule "history"]
 	path          = src/history/buffers
 	url           = https://github.com/peverwhee/history_output
-	fxtag         = a8e4bf4ffd69e1332aebab7f5d34ddf2ffb228fd
+	fxtag         = 9e420f31c1b05e76af23553f9df584e82f800157
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
