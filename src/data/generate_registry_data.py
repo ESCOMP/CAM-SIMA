@@ -757,7 +757,7 @@ class Variable(VarBase):
         if self.initial_value:
             if self.allocatable == "pointer":
                 init_str = f" => {self.initial_value}"
-            elif not self.allocatable[0:11] == 'allocatable':
+            elif 'allocatable' not in self.allocatable:
                 init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
         # end if
@@ -807,7 +807,8 @@ class Variable(VarBase):
             lname = f'{ddt_str}{self.local_name}'
             if self.allocatable == "pointer":
                 all_type = 'associated'
-            elif self.allocatable == "allocatable":
+            elif "allocatable" in self.allocatable:
+                # covers both "allocatable" and "allocatable, target"
                 all_type = 'allocated'
             else:
                 all_type = ''
