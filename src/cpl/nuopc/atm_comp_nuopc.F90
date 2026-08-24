@@ -126,7 +126,7 @@ module atm_comp_nuopc
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
-  real(R8) , parameter         :: grid_tol = 1e-2_r8 ! tolerance for calculated lat/lon vs read in
+  real(R8) , parameter         :: grid_tol = 1.0e-2_r8 ! tolerance for calculated lat/lon vs read in
 
   type(ESMF_Mesh)  :: model_mesh     ! model_mesh
   type(ESMF_Clock) :: model_clock    ! model_clock
@@ -405,7 +405,7 @@ contains
     logical                 :: branch_run                        ! branch from a previous run; requires a restart file
     character(len=CL)       :: tempc1,tempc2
     integer                 :: shrlogunit          ! original log unit
-    real(r8)        , parameter :: radtodeg = 180_r8/shr_const_pi
+    real(r8)        , parameter :: radtodeg = 180.0_r8/shr_const_pi
     integer         , parameter :: aqua_perpetual_ymd = 321
     character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '
     character(len=*), parameter :: format = "('("//trim(subname)//") :',A)"
@@ -746,8 +746,8 @@ contains
           end do
 
           ! obtain internally generated cam lats and lons
-          lon(:) = 0_r8
-          lat(:) = 0_r8
+          lon(:) = 0.0_r8
+          lat(:) = 0.0_r8
           ! latitudes and longitudes returned in radians
           call get_rlat_all_p(lsize, lat)
           call get_rlon_all_p(lsize, lon)
@@ -759,7 +759,7 @@ contains
           ! error check differences between internally generated lons and those read in
           do n = 1,lsize
              if (abs(lonMesh(n) - lon(n)) > grid_tol .and. .not. &
-                  abs(abs(lonMesh(n) - lon(n))- 360_r8) < grid_tol) then
+                  abs(abs(lonMesh(n) - lon(n))- 360.0_r8) < grid_tol) then
                 write(iulog,100)n,lon(n),lonMesh(n), abs(lonMesh(n)-lon(n))
 100             format('ERROR: CAM n, lonmesh(n), lon(n), diff_lon = ',i6,2(f21.13,3x),d21.5)
                 call shr_sys_abort()
@@ -1760,7 +1760,7 @@ contains
                    write(iulog,*)'cam_read_srfrest warning: field ',trim(varname),' is not on restart file'
                    write(iulog,*)'for backwards compatibility will set it to 0'
                 end if
-                fldptr(:) = 0_r8
+                fldptr(:) = 0.0_r8
              end if
 
           else if (lrank == 2) then
@@ -1791,7 +1791,7 @@ contains
                       write(iulog,*)'cam_read_srfrest warning: field ',trim(varname),' is not on restart file'
                       write(iulog,*)'for backwards compatibility will set it to 0'
                    end if
-                   tmpptr(:) = 0_r8
+                   tmpptr(:) = 0.0_r8
                 end if
                 if (gridToFieldMap(1) == 1) then
                    fldptr2d(:,n) = tmpptr(:)
