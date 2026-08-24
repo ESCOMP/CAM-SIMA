@@ -437,7 +437,7 @@
       rad_aer_diag_* variables.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -451,7 +451,7 @@
       rad_aer_diag_* variables.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -465,7 +465,25 @@
       climate simulation via the radiative heating rate calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
+      <!-- cam4: bulk (BAM) aerosols registered by the prescribed_aerosols scheme.
+           The species names must match the constituent names in prescribed_aero_specifier.
+           Aquaplanet runs have no prescribed aerosols, so they keep the empty default. -->
+      <value phys_suite="cam4" aquaplanet="0">
+        'N:sulf:${DIN_LOC_ROOT}/atm/cam/physprops/sulfate_rrtmg_c080918.nc',
+        'N:dust1:${DIN_LOC_ROOT}/atm/cam/physprops/dust1_rrtmg_c080918.nc',
+        'N:dust2:${DIN_LOC_ROOT}/atm/cam/physprops/dust2_rrtmg_c080918.nc',
+        'N:dust3:${DIN_LOC_ROOT}/atm/cam/physprops/dust3_rrtmg_c080918.nc',
+        'N:dust4:${DIN_LOC_ROOT}/atm/cam/physprops/dust4_rrtmg_c080918.nc',
+        'N:bcar1:${DIN_LOC_ROOT}/atm/cam/physprops/bcpho_rrtmg_c080918.nc',
+        'N:bcar2:${DIN_LOC_ROOT}/atm/cam/physprops/bcphi_rrtmg_c080918.nc',
+        'N:ocar1:${DIN_LOC_ROOT}/atm/cam/physprops/ocpho_rrtmg_c080918.nc',
+        'N:ocar2:${DIN_LOC_ROOT}/atm/cam/physprops/ocphi_rrtmg_c080918.nc',
+        'N:sslt1:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt1_rrtmg_c080918.nc',
+        'N:sslt2:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt2_rrtmg_c080918.nc',
+        'N:sslt3:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
+        'N:sslt4:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt4_rrtmg_c080918.nc'
+      </value>
     </values>
   </entry>
 
@@ -480,7 +498,7 @@
       simulation. This is a hook for performing radiative forcing calculations.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -493,7 +511,7 @@
       Analogous to rad_aer_diag_1, but for the 2nd diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -506,7 +524,7 @@
       Analogous to rad_aer_diag_1, but for the 3rd diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -519,7 +537,7 @@
       Analogous to rad_aer_diag_1, but for the 4th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -532,7 +550,7 @@
       Analogous to rad_aer_diag_1, but for the 5th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -545,7 +563,7 @@
       Analogous to rad_aer_diag_1, but for the 6th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -558,7 +576,7 @@
       Analogous to rad_aer_diag_1, but for the 7th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -571,7 +589,7 @@
       Analogous to rad_aer_diag_1, but for the 8th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -584,7 +602,7 @@
       Analogous to rad_aer_diag_1, but for the 9th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
@@ -597,7 +615,7 @@
       Analogous to rad_aer_diag_1, but for the 10th diagnostic calculation.
     </desc>
     <values>
-      <value>UNSET</value>
+      <value>''</value>
     </values>
   </entry>
 
