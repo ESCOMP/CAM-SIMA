@@ -391,7 +391,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
 #endif
 !!XXgoldyXX: ^ debug only
       ! Grid imask
-      gwork(:,1,:) = 1
+      gwork(:,1,:) = 1.0_r8
       call cam_grid_write_dist_array(file, gll_grid, arr_dims2d, file_dims2d, &
            gwork(:,1,:), grid_imask_id)
 
@@ -665,7 +665,7 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
       do j=i+1,n
         !        if (ABS(a(j)-a(i)) < 1e-6)  a(j) = 9999
         delta = abs(a(j)-a(i))
-        if (delta < 1e-6_r8)  a(j) = 9999.0_r8
+        if (delta < 1.0e-6_r8)  a(j) = 9999.0_r8
         if (abs((2.0_r8*pi) - delta) < 1.0e-6_r8)  a(j) = 9999.0_r8
       end do
     end do
