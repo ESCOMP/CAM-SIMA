@@ -1,14 +1,17 @@
 MOD011 # Old array syntax
 MOD021 # Deprecated relational operator
 MOD051 # Save statement is superfluous at module level
+C001   # Module uses implicit typing
+C021   # No real suffix
+C022   # Implicit real kind
 C032   # Magic IO unit
 C043   # File opened without action specifier
-C061   # Function argument missing 'intent' attribute
 C081   # Variable initialized in declaration with no 'save' or 'parameter' attribute
 C132   # Module has default 'public' accessibility
 C142   # 'Cycle' or 'exit' in unlabeled nested do loop
 C152   # Line continuation in inline if-statement is misleading
 C183   # Stat without error message
+S061   # End statment should be named
 S071   # Variable declaration missing '::'
 S201   # 'implicit none' set on the enclosing module
 S221   # Function missing result() specifier
