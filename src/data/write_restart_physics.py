@@ -262,10 +262,11 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
         outfile.blank_line()
     # end for
 
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Handle constituent-dimensioned variables
     if constituent_dimmed_vars:
-        outfile.write("const_props => cam_model_const_properties()", 2)
-        outfile.blank_line()
         for key, value in constituent_dimmed_vars.items():
             hdimids = []
             for dimension in value['dims']:
@@ -397,10 +398,11 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
         # end if
     # end for
 
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Handle constituent-dimensioned variables
     if constituent_dimmed_vars:
-        outfile.write("const_props => cam_model_const_properties()", 2)
-        outfile.blank_line()
         for key, value in constituent_dimmed_vars.items():
             outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
             outfile.write("do constituent_idx = 1, size(const_props)", 2)
