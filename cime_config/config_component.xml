@@ -118,6 +118,23 @@
     <desc>User mods to apply to specific compset matches. </desc>
   </entry>
 
+  <entry id="CAM_SIM_YEAR">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <values match="last">
+      <value compset="^1850_">1850</value>
+      <value compset="^2000_">2000</value>
+    </values>
+    <group>run_component_cam</group>
+    <file>env_run.xml</file>
+    <desc>
+      Simulation (climatology) year, set from the time period at the start of the compset name.
+      Namelist defaults can be filtered by the sim_year XML attribute.
+      A compset without a recognized time period is empty so no sim_year default applies.
+    </desc>
+  </entry>
+
   <entry id="CAM_LINKED_LIBS">
     <type>char</type>
     <valid_values></valid_values>
