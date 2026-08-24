@@ -12,6 +12,7 @@ import os.path
 
 # CCPP Framework import statements
 from ccpp_state_machine import CCPP_STATE_MACH
+from ddt_library import VarDDT
 from fortran_tools import FortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
@@ -287,6 +288,15 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
     """
     missing_vars = []
     hvar = host_dict.find_variable(stdname)
+    if hvar and hvar.is_ddt() and not isinstance(hvar, VarDDT):
+        # A whole-DDT host variable (e.g. a scheme argument of DDT type;
+        # a VarDDT is instead a field *inside* a DDT and is handled below)
+        # cannot be read from initial-conditions files; the host model
+        # initializes it at run time and marks it via mark_as_initialized.
+        # Exclude it from generated read/check code. (Var.intrinsic_elements
+        # would also raise a CCPPError for a DDT variable when called
+        # without a DDT library, as done below.)
+        return missing_vars
     if hvar and (hvar.source.ptype != 'host'):
         var_dict[stdname] = hvar
         # Process elements (if any)

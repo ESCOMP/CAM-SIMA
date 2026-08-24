@@ -229,8 +229,19 @@
     </options>
   </test>
 
+  <!-- microp_aero BAM test -->
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_microp_aero_bam_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for microp_aero with BAM bulk aerosols, including ndrop_bam, nucleate_ice, and inline logic in microp_aero</option>
+    </options>
+  </test>
+
   <!-- CAM7 physics tests -->
-  <test compset="FCAM7" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="F2000_C7" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -264,7 +275,7 @@
     </options>
   </test>
 
-  <test compset="QPC4" grid="ne3pg3_ne3pg3_mt232" name="SMS_Ln9" testmods="cam/outfrq_se_cam4">
+  <test compset="QPC4" grid="ne3pg3_ne3pg3_mt233" name="SMS_Ln9" testmods="cam/outfrq_se_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -275,7 +286,7 @@
     </options>
   </test>
 
-  <test compset="QPC4" grid="ne3pg3_ne3pg3_mt232" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
+  <test compset="QPC4" grid="ne3pg3_ne3pg3_mt233" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -283,6 +294,32 @@
     <options>
       <option name="wallclock">00:20:00</option>
       <option name="comment">Aquaplanet CAM4 test with SE-CSLAM dycore at ne3 (ultra-low) resolution in debug mode</option>
+    </options>
+  </test>
+
+  <test compset="F1850_C4" grid="ne3pg3_ne3pg3_mt233" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+      <option name="comment">
+        CAM4 test with SE-CSLAM dycore at ne3 (ultra-low) resolution with constant 1850 forcings in debug mode
+      </option>
+    </options>
+  </test>
+
+  <test compset="F2000_C4" grid="ne3pg3_ne3pg3_mt233" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+      <option name="comment">
+        CAM4 test with SE-CSLAM dycore at ne3 (ultra-low) resolution with constant year 2000 forcings in debug mode
+      </option>
     </options>
   </test>
 
