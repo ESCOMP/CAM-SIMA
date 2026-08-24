@@ -17,6 +17,7 @@ contains
        xcell_in,ycell_in,jx,jy,nreconstruction,xgno,ygno,igno_min,igno_max,&
        jx_min, jx_max, jy_min, jy_max,&
        ngauss,gauss_weights,abscissae,weights,weights_eul_index,jcollect,jmax_segments)
+    use cam_abortutils, only: endrun
 
     integer , intent(in) :: nvertex
     logical, intent(in) :: lexact_horizontal_line_integrals
@@ -62,6 +63,8 @@ contains
     integer        :: cross_lat_eul_index(max_cross,2)
     real (kind=r8) :: xcell(nvertex),ycell(nvertex)
 
+    character(len=256) :: errmsg
+
     xcell = xcell_in(1:nvertex)
     ycell = ycell_in(1:nvertex)
 
@@ -87,8 +90,8 @@ contains
          nreconstruction,ngauss,gauss_weights,abscissae)
 
     if (abs((jcross_lat/2)-dble(jcross_lat)/2.0_r8)>tiny) then
-      write(iulog,*) 'number of latitude crossings are not even: ABORT',jcross_lat,jx,jy
-      stop
+      write(errmsg,*) 'number of latitude crossings are not even: ABORT',jcross_lat,jx,jy
+      call endrun(errmsg)
     end if
 
     !
@@ -138,7 +141,7 @@ contains
     do j=jmin,jmax
        do i=imin,imax
           do k=1,jsegment
-             if (weights_eul_index(k,1)==i.AND.weights_eul_index(k,2)==j) then
+             if (weights_eul_index(k,1)==i.and.weights_eul_index(k,2)==j) then
                 weights_out(jcollect,1:nreconstruction) = &
                 weights_out(jcollect,1:nreconstruction) + weights(k,1:nreconstruction)
                 ltmp = .true.
@@ -238,7 +241,7 @@ contains
                    call get_weights_exact(lexact_horizontal_line_integrals, weights_tmp,xseg,yseg,&
                         nreconstruction,ngauss,gauss_weights,abscissae)
 
-                   if (i<=jy_max-1.AND.i>=jy_min.AND.h<=jx_max-1.AND.h>=jx_min) then
+                   if (i<=jy_max-1.and.i>=jy_min.and.h<=jx_max-1.and.h>=jx_min) then
                       jsegment=jsegment+1
                       weights_eul_index(jsegment,1) = h
                       weights_eul_index(jsegment,2) = i
@@ -247,7 +250,7 @@ contains
                    !
                    ! subtract the same weights on the west side of the line
                    !
-                   if (i<=jy_max.AND.i>=jy_min+1.AND.h<=jx_max-1.AND.h>=jx_min) then
+                   if (i<=jy_max.and.i>=jy_min+1.and.h<=jx_max-1.and.h>=jx_min) then
                       jsegment = jsegment+1
                       weights_eul_index(jsegment,1) = h
                       weights_eul_index(jsegment,2) = i-1
@@ -278,7 +281,7 @@ contains
        jx_min,jx_max,jy_min,jy_max,&
        ngauss,gauss_weights,abscissae,&!)!phl add jx_min etc.
        jcross_lat,r_cross_lat,cross_lat_eul_index)
-
+    use cam_abortutils, only: endrun
 
     logical, intent(in) :: lexact_horizontal_line_integrals
     integer ,            intent(in)    :: nreconstruction,jx,jy,jmax_segments,ngauss
@@ -318,6 +321,7 @@ contains
 
     integer :: jx_eul, jy_eul, side_count
     real (kind=r8) :: xcell(0:nvertex+2),ycell(0:nvertex+2)
+    character(len=256) :: errmsg
 
 
 5   format(10e14.6)
@@ -345,8 +349,8 @@ contains
 
 
     if ((&
-         maxval(xcell)<=xgno(jx_min).OR.minval(xcell)>=xgno(jx_max).OR.&
-         maxval(ycell)<=ygno(jy_min).OR.minval(ycell)>=ygno(jy_max))) then
+         maxval(xcell)<=xgno(jx_min).or.minval(xcell)>=xgno(jx_max).or.&
+         maxval(ycell)<=ygno(jy_min).or.minval(ycell)>=ygno(jy_max))) then
       !
       ! entire cell off panel
       !
@@ -365,12 +369,12 @@ contains
         do while (lcontinue)
           iter = iter+1
           if (iter>10) then
-            write(iulog,*) 'search not converging',iter
-            stop
+            write(errmsg,*) 'search not converging',iter
+            call endrun(errmsg)
           end if
-          lsame_cell_x = (x(2)>=xgno(jx_eul).AND.x(2)<=xgno(jx_eul+1))
-          lsame_cell_y = (y(2)>=ygno(jy_eul).AND.y(2)<=ygno(jy_eul+1))
-          if (lsame_cell_x.AND.lsame_cell_y) then
+          lsame_cell_x = (x(2)>=xgno(jx_eul).and.x(2)<=xgno(jx_eul+1))
+          lsame_cell_y = (y(2)>=ygno(jy_eul).and.y(2)<=ygno(jy_eul+1))
+          if (lsame_cell_x.and.lsame_cell_y) then
             !
             !****************************
             !
@@ -388,18 +392,18 @@ contains
             !
             ! prepare for next side if (x(2),y(2)) is on a grid line
             !
-            if (x(2)==xgno(jx_eul+1).AND.x(3)>xgno(jx_eul+1)) then
+            if (x(2)==xgno(jx_eul+1).and.x(3)>xgno(jx_eul+1)) then
               !
               ! cross longitude jx_eul+1
               !
               jx_eul=jx_eul+1
-            else if (x(2)==xgno(jx_eul).AND.x(3)<xgno(jx_eul)) then
+            else if (x(2)==xgno(jx_eul).and.x(3)<xgno(jx_eul)) then
               !
               ! cross longitude jx_eul
               !
               jx_eul=jx_eul-1
             end if
-            if (y(2)==ygno(jy_eul+1).AND.y(3)>ygno(jy_eul+1)) then
+            if (y(2)==ygno(jy_eul+1).and.y(3)>ygno(jy_eul+1)) then
               !
               ! register crossing with latitude: line-segments point Northward
               !
@@ -410,7 +414,7 @@ contains
               r_cross_lat(jcross_lat,1) = x(2)
               r_cross_lat(jcross_lat,2) = y(2)
 !              write(*,*) "A register crossing with latitude",x(2),y(2),jx_eul,jy_eul
-            else if (y(2)==ygno(jy_eul).AND.y(3)<ygno(jy_eul)) then
+            else if (y(2)==ygno(jy_eul).and.y(3)<ygno(jy_eul)) then
               !
               ! register crossing with latitude: line-segments point Southward
               !
@@ -433,8 +437,8 @@ contains
             !****************************
             !
             if (lsame_cell_x) then
-              ysgn1 = (1+inT(SIGN(1.0_r8,y(2)-y(1))))/2 !"1" if y(2)>y(1) else "0"
-              ysgn2 = inT(SIGN(1.0_r8,y(2)-y(1)))       !"1" if y(2)>y(1) else "-1"
+              ysgn1 = (1+int(sign(1.0_r8,y(2)-y(1))))/2 !"1" if y(2)>y(1) else "0"
+              ysgn2 = int(sign(1.0_r8,y(2)-y(1)))       !"1" if y(2)>y(1) else "-1"
               !
               !*******************************************************************************
               !
@@ -458,11 +462,12 @@ contains
                 !
                 ! debugging
                 !
-                if (xcross>xgno(jx_eul+1).OR.xcross<xgno(jx_eul)) then
+                if (xcross>xgno(jx_eul+1).or.xcross<xgno(jx_eul)) then
                   write(iulog,*) 'xcross is out of range',jx,jy
                   write(iulog,*) 'xcross-xgno(jx_eul+1), xcross-xgno(jx_eul))',&
                        xcross-xgno(jx_eul+1), xcross-ygno(jx_eul)
-                  stop
+                  write(errmsg,*) 'xcross is out of range', jx, jy
+                  call endrun(errmsg)
                 end if
               end if
               xseg(1) = x(1)
@@ -499,8 +504,8 @@ contains
               !
               !*******************************************************************************
               !
-              xsgn1 = (1+inT(SIGN(1.0_r8,x(2)-x(1))))/2 !"1" if x(2)>x(1) else "0"
-              xsgn2 = inT(SIGN(1.0_r8,x(2)-x(1))) !"1" if x(2)>x(1) else "-1"
+              xsgn1 = (1+int(sign(1.0_r8,x(2)-x(1))))/2 !"1" if x(2)>x(1) else "0"
+              xsgn2 = int(sign(1.0_r8,x(2)-x(1))) !"1" if x(2)>x(1) else "-1"
               xeul   = xgno(jx_eul+xsgn1)
               if (abs(x(2)-x(1))<fuzzy_width) then
                 ! fuzzy crossing
@@ -516,12 +521,13 @@ contains
               !
               ! debugging
               !
-              if (ycross>ygno(jy_eul+1).OR.ycross<ygno(jy_eul)) then
+              if (ycross>ygno(jy_eul+1).or.ycross<ygno(jy_eul)) then
                 write(iulog,*) 'ycross is out of range'
                 write(iulog,*) 'jx,jy,jx_eul,jy_eul',jx,jy,jx_eul,jy_eul
                 write(iulog,*) 'ycross-ygno(jy_eul+1), ycross-ygno(jy_eul))',&
                      ycross-ygno(jy_eul+1), ycross-ygno(jy_eul)
-                stop
+                write(errmsg,*) 'ycross is out of range'
+                call endrun(errmsg)
               end if
               xseg(1) = x(1)
               yseg(1) = y(1)
@@ -545,11 +551,11 @@ contains
               !
               !*******************************************************************************
               !
-              xsgn1 = (1+inT(SIGN(1.0_r8,x(2)-x(1))))/2 !"1" if x(2)>x(1) else "0"
-              xsgn2 = (inT(SIGN(1.0_r8,x(2)-x(1)))) !"1" if x(2)>x(1) else "0"
+              xsgn1 = (1+int(sign(1.0_r8,x(2)-x(1))))/2 !"1" if x(2)>x(1) else "0"
+              xsgn2 = (int(sign(1.0_r8,x(2)-x(1)))) !"1" if x(2)>x(1) else "0"
               xeul   = xgno(jx_eul+xsgn1)
-              ysgn1 = (1+inT(SIGN(1.0_r8,y(2)-y(1))))/2 !"1" if y(2)>y(1) else "0"
-              ysgn2 = inT(SIGN(1.0_r8,y(2)-y(1)))       !"1" if y(2)>y(1) else "-1"
+              ysgn1 = (1+int(sign(1.0_r8,y(2)-y(1))))/2 !"1" if y(2)>y(1) else "0"
+              ysgn2 = int(sign(1.0_r8,y(2)-y(1)))       !"1" if y(2)>y(1) else "-1"
               yeul   = ygno(jy_eul+ysgn1)
 
               slope  = (y(2)-y(1))/(x(2)-x(1))
@@ -561,7 +567,7 @@ contains
               xcross = x_cross_eul_lat(x(1),y(1),yeul,slope)
 
 
-              if ((xsgn2>0.AND.xcross<=xeul).OR.(xsgn2<0.AND.xcross>=xeul)) then
+              if ((xsgn2>0.and.xcross<=xeul).or.(xsgn2<0.and.xcross>=xeul)) then
                 !
                 ! cross latitude
                 !
@@ -617,13 +623,13 @@ contains
           !
           ! register line-segment (don't register line-segment if outside of panel)
           !
-          if (jx_eul_tmp>=jx_min.AND.jy_eul_tmp>=jy_min.AND.&
-               jx_eul_tmp<=jx_max-1.AND.jy_eul_tmp<=jy_max-1) then
+          if (jx_eul_tmp>=jx_min.and.jy_eul_tmp>=jy_min.and.&
+               jx_eul_tmp<=jx_max-1.and.jy_eul_tmp<=jy_max-1) then
             jsegment=jsegment+1
             weights_eul_index(jsegment,1) = jx_eul_tmp
             weights_eul_index(jsegment,2) = jy_eul_tmp
 
-            call get_weights_exact(lexact_horizontal_line_integrals.AND.abs(yseg(2)-yseg(1))<tiny,&
+            call get_weights_exact(lexact_horizontal_line_integrals.and.abs(yseg(2)-yseg(1))<tiny,&
                  weights(jsegment,:),&
                  xseg,yseg,nreconstruction,ngauss,gauss_weights,abscissae)
 !old            call get_weights_gauss(weights(jsegment,1:nreconstruction),&
@@ -667,6 +673,7 @@ contains
   subroutine get_weights_exact(lexact_horizontal_line_integrals,weights,xseg,yseg,nreconstruction,&
        ngauss,gauss_weights,abscissae)
     use fvm_analytic_mod, only: I_00, I_10, I_01, I_20, I_02, I_11
+    use cam_abortutils, only: endrun
     logical, intent(in) :: lexact_horizontal_line_integrals
     integer , intent(in) :: nreconstruction, ngauss
     real (kind=r8), intent(out) :: weights(:)
@@ -674,14 +681,15 @@ contains
 
 
     real (kind=r8),  intent(in) :: xseg(:),yseg(:) !dimension(2)
+    character(len=256) :: errmsg
     !
     ! compute weights
     !
     if(lexact_horizontal_line_integrals) then
       weights(1) = ((I_00(xseg(2),yseg(2))-I_00(xseg(1),yseg(1))))
       if (abs(weights(1))>1.0_r8) then
-        write(iulog,*) '1 exact weights(jsegment)',weights(1),xseg,yseg
-        stop
+        write(errmsg,*) '1 exact weights(jsegment)',weights(1),xseg,yseg
+        call endrun(errmsg)
       end if
       if (nreconstruction>1) then
          weights(2) = ((I_10(xseg(2),yseg(2))-I_10(xseg(1),yseg(1))))
@@ -776,6 +784,7 @@ contains
   end subroutine get_weights_gauss
 
   subroutine truncate_vertex(x,j_eul,gno,igno_min,igno_max)
+    use cam_abortutils, only: endrun
     integer , intent(inout) :: j_eul
     integer , intent(in)    :: igno_min,igno_max
 
@@ -786,17 +795,18 @@ contains
     logical                 :: lcontinue
     integer :: iter, xsgn
     real (kind=r8) :: dist,dist_new,tmp
+    character(len=256) :: errmsg
 
     lcontinue = .true.
     iter = 0
     dist = bignum
 
-    xsgn     = inT(SIGN(1.0_r8,x-gno(j_eul)))
+    xsgn     = int(sign(1.0_r8,x-gno(j_eul)))
 
     do while (lcontinue)
       if ((j_eul<igno_min) .or. (j_eul>igno_max)) then
-        write(iulog,*) 'something is wrong', j_eul,igno_min,igno_max, iter
-        stop
+        write(errmsg,*) 'something is wrong', j_eul,igno_min,igno_max, iter
+        call endrun(errmsg)
       end if
       iter     = iter+1
       tmp      = x-gno(j_eul)
@@ -811,13 +821,14 @@ contains
         dist = dist_new
       end if
       if (iter>100) then
-        write(iulog,*) 'truncate vertex not converging'
-        stop
+        write(errmsg,*) 'truncate vertex not converging'
+        call endrun(errmsg)
       end if
     end do
   end subroutine truncate_vertex
 
   subroutine which_eul_cell(x,j_eul,gno,igno_min,igno_max)
+    use cam_abortutils, only: endrun
     integer , intent(inout) :: j_eul
     integer , intent(in)    :: igno_min,igno_max
     real (kind=r8), intent(in) :: x(:) !dimension(3)
@@ -825,13 +836,14 @@ contains
 
     logical :: lcontinue
     integer :: iter
+    character(len=256) :: errmsg
 
     lcontinue = .true.
     iter = 0
 
     do while (lcontinue)
       iter = iter+1
-      if (x(1)>=gno(j_eul).AND.x(1)<gno(j_eul+1)) then
+      if (x(1)>=gno(j_eul).and.x(1)<gno(j_eul+1)) then
         lcontinue = .false.
         !
         ! special case when x(1) is on top of grid line
@@ -859,8 +871,8 @@ contains
               !
               j_eul = j_eul-1
             else
-              write(iulog,*) 'inconsistent cell: x(1)=x(2)=x(3)',x(1),x(2),x(3)
-              stop
+              write(errmsg,*) 'inconsistent cell: x(1)=x(2)=x(3)',x(1),x(2),x(3)
+              call endrun(errmsg)
             end if
           end if
         end if
@@ -877,11 +889,12 @@ contains
           j_eul = j_eul - 1
         end if
       end if
-      if (iter>1000.OR.j_eul<igno_min.OR.j_eul>igno_max) then
+      if (iter>1000.or.j_eul<igno_min.or.j_eul>igno_max) then
         write(iulog,*) 'search is which_eul_cell not converging!', iter, j_eul,igno_min,igno_max
         write(iulog,*) 'gno', gno(igno_min), gno(igno_max)
         write(iulog,*) gno
-        stop
+        write(errmsg,*) 'search in which_eul_cell not converging!', iter, j_eul, igno_min, igno_max
+        call endrun(errmsg)
       end if
     end do
   end subroutine which_eul_cell
