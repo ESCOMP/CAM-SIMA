@@ -86,7 +86,7 @@ contains
          weights,weights_eul_index,&
          nreconstruction,ngauss,gauss_weights,abscissae)
 
-    if (abs((jcross_lat/2)-DBLE(jcross_lat)/2.0_r8)>tiny) then
+    if (abs((jcross_lat/2)-dble(jcross_lat)/2.0_r8)>tiny) then
       write(iulog,*) 'number of latitude crossings are not even: ABORT',jcross_lat,jx,jy
       stop
     end if
