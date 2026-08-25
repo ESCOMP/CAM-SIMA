@@ -99,9 +99,9 @@ contains
     use coordinate_systems_mod, only: cart2spherical
 
     ! Inputs
-    type(element_t),   intent(inout) :: elem(:)
-    character(len=*),  intent(in)    :: grid_format
-    character(len=*),  intent(in)    :: filename_in
+    type(element_t),   intent(in) :: elem(:)
+    character(len=*),  intent(in) :: grid_format
+    character(len=*),  intent(in) :: filename_in
 
     real(r8), parameter :: rad2deg = 180.0_r8/pi
 
@@ -515,9 +515,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use hybrid_mod,   only: hybrid_t
     use control_mod,  only: refined_mesh
 
-    integer,         intent(in)            :: nets,nete
-    type(element_t), intent(inout), target :: elem(:)
-    type(hybrid_t),  intent(in)            :: hybrid
+    integer,         intent(in)         :: nets,nete
+    type(element_t), intent(in), target :: elem(:)
+    type(hybrid_t),  intent(in)         :: hybrid
 
     if (refined_mesh .or. (np /= 4)) then
       call InitControlVolumes_duel(elem, hybrid,nets,nete)
@@ -536,9 +536,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use quadrature_mod,         only: quadrature_t, gausslobatto
     use coordinate_systems_mod, only: cube_face_number_from_sphere
 
-    integer,         intent(in)            :: nets,nete
-    type(element_t), intent(inout), target :: elem(:)
-    type(hybrid_t),  intent(in)            :: hybrid
+    integer,         intent(in)         :: nets,nete
+    type(element_t), intent(in), target :: elem(:)
+    type(hybrid_t),  intent(in)         :: hybrid
 
     type(quadrature_t)  :: gll_pts
     type(cartesian3d_t) :: quad(4),corners3d(4)
@@ -732,9 +732,9 @@ call pio_write_darray(file, grid_corner_lon_id, iodesc, gwork, status)
     use dimensions_mod, only: max_corner_elem
     use control_mod,    only: north, south, east, west, neast, nwest, seast, swest
 
-    type(element_t), intent(inout), target :: elem(:)
-    type(hybrid_t),  intent(in)            :: hybrid
-    integer, intent(in)                    :: nets,nete
+    type(element_t), intent(in), target :: elem(:)
+    type(hybrid_t),  intent(in)         :: hybrid
+    integer, intent(in)                 :: nets,nete
     !   local
     integer             :: i,j,k,m,n,o,p,ie,m2
     real(r8)            :: vertpack  (    0:np,       0:np,    3)
