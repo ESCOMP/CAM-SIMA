@@ -1,6 +1,5 @@
-MOD011 # Old array syntax
-MOD021 # Deprecated relational operator
-MOD051 # Save statement is superfluous at module level
+E000   # Fortitude can't read file (likely a system error)
+E011   # Non-ASCII character in file (can cause compilers to fail; excludes comments)
 C001   # Module uses implicit typing
 C021   # No real suffix
 C022   # Implicit real kind
@@ -10,7 +9,12 @@ C081   # Variable initialized in declaration with no 'save' or 'parameter' attri
 C132   # Module has default 'public' accessibility
 C142   # 'Cycle' or 'exit' in unlabeled nested do loop
 C152   # Line continuation in inline if-statement is misleading
+C161   # Short-circuited logical expression (need to nest conditional within "present" check)
 C183   # Stat without error message
+C191   # Unreachable statement
+MOD011 # Old array syntax
+MOD021 # Deprecated relational operator
+MOD051 # Save statement is superfluous at module level
 S061   # End statment should be named
 S071   # Variable declaration missing '::'
 S201   # 'implicit none' set on the enclosing module
