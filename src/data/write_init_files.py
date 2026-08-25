@@ -35,6 +35,10 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 _OUTPUT_TYPES = set(['out', 'inout'])
+# CCPP phases that run before the host calls physics_read_data (the host
+# calls it after the initialize phase and before timestep_initial), see
+# gather_set_before_use_vars:
+_PRE_READ_PHASES = {'register', 'initialize'}
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -126,6 +130,14 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         "ncdata" IC file, or throws a relevant
         error to the user with a list of
         the offending variables.
+
+        It also contains the
+        "suite_sets_before_use" function,
+        which "physics_read_data" uses to
+        skip variables that a suite sets
+        (intent out) before any of its
+        schemes reads them, as those need
+        no initial condition.
     """
 
     #Initialize return message:
@@ -240,6 +252,11 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Grab the host dictionary from the database
         host_dict = cap_database.host_model_dict()
 
+        # Gather, per suite, the input variables that the suite sets
+        #    before any of its schemes reads them:
+        set_before_use = gather_set_before_use_vars(cap_database, in_vars,
+                                                    constituent_set)
+
         # Collect imported host variables for physics read
         host_imports = collect_host_var_imports(in_vars, host_dict, constituent_set)
         # Write physics_read_data subroutine:
@@ -254,6 +271,11 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Write physics_check_data subroutine:
         write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
+
+        outfile.blank_line()
+
+        # Write suite_sets_before_use function:
+        write_set_before_use_function(outfile, set_before_use)
 
     # --------------------------------------
 
@@ -382,6 +404,55 @@ def gather_ccpp_req_vars(cap_database):
     # end if
     # Return the required variables as a list
     return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
+
+##############################################################################
+def gather_set_before_use_vars(cap_database, host_vars, constituent_set):
+    """
+    For each CCPP suite in <cap_database>, find the variables from
+       <host_vars> (excluding those in <constituent_set>) that the suite
+       sets (intent out) before any of its schemes reads them, walking the
+       schemes in call order over the phases that run after the host calls
+       physics_read_data (i.e., all phases except those in _PRE_READ_PHASES).
+    Such a variable needs no initial condition: the suite defines it before
+       use, and the IC file may hold no valid value for it (e.g., a CAM
+       snapshot taken before the producing scheme ran).
+    Return a dictionary, keyed by suite name, of sorted standard-name lists.
+       Suites with no such variable are not included.
+    """
+
+    host_stdnames = set()
+    for hvar in host_vars:
+        stdname = hvar.get_prop_value('standard_name')
+        if stdname not in constituent_set:
+            host_stdnames.add(stdname)
+        # end if
+    # end for
+
+    set_before_use = {}
+    for suite in cap_database.suite_list():
+        # Intent of the first scheme argument to reference each
+        #    standard name, in call order:
+        first_intent = {}
+        for group in suite.groups:
+            if group.phase() in _PRE_READ_PHASES:
+                continue
+            # end if
+            for scheme in group.schemes():
+                for var in scheme.variable_list():
+                    stdname = var.get_prop_value('standard_name')
+                    if stdname not in first_intent:
+                        first_intent[stdname] = var.get_prop_value('intent')
+                    # end if
+                # end for
+            # end for
+        # end for
+        stdnames = sorted(stdname for stdname, intent in first_intent.items()
+                          if (intent == 'out') and (stdname in host_stdnames))
+        if stdnames:
+            set_before_use[suite.name] = stdnames
+        # end if
+    # end for
+    return set_before_use
 
 ##########################
 #FORTRAN WRITING FUNCTIONS
@@ -1087,6 +1158,16 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
 
+    # Skip variables the suite sets before it reads them:
+    outfile.comment("Skip variables the suite sets (intent out) before " +   \
+                    "any of its schemes reads them, as they need no " +      \
+                    "initial condition:", 4)
+    outfile.write("if (suite_sets_before_use(suite_names(suite_idx), " +     \
+                  "ccpp_required_data(req_idx))) then", 4)
+    outfile.write("cycle", 5)
+    outfile.write("end if", 4)
+    outfile.blank_line()
+
     # Call input name search function:
     outfile.comment("Find IC file input name array index for required variable:", 4)
     outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)", 4)
@@ -1579,6 +1660,60 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # End subroutine:
     outfile.write("end subroutine physics_check_data", 1)
+
+    # ----------------------------
+
+#####
+
+def write_set_before_use_function(outfile, set_before_use):
+
+    """
+    Write the "suite_sets_before_use" function, which
+    returns .true. if a suite sets a variable (intent out)
+    before any of its schemes reads it, so that
+    "physics_read_data" can skip reading that variable.
+    <set_before_use> is the dictionary returned by
+    "gather_set_before_use_vars".
+    """
+
+    # Add function header:
+    outfile.write("logical function suite_sets_before_use(suite_name, std_name)", 1)
+    outfile.blank_line()
+    outfile.comment("True if suite <suite_name> sets <std_name> (intent out) " + \
+                    "before any of its schemes reads it, in the phases that " + \
+                    "run after", 2)
+    outfile.comment("physics_read_data (timestep_initial, run, timestep_final), " + \
+                    "so the variable needs no initial condition:", 2)
+    outfile.blank_line()
+
+    # Write dummy variable declarations:
+    outfile.comment("Dummy arguments", 2)
+    outfile.write("character(len=*), intent(in) :: suite_name", 2)
+    outfile.write("character(len=*), intent(in) :: std_name", 2)
+    outfile.blank_line()
+
+    # Write per-suite standard name lists:
+    outfile.write("suite_sets_before_use = .false.", 2)
+    if set_before_use:
+        outfile.write("select case (trim(suite_name))", 2)
+        for suite_name, stdnames in set_before_use.items():
+            outfile.write(f"case ('{suite_name}')", 3)
+            outfile.write("select case (trim(std_name))", 4)
+            for index, stdname in enumerate(stdnames):
+                prefix = "case (" if index == 0 else ""
+                suffix = ")" if index == len(stdnames)-1 else ", &"
+                outfile.write(f"{prefix}'{stdname}'{suffix}", 5,
+                              continue_line=(index > 0))
+            # end for
+            outfile.write("suite_sets_before_use = .true.", 6)
+            outfile.write("end select", 4)
+        # end for
+        outfile.write("end select", 2)
+    # end if
+    outfile.blank_line()
+
+    # End function:
+    outfile.write("end function suite_sets_before_use", 1)
 
     # ----------------------------
 
