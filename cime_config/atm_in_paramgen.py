@@ -1383,7 +1383,7 @@ class AtmInParamGen(ParamGen):
 
                     #Now parse the line:
                     if "=" in line and (line.strip()[0] != "=") and not (is_array and is_continue_line):
-                        line_ss   = line.split("=")       # Split line into before/after equals sign
+                        line_ss   = line.split("=", 1)    # Split only on first '=' (key=value separator)
                         var_str   = (line_ss[0]).strip()  # the first element is the variable name
 
                         #Check if this variable is an array, and if so,
@@ -1410,7 +1410,7 @@ class AtmInParamGen(ParamGen):
                         #End if (array indices)
 
                         #Extract value string:
-                        val_str   = ' '.join(line_ss[1:]).strip() # the rest is the value string
+                        val_str   = line_ss[1].strip() # the rest is the value string
 
                         #Check if value string ends in array continuation:
                         if is_array:

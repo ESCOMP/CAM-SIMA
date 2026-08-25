@@ -12,12 +12,13 @@ module cam_logfile
 !-----------------------------------------------------------------------
 !- use statements ------------------------------------------------------
 !-----------------------------------------------------------------------
+   use, intrinsic :: iso_fortran_env, only: output_unit
+
 !-----------------------------------------------------------------------
 !- module boilerplate --------------------------------------------------
 !-----------------------------------------------------------------------
    implicit none
    private
-   save
 
 !-----------------------------------------------------------------------
 ! Public interfaces ----------------------------------------------------
@@ -35,7 +36,7 @@ module cam_logfile
    integer, public, protected :: debug_output = DEBUGOUT_NONE
    !> \section arg_table_cam_logfile  Argument Table
    !! \htmlinclude cam_logfile.html
-   integer, public, protected :: iulog = 6
+   integer, public, protected :: iulog = output_unit
    logical, public, protected :: log_output = .false.
 
 !-----------------------------------------------------------------------
@@ -48,7 +49,7 @@ module cam_logfile
       module procedure cam_log_multiwrite_nr8 ! Multiple 8-byte reals
    end interface cam_log_multiwrite
 
-CONTAINS
+contains
 
 !-----------------------------------------------------------------------
 ! Subroutines and functions --------------------------------------------
@@ -72,6 +73,7 @@ CONTAINS
 
    subroutine cam_logfile_readnl(nlfile)
       use mpi,        only: mpi_integer
+      use shr_kind_mod, only: cx => shr_kind_cx
       use shr_nl_mod, only: find_group_name => shr_nl_find_group_name
       use spmd_utils, only: mpicom, masterprocid, masterproc
 
@@ -79,6 +81,7 @@ CONTAINS
       character(len=*), intent(in) :: nlfile
 
       ! Local variables
+      character(len=cx)            :: cerr
       integer                      :: unitn
       integer                      :: ierr
 
@@ -92,13 +95,14 @@ CONTAINS
       log_output = masterproc
 
       if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
+         open(newunit=unitn, action='read', file=trim(nlfile), status='old')
          call find_group_name(unitn, 'cam_logfile_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, cam_logfile_nl, iostat=ierr)
+            read(unitn, cam_logfile_nl, iomsg=cerr, iostat=ierr)
             if (ierr /= 0) then
                ! Can't call endrun because of dependency loop
-               write(iulog, *) subname, ': ERROR: reading namelist'
+               write(iulog, *) subname, ': ERROR: reading namelist' // new_line('') // &
+                  trim(adjustl(cerr))
             end if
          end if
          close(unitn)
@@ -123,16 +127,16 @@ CONTAINS
       if (ierr /= 0) then
          ! Can't call endrun because of dependency loop
          ! But MPI usually crashes in Fortran
-         write(iulog, *) subname, ": ERROR: mpi_bcast: debug_output"
+         write(iulog, *) subname, ': ERROR: mpi_bcast: debug_output'
       end if
 
    end subroutine cam_logfile_readnl
 
    subroutine cam_log_multiwrite_ni(subname, headers, fmt_string, values)
       ! Print out values from every task
+      use mpi,          only: mpi_integer
       use shr_sys_mod,  only: shr_sys_flush
       use spmd_utils,   only: mpicom, masterprocid, masterproc, npes
-      use mpi,          only: mpi_integer
 
       ! Dummy arguments
       character(len=*), intent(in) :: subname
@@ -165,10 +169,10 @@ CONTAINS
 
    subroutine cam_log_multiwrite_nr8(subname, headers, fmt_string, values)
       ! Print out values from every task
-      use iso_fortran_env, only: r8 => REAL64
+      use, intrinsic :: iso_fortran_env, only: r8 => REAL64
+      use mpi,             only: mpi_real8
       use shr_sys_mod,     only: shr_sys_flush
       use spmd_utils,      only: mpicom, masterprocid, masterproc, npes
-      use mpi,             only: mpi_real8
 
       ! Dummy arguments
       character(len=*), intent(in) :: subname

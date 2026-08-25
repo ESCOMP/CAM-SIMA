@@ -64,7 +64,7 @@ module cam_comp
 
 
 !-----------------------------------------------------------------------
-CONTAINS
+contains
 !-----------------------------------------------------------------------
 
    subroutine cam_init(caseid, ctitle, model_doi_url,                         &
@@ -103,6 +103,7 @@ CONTAINS
       use phys_vars_init_check,      only: mark_as_initialized
       use tropopause_climo_read,     only: tropopause_climo_read_file
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
+      use topography_statics_read,   only: topography_statics_read_file
       use orbital_data,              only: orbital_data_init
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -223,6 +224,12 @@ CONTAINS
       ! Initialize constituent data
       call cam_ccpp_initialize_constituents(columns_on_task, pver, errflg, errmsg)
 
+      ! Ensure the constituents object is locked and allocated:
+      if (errflg /= 0) then
+         call endrun('cam_init: cam_ccpp_initialize_constituents failure: '//trim(errmsg), &
+                     file=__FILE__, line=__LINE__)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
@@ -269,7 +276,16 @@ CONTAINS
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
 
+      ! Aerosol optics infrastructure init:
+      ! physics init phases will already query aerosol objects so this should
+      ! be run before phys_init
+      call rad_aer_init_all()
+
       call phys_init()
+
+      ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
+      ! from the topo file into the physics state
+      call topography_statics_read_file()
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
@@ -584,8 +600,8 @@ CONTAINS
       !   message printed by masterproc below.  The test-model script
       !   searches for this message in the output log to figure out if
       !   CAM completed successfully.
-      call shr_sys_flush( 0 )       ! Flush all output to standard error
-      call shr_sys_flush( iulog )   ! Flush all output to the CAM log file
+      call shr_sys_flush(0)       ! Flush all output to standard error
+      call shr_sys_flush(iulog)   ! Flush all output to the CAM log file
 
       if (masterproc) then
          write(iulog,9300) nstep-1,nstep
@@ -605,7 +621,7 @@ CONTAINS
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
-      use runtime_obj,               only: wv_stdname
+      use runtime_obj,               only: wv_stdname, wv_longname
       use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
       use cam_constituents,          only: const_set_qmin, const_get_index
@@ -651,13 +667,13 @@ CONTAINS
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
-              std_name=wv_stdname,              &
-              long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
-              units="kg kg-1",                                                          &
-              default_value=0._kind_phys,                                               &
-              vertical_dim="vertical_layer_dimension",                                  &
-              advected=.true.,                                                          &
-              diag_name="Q",                                                            &
+              std_name=wv_stdname,                       &
+              long_name=wv_longname,                     &
+              units='kg kg-1',                           &
+              default_value=0._kind_phys,                &
+              vertical_dim='vertical_layer_dimension',   &
+              advected=.true.,                           &
+              diag_name='Q',                             &
            errcode=errflg, errmsg=errmsg)
 
          if (errflg /= 0) then
@@ -711,6 +727,44 @@ CONTAINS
 
 
    end subroutine cam_register_constituents
+
+!-----------------------------------------------------------------------
+
+   subroutine rad_aer_init_all()
+      ! Initialize aerosol optics infrastructure.
+      ! Called before phys_init (physics init phases query the aerosol
+      ! objects) and before history_init_files (registers history fields).
+      use radiative_aerosol,     only: rad_aer_init
+      use aerosol_instances_mod, only: aerosol_instances_init, aerosol_instances_init_states
+      use cam_ccpp_cap,          only: cam_constituents_array
+      use ccpp_kinds,            only: kind_phys
+      use phys_vars_init_check, only: mark_as_initialized
+
+      real(kind_phys), pointer :: constituents(:,:,:)
+
+      ! Phase 2 init: read physprop, resolve CCPP constituent indices
+      call rad_aer_init()
+
+      ! Create aerosol properties objects
+      call aerosol_instances_init()
+
+      ! Wire constituents pointer into aerosol state objects
+      constituents => cam_constituents_array()
+      call aerosol_instances_init_states(constituents)
+
+      ! Mark module vars part of radiative_aerosol_definitions as initialized.
+      call mark_as_initialized('number_of_radiative_aerosol_diagnostic_lists')
+      call mark_as_initialized('maximum_number_of_radiative_constituents')
+      call mark_as_initialized('index_of_climate_radiative_aerosol_list')
+      call mark_as_initialized('radiative_constituent_namelist_data')
+      call mark_as_initialized('flag_for_active_radiative_aerosol_diagnostic_list')
+      call mark_as_initialized('modal_aerosol_mode_definitions')
+      call mark_as_initialized('sectional_aerosol_bin_definitions')
+      call mark_as_initialized('bulk_aerosol_list_for_radiative_calculations')
+      call mark_as_initialized('modal_aerosol_list_for_radiative_calculations')
+      call mark_as_initialized('sectional_aerosol_list_for_radiative_calculations')
+
+   end subroutine rad_aer_init_all
 
 !-----------------------------------------------------------------------
 
