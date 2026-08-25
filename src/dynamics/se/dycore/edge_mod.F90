@@ -2455,7 +2455,7 @@ end subroutine ghostunpack
     real (kind=r8), intent(out)    :: se(   g%np : g%np+g%nhc, 1-g%nhc : 1,          vlyr, max_corner_elem-1)
     real (kind=r8), intent(out)    :: ne(   g%np : g%np+g%nhc,    g%np : g%np+g%nhc, vlyr, max_corner_elem-1)
     real (kind=r8), intent(out)    :: nw(1-g%nhc : 1,             g%np : g%np+g%nhc, vlyr, max_corner_elem-1)
-    type (EdgeDescriptor_t), intent(inout) :: desc
+    type (EdgeDescriptor_t), intent(in) :: desc
 
     integer                               :: nhc, np
 
