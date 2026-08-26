@@ -298,7 +298,7 @@ contains
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
 
-   end subroutine cam_init
+   end subroutine
 
    !
    !-----------------------------------------------------------------------
