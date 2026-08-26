@@ -622,6 +622,20 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
+    <variable local_name="numliq"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>Cloud liquid number with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="numice"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>Cloud ice number with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMICE cnst_NUMICE</ic_file_input_names>
+    </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
@@ -1738,6 +1752,22 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- only used if use_shfrc is .true. -->
       <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="cush"
+              standard_name="shallow_convective_scale_height"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_cush</ic_file_input_names>
+    </variable>
+    <variable local_name="tke"
+              standard_name="tke_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tke</ic_file_input_names>
     </variable>
 
     <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in the CAM registry -->
