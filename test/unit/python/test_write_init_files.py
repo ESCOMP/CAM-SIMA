@@ -1341,8 +1341,8 @@ class WriteInitTest(unittest.TestCase):
         could be called from "read_field" has two dimensions
         but the second is not a vertical dimension (which read_field can't
         handle) and is not the number of constituents,
-        and exits with both the correct return
-        message, and with no Fortran files generated.
+        and generates a "read_indexed_dimensioned_field" call for it
+        (numbered per-slice file variables) instead of a "read_field" call.
         """
 
         # Setup registry inputs:

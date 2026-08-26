@@ -19,7 +19,7 @@ CONTAINS
 !!
   SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
     slp, cool_cat_for_each_const, cool_cat_default_for_each_const, &
-    timestep, errmsg, errflg)
+    cool_cat_3d_for_each_const, timestep, errmsg, errflg)
 !----------------------------------------------------------------
    IMPLICIT NONE
 !----------------------------------------------------------------
@@ -29,6 +29,7 @@ CONTAINS
    real(kind_phys),    intent(in)    :: slp(:)
    real(kind_phys),    intent(inout) :: cool_cat_for_each_const(:,:)
    real(kind_phys),    intent(in)    :: cool_cat_default_for_each_const(:,:)
+   real(kind_phys),    intent(inout) :: cool_cat_3d_for_each_const(:,:,:)
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg

@@ -6,7 +6,9 @@ module physics_data
    public :: find_input_name_idx
    public :: read_field
    public :: read_constituent_dimensioned_field
+   public :: read_indexed_dimensioned_field
    public :: check_field
+   public :: check_constituent_dimensioned_field
    public :: flush_check_field_verbose
 
    ! Non-standard variable indices:
@@ -28,8 +30,14 @@ module physics_data
    end interface check_field
 
    interface read_constituent_dimensioned_field
-      module procedure read_constituent_dimensioned_field_2d
+      module procedure read_constituent_dimensioned_field_2d  !horizontal columns only (1-D buffer per constituent)
+      module procedure read_constituent_dimensioned_field_3d  !horizontal columns + vertical levels (2-D buffer per constituent)
    end interface read_constituent_dimensioned_field
+
+   interface check_constituent_dimensioned_field
+      module procedure check_constituent_dimensioned_field_2d  !horizontal columns only (1-D buffer per constituent)
+      module procedure check_constituent_dimensioned_field_3d  !horizontal columns + vertical levels (2-D buffer per constituent)
+   end interface check_constituent_dimensioned_field
 
    ! Module-level storage for verbose check_field entries.
    ! These are accumulated during check_field calls and flushed
@@ -694,6 +702,666 @@ CONTAINS
       var_names(3) = trim(base_name) // '_' // trim(to_lower(cname))
 
    end function constituent_dim_file_var_names
+
+   ! Vertically-resolved analog of read_constituent_dimensioned_field_2d: reads a
+   ! (horizontal, vertical, constituent) field where each constituent is stored on
+   ! file as a separate <base_var_name>_<constituent_name> variable (so the CAM
+   ! <-> CAM-SIMA constituent-index reshuffle is handled by name). vcoord_name is
+   ! the vertical coordinate ('lev' or 'ilev'), emitted by write_init_files.py for
+   ! constituent-dimensioned variables that also carry a vertical dimension.
+   subroutine read_constituent_dimensioned_field_3d(const_props, file, std_name, base_var_names, vcoord_name, timestep, field_array, error_on_not_found)
+      use ccpp_kinds,           only: kind_phys
+      use shr_assert_mod,       only: shr_assert_in_domain
+      use shr_sys_mod,          only: shr_sys_flush
+      use pio,                  only: file_desc_t, var_desc_t
+      use spmd_utils,           only: masterproc
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: endrun, check_allocate
+      use cam_logfile,          only: iulog
+      use cam_field_read,       only: cam_read_field
+      use vert_coord,           only: pver, pverp
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check, only: mark_as_read_from_file
+      use phys_vars_init_check, only: phys_var_stdnames, input_var_names, phys_var_num
+      use string_utils,         only: to_lower
+
+      ! Dummy arguments
+      type(ccpp_constituent_prop_ptr_t),     intent(in)    :: const_props(:)      ! Constituent properties
+      type(file_desc_t),                     intent(inout) :: file   !Parallel I/O (PIO) file type.
+      character(len=*),  intent(in)                        :: std_name            ! Standard name of base variable.
+      character(len=*),                      intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_constname)
+      character(len=*),                      intent(in)    :: vcoord_name         ! Vertical coordinate name ('lev' or 'ilev')
+      integer,                               intent(in)    :: timestep            ! Timestep to read [count]
+      real(kind_phys),                       intent(inout) :: field_array(:,:,:)  ! Output field array (ncol, nlev, pcnst)
+      logical, optional,                     intent(in)    :: error_on_not_found  ! Flag to error and exit if not found
+
+      ! Local variables
+      logical                          :: var_found
+      character(len=128)               :: constituent_name
+      character(len=256)               :: file_var_name
+      character(len=256)               :: found_name
+      character(len=512)               :: missing_vars
+      type(var_desc_t)                 :: vardesc
+      real(kind_phys), allocatable     :: buffer(:,:)
+      integer                          :: const_idx, base_idx
+      integer                          :: num_levs
+      integer                          :: ierr
+      logical                          :: error_on_not_found_local
+      logical                          :: any_missing
+
+      ! For construction of constituent short name mapping
+      character(len=128), allocatable  :: constituent_short_names(:)
+      character(len=128)               :: constituent_std_name
+      integer                          :: n
+      integer                          :: const_input_idx
+
+      character(len=256)               :: errmsg
+
+      character(len=*), parameter      :: subname = 'read_constituent_dimensioned_field: '
+
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
+      end if
+
+      ! Resolve the vertical extent from the coordinate name.
+      if (trim(vcoord_name) == 'lev') then
+         num_levs = pver
+      else if (trim(vcoord_name) == 'ilev') then
+         num_levs = pverp
+      else
+         call endrun(subname//'Unknown vcoord_name, '//trim(vcoord_name))
+      end if
+
+      ! Initialize tracking variables
+      any_missing = .false.
+      missing_vars = ''
+
+      ! Allocate temporary buffer
+      allocate(buffer(size(field_array, 1), num_levs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
+
+      !REMOVECAM:
+      ! Because the constituent properties pointer contains standard names, and not input constituent names
+      ! (e.g., Q, CLDLIQ, ...) which are used in the input file names,
+      ! we have to construct a mapping of the standard names to the short input IC file names
+      ! When CAM is retired and only standard names are used for constituents, this mapping can be removed.
+      allocate(constituent_short_names(size(const_props)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'constituent_short_names', errmsg=errmsg)
+
+      const_shortmap_loop: do const_idx = 1, size(const_props)
+         ! Get constituent standard name.
+         call const_props(const_idx)%standard_name(constituent_std_name)
+
+         ! Check if constituent standard name is in the registry to look up its IC name
+         ! n.b. this assumes that the first IC name specified in the registry for this constituent
+         ! is the short name
+         const_input_idx = -1
+         phys_inputvar_loop: do n = 1, phys_var_num
+            ! case-insensitive: see find_input_name_idx
+            if (to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(constituent_std_name))) then
+               const_input_idx = n
+               exit phys_inputvar_loop
+            end if
+         end do phys_inputvar_loop
+
+         if (const_input_idx > 0) then
+            ! Use the first entry from the input_var_names -- assumed to be short name.
+            constituent_short_names(const_idx) = trim(input_var_names(1, const_input_idx))
+         else
+            ! Use the standard name itself if not found in registry.
+            constituent_short_names(const_idx) = trim(constituent_std_name)
+         end if
+      end do const_shortmap_loop
+      !END REMOVECAM
+
+      ! Loop through all possible base names to find correct base name.
+      ! Note this assumes that the same base name is used for all constituents.
+      ! i.e., there cannot be something like cam_in_cflx_Q & cflx_CLDLIQ in one file.
+      base_idx_loop: do base_idx = 1, size(base_var_names)
+         ! Loop through all constituents
+         const_idx_loop: do const_idx = 1, size(const_props)
+            ! Get constituent short name
+            constituent_name = constituent_short_names(const_idx)
+
+            ! Try to find variable in file: <base_var_name>_<constituent_name>,
+            ! trying case variants of the constituent name (see
+            ! constituent_dim_file_var_names).
+            var_found = .false.
+            call cam_pio_find_var(file,                                         &
+                 constituent_dim_file_var_names(base_var_names(base_idx),       &
+                                                constituent_name),              &
+                 found_name, vardesc, var_found)
+
+            if(var_found) then
+               exit base_idx_loop
+            endif
+         end do const_idx_loop
+      end do base_idx_loop
+
+      if(.not. var_found) then
+         if(error_on_not_found_local) then
+            !End model run with appropriate error message:
+            call endrun(subname // 'Required constituent-dimensioned variables not found: No match for ' // trim(std_name))
+         else
+            !Write message to log file, then exit subroutine:
+            if (masterproc) then
+               write(iulog, *) subname // 'Required constituent-dimensioned variables not found: No match for ' // trim(std_name)
+               call shr_sys_flush(iulog)
+            end if
+            return !Nothing more to do here
+         end if
+      end if
+
+      ! Once base_idx is identified, use it in the actual constituent loop:
+      const_read_loop: do const_idx = 1, size(const_props)
+         ! Get constituent short name
+         constituent_name = constituent_short_names(const_idx)
+
+         ! Create file variable name (used for reporting): <base_var_name>_<constituent_name>
+         file_var_name = trim(base_var_names(base_idx)) // '_' // trim(constituent_name)
+
+         ! Try to find variable in file, trying case variants of the
+         ! constituent name (see constituent_dim_file_var_names).
+         var_found = .false.
+         call cam_pio_find_var(file,                                            &
+              constituent_dim_file_var_names(base_var_names(base_idx),          &
+                                             constituent_name),                 &
+              found_name, vardesc, var_found)
+
+         ! Some constituents whose names are not specified in the registry
+         ! will have cnst_ prepended to them (e.g., cnst_dst_a1); also try reading
+         ! from file by removing this prefix:
+         if (.not. var_found) then
+            if (constituent_name(1:5) == 'cnst_') then
+               call cam_pio_find_var(file,                                      &
+                    constituent_dim_file_var_names(base_var_names(base_idx),    &
+                                                   constituent_name(6:)),       &
+                    found_name, vardesc, var_found)
+            end if
+         end if
+
+         if (var_found) then
+            ! Read the variable
+            if (masterproc) then
+               write(iulog, *) 'Reading constituent-dimensioned input field, ', trim(found_name)
+               call shr_sys_flush(iulog)
+            end if
+
+            call cam_read_field(found_name, file, buffer, var_found, &
+                 timelevel=timestep, dim3name=trim(vcoord_name),     &
+                 dim3_bnds=[1, num_levs])
+
+            if (var_found) then
+               ! Copy to correct constituent index in field array
+               field_array(:, :, const_idx) = buffer(:, :)
+
+               ! Check for NaN values
+               call shr_assert_in_domain(field_array(:, :, const_idx), is_nan=.false., &
+                    varname=trim(found_name), &
+                    msg=subname//'NaN found in '//trim(found_name))
+            else
+               ! Failed to read even though variable was found
+               any_missing = .true.
+               if (len_trim(missing_vars) > 0) then
+                  missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+               else
+                  missing_vars = trim(file_var_name)
+               end if
+            end if
+         else
+            ! Variable not found in file
+            any_missing = .true.
+            if (len_trim(missing_vars) > 0) then
+               missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+            else
+               missing_vars = trim(file_var_name)
+            end if
+
+            if (.not. error_on_not_found_local) then
+               ! Use default value (already set at initialization)
+
+               if (masterproc) then
+                  write(iulog, *) 'Constituent-dimensioned field ', trim(file_var_name), &
+                                 ' not found, using default value for constituent ', trim(constituent_name)
+                  call shr_sys_flush(iulog)
+               end if
+            end if
+         end if
+      end do const_read_loop
+
+      ! Check if we should fail due to missing variables
+      if (any_missing .and. error_on_not_found_local) then
+         call endrun(subname//'Required constituent-dimensioned variables not found: ' // trim(missing_vars) // &
+                     'Make sure the constituent short name is the first in the <ic_file_input_names> list in the registry.')
+      end if
+
+      ! Mark the base variable as read from file (only if no errors)
+      call mark_as_read_from_file(std_name)
+
+      ! Clean up
+      deallocate(constituent_short_names)
+      deallocate(buffer)
+
+   end subroutine read_constituent_dimensioned_field_3d
+
+   ! Reads a (horizontal, N) field whose trailing dimension is a fixed-size,
+   ! non-vertical dimension (e.g., dust emission size bins): each slice is stored
+   ! on file as a separate numbered variable <base_var_name><n> (e.g.,
+   ! cam_in_dstflx_bin1 ... cam_in_dstflx_bin4), because a fixed extra dimension
+   ! cannot be captured as a single history/snapshot variable. The slice index is
+   ! appended directly to the base name, so the base names given in the registry
+   ! <ic_file_input_names> must carry any separator text (e.g., 'cam_in_dstflx_bin').
+   ! The number of slices is taken from the trailing dimension of field_array.
+   subroutine read_indexed_dimensioned_field(file, std_name, base_var_names, timestep, field_array, error_on_not_found)
+      use ccpp_kinds,           only: kind_phys
+      use shr_assert_mod,       only: shr_assert_in_domain
+      use shr_sys_mod,          only: shr_sys_flush
+      use pio,                  only: file_desc_t, var_desc_t
+      use spmd_utils,           only: masterproc
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: endrun, check_allocate
+      use cam_logfile,          only: iulog
+      use cam_field_read,       only: cam_read_field
+      use phys_vars_init_check, only: mark_as_read_from_file
+
+      ! Dummy arguments
+      type(file_desc_t),                     intent(inout) :: file   !Parallel I/O (PIO) file type.
+      character(len=*),  intent(in)                        :: std_name            ! Standard name of base variable.
+      character(len=*),                      intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_varname<n>)
+      integer,                               intent(in)    :: timestep            ! Timestep to read [count]
+      real(kind_phys),                       intent(inout) :: field_array(:,:)    ! Output field array (ncol, indexed dimension)
+      logical, optional,                     intent(in)    :: error_on_not_found  ! Flag to error and exit if not found
+
+      ! Local variables
+      logical                          :: var_found
+      character(len=256)               :: file_var_name
+      character(len=256)               :: found_name
+      character(len=512)               :: missing_vars
+      type(var_desc_t)                 :: vardesc
+      real(kind_phys), allocatable     :: buffer(:)
+      integer                          :: slice_idx, base_idx
+      integer                          :: ierr
+      logical                          :: error_on_not_found_local
+      logical                          :: any_missing
+
+      character(len=256)               :: errmsg
+
+      character(len=*), parameter      :: subname = 'read_indexed_dimensioned_field: '
+
+      if (present(error_on_not_found)) then
+         error_on_not_found_local = error_on_not_found
+      else
+         error_on_not_found_local = .true.
+      end if
+
+      ! Initialize tracking variables
+      any_missing = .false.
+      missing_vars = ''
+
+      ! Allocate temporary buffer
+      allocate(buffer(size(field_array, 1)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
+
+      ! Loop through all possible base names to find correct base name.
+      ! Note this assumes that the same base name is used for all slices.
+      base_idx_loop: do base_idx = 1, size(base_var_names)
+         ! Loop through all slices of the indexed dimension
+         slice_idx_loop: do slice_idx = 1, size(field_array, 2)
+            ! Create file variable name: <base_var_name><slice_idx>
+            write(file_var_name, '(a,i0)') trim(base_var_names(base_idx)), slice_idx
+
+            ! Try to find variable in file
+            var_found = .false.
+            call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+
+            if(var_found) then
+               exit base_idx_loop
+            endif
+         end do slice_idx_loop
+      end do base_idx_loop
+
+      if(.not. var_found) then
+         if(error_on_not_found_local) then
+            !End model run with appropriate error message:
+            call endrun(subname // 'Required indexed-dimensioned variables not found: No match for ' // trim(std_name))
+         else
+            !Write message to log file, then exit subroutine:
+            if (masterproc) then
+               write(iulog, *) subname // 'Required indexed-dimensioned variables not found: No match for ' // trim(std_name)
+               call shr_sys_flush(iulog)
+            end if
+            return !Nothing more to do here
+         end if
+      end if
+
+      ! Once base_idx is identified, use it in the actual slice loop:
+      slice_read_loop: do slice_idx = 1, size(field_array, 2)
+         ! Create file variable name: <base_var_name><slice_idx>
+         write(file_var_name, '(a,i0)') trim(base_var_names(base_idx)), slice_idx
+
+         ! Try to find variable in file
+         var_found = .false.
+         call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+
+         if (var_found) then
+            ! Read the variable
+            if (masterproc) then
+               write(iulog, *) 'Reading indexed-dimensioned input field, ', trim(found_name)
+               call shr_sys_flush(iulog)
+            end if
+
+            call cam_read_field(found_name, file, buffer, var_found, timelevel=timestep)
+
+            if (var_found) then
+               ! Copy to correct slice index in field array
+               field_array(:, slice_idx) = buffer(:)
+
+               ! Check for NaN values
+               call shr_assert_in_domain(field_array(:, slice_idx), is_nan=.false., &
+                    varname=trim(found_name), &
+                    msg=subname//'NaN found in '//trim(found_name))
+            else
+               ! Failed to read even though variable was found
+               any_missing = .true.
+               if (len_trim(missing_vars) > 0) then
+                  missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+               else
+                  missing_vars = trim(file_var_name)
+               end if
+            end if
+         else
+            ! Variable not found in file
+            any_missing = .true.
+            if (len_trim(missing_vars) > 0) then
+               missing_vars = trim(missing_vars) // ', ' // trim(file_var_name)
+            else
+               missing_vars = trim(file_var_name)
+            end if
+
+            if (.not. error_on_not_found_local) then
+               ! Use default value (already set at initialization)
+
+               if (masterproc) then
+                  write(iulog, *) 'Indexed-dimensioned field ', trim(file_var_name), &
+                                 ' not found, using default value for this slice'
+                  call shr_sys_flush(iulog)
+               end if
+            end if
+         end if
+      end do slice_read_loop
+
+      ! Check if we should fail due to missing variables
+      if (any_missing .and. error_on_not_found_local) then
+         call endrun(subname//'Required indexed-dimensioned variables not found: ' // trim(missing_vars) // &
+                     '. Make sure the <ic_file_input_names> in the registry hold the numbered-variable prefix.')
+      end if
+
+      ! Mark the base variable as read from file (only if no errors)
+      call mark_as_read_from_file(std_name)
+
+      ! Clean up
+      deallocate(buffer)
+
+   end subroutine read_indexed_dimensioned_field
+
+   ! Check analog of read_constituent_dimensioned_field_3d: compares each slice of
+   ! a (horizontal, vertical, constituent) field against the per-constituent
+   ! <base_var_name>_<constituent_name> variables on the check file, via the same
+   ! constituent-name resolution as the read. Constituents whose variable is not on
+   ! the check file are skipped silently (the file only carries the species the
+   ! capture wrote), so slices that were never read/compared -- including any
+   ! poisoned non-cluster slots -- are not reported as differences. Each compared
+   ! slice is labeled by its file variable name in the check output.
+   subroutine check_constituent_dimensioned_field_2d(const_props, file, std_name, base_var_names, &
+        timestep, field_array, min_difference, min_relative_value, is_first, diff_found)
+      use ccpp_kinds,           only: kind_phys
+      use pio,                  only: file_desc_t, var_desc_t
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: check_allocate
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check, only: phys_var_stdnames, input_var_names, phys_var_num
+      use string_utils,         only: to_lower
+
+      ! Dummy arguments
+      type(ccpp_constituent_prop_ptr_t), intent(in)    :: const_props(:)      ! Constituent properties
+      type(file_desc_t),                 intent(inout) :: file                ! Parallel I/O (PIO) file type
+      character(len=*),                  intent(in)    :: std_name            ! Standard name of base variable
+      character(len=*),                  intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_constname)
+      integer,                           intent(in)    :: timestep            ! Timestep to check [count]
+      real(kind_phys),                   intent(in)    :: field_array(:,:)    ! Field array to check (ncol, pcnst)
+      real(kind_phys),                   intent(in)    :: min_difference
+      real(kind_phys),                   intent(in)    :: min_relative_value
+      logical,                           intent(inout) :: is_first
+      logical,                           intent(out)   :: diff_found
+
+      ! Local variables
+      logical                          :: var_found
+      logical                          :: slice_diff_found
+      character(len=128)               :: constituent_name
+      character(len=256)               :: found_name
+      type(var_desc_t)                 :: vardesc
+      integer                          :: const_idx
+      integer                          :: ierr
+
+      ! For construction of constituent short name mapping
+      character(len=128), allocatable  :: constituent_short_names(:)
+      character(len=128)               :: constituent_std_name
+      integer                          :: n
+      integer                          :: const_input_idx
+
+      character(len=256)               :: errmsg
+
+      character(len=*), parameter      :: subname = 'check_constituent_dimensioned_field: '
+
+      diff_found = .false.
+
+      !REMOVECAM:
+      ! Same standard-name -> short-input-name mapping as
+      ! read_constituent_dimensioned_field, so the check resolves exactly the file
+      ! variable names the read used. When CAM is retired and only standard names
+      ! are used for constituents, this mapping can be removed.
+      allocate(constituent_short_names(size(const_props)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'constituent_short_names', errmsg=errmsg)
+
+      const_shortmap_loop: do const_idx = 1, size(const_props)
+         ! Get constituent standard name.
+         call const_props(const_idx)%standard_name(constituent_std_name)
+
+         ! Check if constituent standard name is in the registry to look up its IC name
+         ! n.b. this assumes that the first IC name specified in the registry for this constituent
+         ! is the short name
+         const_input_idx = -1
+         phys_inputvar_loop: do n = 1, phys_var_num
+            ! case-insensitive: see find_input_name_idx
+            if (to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(constituent_std_name))) then
+               const_input_idx = n
+               exit phys_inputvar_loop
+            end if
+         end do phys_inputvar_loop
+
+         if (const_input_idx > 0) then
+            ! Use the first entry from the input_var_names -- assumed to be short name.
+            constituent_short_names(const_idx) = trim(input_var_names(1, const_input_idx))
+         else
+            ! Use the standard name itself if not found in registry.
+            constituent_short_names(const_idx) = trim(constituent_std_name)
+         end if
+      end do const_shortmap_loop
+      !END REMOVECAM
+
+      const_check_loop: do const_idx = 1, size(const_props)
+         ! Get constituent short name
+         constituent_name = constituent_short_names(const_idx)
+
+         ! Search for <base_var_name>_<constituent_name>, trying all base names
+         ! (the read assumes one base name serves all constituents, so the first
+         ! hit is used) and the case variants of the constituent name (see
+         ! constituent_dim_file_var_names).
+         var_found = .false.
+         base_idx_loop: do n = 1, size(base_var_names)
+            call cam_pio_find_var(file,                                         &
+                 constituent_dim_file_var_names(base_var_names(n),              &
+                                                constituent_name),              &
+                 found_name, vardesc, var_found)
+            if (var_found) exit base_idx_loop
+
+            ! Some constituents whose names are not specified in the registry
+            ! will have cnst_ prepended to them (e.g., cnst_dst_a1); also try
+            ! matching on the file by removing this prefix:
+            if (constituent_name(1:5) == 'cnst_') then
+               call cam_pio_find_var(file,                                      &
+                    constituent_dim_file_var_names(base_var_names(n),           &
+                                                   constituent_name(6:)),       &
+                    found_name, vardesc, var_found)
+               if (var_found) exit base_idx_loop
+            end if
+         end do base_idx_loop
+
+         ! Constituent slices without a matching variable on the check file are
+         ! skipped: the capture only writes the species the source model carries.
+         if (.not. var_found) cycle const_check_loop
+
+         ! Pass the resolved per-constituent name as both the search name and the
+         ! reporting label, so check_field's standard-name fallback search cannot
+         ! match an unrelated variable and diffs are reported per constituent.
+         call check_field(file, [found_name], timestep,                        &
+              field_array(:, const_idx), trim(found_name),                     &
+              min_difference, min_relative_value, is_first, slice_diff_found)
+         if (slice_diff_found) then
+            diff_found = .true.
+         end if
+      end do const_check_loop
+
+      deallocate(constituent_short_names)
+
+   end subroutine check_constituent_dimensioned_field_2d
+
+   subroutine check_constituent_dimensioned_field_3d(const_props, file, std_name, base_var_names, &
+        vcoord_name, timestep, field_array, min_difference, min_relative_value, is_first, diff_found)
+      use ccpp_kinds,           only: kind_phys
+      use pio,                  only: file_desc_t, var_desc_t
+      use cam_pio_utils,        only: cam_pio_find_var
+      use cam_abortutils,       only: check_allocate
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check, only: phys_var_stdnames, input_var_names, phys_var_num
+      use string_utils,         only: to_lower
+
+      ! Dummy arguments
+      type(ccpp_constituent_prop_ptr_t), intent(in)    :: const_props(:)      ! Constituent properties
+      type(file_desc_t),                 intent(inout) :: file                ! Parallel I/O (PIO) file type
+      character(len=*),                  intent(in)    :: std_name            ! Standard name of base variable
+      character(len=*),                  intent(in)    :: base_var_names(:)   ! "Base" name(s) used to construct variable name (base_constname)
+      character(len=*),                  intent(in)    :: vcoord_name         ! Vertical coordinate name ('lev' or 'ilev')
+      integer,                           intent(in)    :: timestep            ! Timestep to check [count]
+      real(kind_phys),                   intent(in)    :: field_array(:,:,:)  ! Field array to check (ncol, nlev, pcnst)
+      real(kind_phys),                   intent(in)    :: min_difference
+      real(kind_phys),                   intent(in)    :: min_relative_value
+      logical,                           intent(inout) :: is_first
+      logical,                           intent(out)   :: diff_found
+
+      ! Local variables
+      logical                          :: var_found
+      logical                          :: slice_diff_found
+      character(len=128)               :: constituent_name
+      character(len=256)               :: found_name
+      type(var_desc_t)                 :: vardesc
+      integer                          :: const_idx
+      integer                          :: ierr
+
+      ! For construction of constituent short name mapping
+      character(len=128), allocatable  :: constituent_short_names(:)
+      character(len=128)               :: constituent_std_name
+      integer                          :: n
+      integer                          :: const_input_idx
+
+      character(len=256)               :: errmsg
+
+      character(len=*), parameter      :: subname = 'check_constituent_dimensioned_field: '
+
+      diff_found = .false.
+
+      !REMOVECAM:
+      ! Same standard-name -> short-input-name mapping as
+      ! read_constituent_dimensioned_field, so the check resolves exactly the file
+      ! variable names the read used. When CAM is retired and only standard names
+      ! are used for constituents, this mapping can be removed.
+      allocate(constituent_short_names(size(const_props)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'constituent_short_names', errmsg=errmsg)
+
+      const_shortmap_loop: do const_idx = 1, size(const_props)
+         ! Get constituent standard name.
+         call const_props(const_idx)%standard_name(constituent_std_name)
+
+         ! Check if constituent standard name is in the registry to look up its IC name
+         ! n.b. this assumes that the first IC name specified in the registry for this constituent
+         ! is the short name
+         const_input_idx = -1
+         phys_inputvar_loop: do n = 1, phys_var_num
+            ! case-insensitive: see find_input_name_idx
+            if (to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(constituent_std_name))) then
+               const_input_idx = n
+               exit phys_inputvar_loop
+            end if
+         end do phys_inputvar_loop
+
+         if (const_input_idx > 0) then
+            ! Use the first entry from the input_var_names -- assumed to be short name.
+            constituent_short_names(const_idx) = trim(input_var_names(1, const_input_idx))
+         else
+            ! Use the standard name itself if not found in registry.
+            constituent_short_names(const_idx) = trim(constituent_std_name)
+         end if
+      end do const_shortmap_loop
+      !END REMOVECAM
+
+      const_check_loop: do const_idx = 1, size(const_props)
+         ! Get constituent short name
+         constituent_name = constituent_short_names(const_idx)
+
+         ! Search for <base_var_name>_<constituent_name>, trying all base names
+         ! (the read assumes one base name serves all constituents, so the first
+         ! hit is used) and the case variants of the constituent name (see
+         ! constituent_dim_file_var_names).
+         var_found = .false.
+         base_idx_loop: do n = 1, size(base_var_names)
+            call cam_pio_find_var(file,                                         &
+                 constituent_dim_file_var_names(base_var_names(n),              &
+                                                constituent_name),              &
+                 found_name, vardesc, var_found)
+            if (var_found) exit base_idx_loop
+
+            ! Some constituents whose names are not specified in the registry
+            ! will have cnst_ prepended to them (e.g., cnst_dst_a1); also try
+            ! matching on the file by removing this prefix:
+            if (constituent_name(1:5) == 'cnst_') then
+               call cam_pio_find_var(file,                                      &
+                    constituent_dim_file_var_names(base_var_names(n),           &
+                                                   constituent_name(6:)),       &
+                    found_name, vardesc, var_found)
+               if (var_found) exit base_idx_loop
+            end if
+         end do base_idx_loop
+
+         ! Constituent slices without a matching variable on the check file are
+         ! skipped: the capture only writes the species the source model carries.
+         if (.not. var_found) cycle const_check_loop
+
+         ! Pass the resolved per-constituent name as both the search name and the
+         ! reporting label, so check_field's standard-name fallback search cannot
+         ! match an unrelated variable and diffs are reported per constituent.
+         call check_field(file, [found_name], vcoord_name, timestep,          &
+              field_array(:, :, const_idx), trim(found_name),                 &
+              min_difference, min_relative_value, is_first, slice_diff_found)
+         if (slice_diff_found) then
+            diff_found = .true.
+         end if
+      end do const_check_loop
+
+      deallocate(constituent_short_names)
+
+   end subroutine check_constituent_dimensioned_field_3d
 
    subroutine check_field_2d(file, var_names, timestep, current_value,        &
       stdname, min_difference, min_relative_value, is_first, diff_found)
