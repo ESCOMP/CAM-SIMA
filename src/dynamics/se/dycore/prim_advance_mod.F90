@@ -120,7 +120,7 @@ contains
     call omp_set_nested(.true.)
 
     ! default weights for computing mean dynamics fluxes
-    eta_ave_w = 1_r8/qsplit
+    eta_ave_w = 1.0_r8/qsplit
 
     ! ==================================
     ! Take timestep
@@ -540,7 +540,7 @@ contains
     real (kind=r8)                              :: nu_ratio1, ptop, inv_rho
     real (kind=r8)                              :: nu_temp, nu_dp, nu_velo
 
-    if (nu_t == 0 .and. nu == 0 .and. nu_p==0 ) return;
+    if (nu_t == 0 .and. nu == 0 .and. nu_p==0 ) return
 
     ptop = hvcoord%hyai(1)*hvcoord%ps0
 
