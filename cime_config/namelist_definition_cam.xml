@@ -484,6 +484,25 @@
         'N:sslt3:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
         'N:sslt4:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt4_rrtmg_c080918.nc'
       </value>
+      <!-- Transient (historical) runs additionally have eruptive volcanic
+           aerosol from the prescribed_volcanic_aerosol scheme (VOLC_MMR,
+           with by-radius optics using VOLC_RAD_GEOM). -->
+      <value phys_suite="cam4" aquaplanet="0" sim_year="1850-2015">
+        'N:sulf:${DIN_LOC_ROOT}/atm/cam/physprops/sulfate_rrtmg_c080918.nc',
+        'N:dust1:${DIN_LOC_ROOT}/atm/cam/physprops/dust1_rrtmg_c080918.nc',
+        'N:dust2:${DIN_LOC_ROOT}/atm/cam/physprops/dust2_rrtmg_c080918.nc',
+        'N:dust3:${DIN_LOC_ROOT}/atm/cam/physprops/dust3_rrtmg_c080918.nc',
+        'N:dust4:${DIN_LOC_ROOT}/atm/cam/physprops/dust4_rrtmg_c080918.nc',
+        'N:bcar1:${DIN_LOC_ROOT}/atm/cam/physprops/bcpho_rrtmg_c080918.nc',
+        'N:bcar2:${DIN_LOC_ROOT}/atm/cam/physprops/bcphi_rrtmg_c080918.nc',
+        'N:ocar1:${DIN_LOC_ROOT}/atm/cam/physprops/ocpho_rrtmg_c080918.nc',
+        'N:ocar2:${DIN_LOC_ROOT}/atm/cam/physprops/ocphi_rrtmg_c080918.nc',
+        'N:sslt1:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt1_rrtmg_c080918.nc',
+        'N:sslt2:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt2_rrtmg_c080918.nc',
+        'N:sslt3:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
+        'N:sslt4:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt4_rrtmg_c080918.nc',
+        'N:VOLC_MMR:${DIN_LOC_ROOT}/atm/cam/physprops/volc_camRRTMG_byradius_sigma1.6_c130724.nc'
+      </value>
     </values>
   </entry>
 
