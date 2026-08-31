@@ -1,0 +1,3 @@
+./xmlchange CAM_LINKED_LIBS=" "
+./xmlchange ROF_NCPL=$(./xmlquery --value ATM_NCPL)
+./xmlchange GLC_NCPL=$(./xmlquery --value ATM_NCPL)

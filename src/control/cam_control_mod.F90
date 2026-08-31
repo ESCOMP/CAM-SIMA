@@ -23,6 +23,8 @@ module cam_control_mod
    character(len=cl), protected :: caseid = ''  ! case ID
    character(len=cl), protected :: ctitle = ''  ! case title
 
+   !> \section arg_table_cam_control_mod Argument Table
+   !! \htmlinclude cam_control_mod.html
    logical, protected :: initial_run  ! startup mode which only requires a minimal initial file
    logical, protected :: restart_run  ! continue a previous run; requires a restart file
    logical, protected :: branch_run   ! branch from a previous run; requires a restart file
@@ -31,15 +33,13 @@ module cam_control_mod
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
                                                !         the run being branched from
 
-   !> \section arg_table_cam_control_mod  Argument Table
-   !! \htmlinclude arg_table_cam_control_mod.html
    logical,  protected :: aqua_planet ! Flag to run model in "aqua planet" mode
    real(r8), protected :: eccen       ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
    real(r8), protected :: obliqr      ! Earth's obliquity in radians
    real(r8), protected :: lambm0      ! Mean longitude of perihelion at the
-   ! vernal equinox (radians)
+                                      ! vernal equinox (radians)
    real(r8), protected :: mvelpp      ! Earth's moving vernal equinox longitude
-   ! of perihelion plus pi (radians)
+                                      ! of perihelion plus pi (radians)
 
 !==============================================================================
 CONTAINS

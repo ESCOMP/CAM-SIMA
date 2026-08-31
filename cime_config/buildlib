@@ -103,6 +103,7 @@ def _build_cam():
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
+                 os.path.join(atm_root, "src", "aerosol"),
                  os.path.join(atm_root, "src", "history"),
                  os.path.join(atm_root, "src", "history", "buffers", "src"),
                  os.path.join(atm_root, "src", "history", "buffers", "src", "hash"),

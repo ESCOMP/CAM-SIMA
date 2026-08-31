@@ -63,8 +63,10 @@
       <value aquaplanet="1" dyn="se" hgrid="ne240np4" ic_ymd="10101" nlev="32">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam6_ne240np4_L32_c170908.nc</value>
       <value dyn="se" hgrid="ne0np4CONUS.ne30x8" nlev="32">${DIN_LOC_ROOT}/atm/cam/inic/se/f2000_conus_ne30x8_L32_c190712.nc</value>
       <value dyn="se" hgrid="ne5np4" nlev="66">${DIN_LOC_ROOT}/atm/waccm/ic/wa3_ne5np4_1950_spinup.cam2.i.1960-01-01-00000_c150810.nc</value>
-      <value dyn="se" hgrid="ne30np4" nlev="70" sim_year="1850">${DIN_LOC_ROOT}/atm/waccm/ic/waccm5_1850_ne30np4_L70_0001-01-11-00000_c151217.nc</value>
       <value dyn="se" hgrid="ne30np4" nlev="70">${DIN_LOC_ROOT}/atm/waccm/ic/fw2000_ne30np4_L70_c181221.nc</value>
+      <value dyn="se" hgrid="ne30np4" nlev="70" sim_year="1850">${DIN_LOC_ROOT}/atm/waccm/ic/waccm5_1850_ne30np4_L70_0001-01-11-00000_c151217.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="58">${DIN_LOC_ROOT}/atm/cam/inic/se/FHISTC_LTso_ne16pg3_ne16pg3_mg17.i.c260220.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="93">${DIN_LOC_ROOT}/atm/cam/inic/se/FHISTC_MTso_ne16pg3_ne16pg3_mg17.i.c260220.nc</value>
 
       <!-- MPAS dycore ICs -->
       <value dyn="mpas" hgrid="mpasa120"  nlev="26" analytic_ic="1">${DIN_LOC_ROOT}/atm/cam/inic/mpas/mpasa120_L26_notopo_coords_c251105.nc</value>
@@ -116,7 +118,28 @@
       <value>UNSET_PATH</value>
     </values>
   </entry>
-
+  <entry id="scale_dry_air_mass">
+    <type>real</type>
+    <category>initial_conditions</category>
+    <group>cam_initfiles_nl</group>
+    <desc>
+      Specify whether and how to perform
+      dry surface pressure scaling. If less than or equal to 0.0,
+      do not perform scaling. If greater than 0.0, perform scaling to scale_dry_air_mass
+      value (in Pa) as the average dry surface pressure target.
+      Default: 0.0
+    </desc>
+    <values>
+      <value>0.0D0</value>
+      <!-- Scale Dry Air Mass: for cases with topography -->
+      <value phys_suite="cam4"   >  98288.0D0 </value>
+      <value phys_suite="cam5"   >  98288.0D0 </value>
+      <value phys_suite="cam6"   >  98288.0D0 </value>
+      <value phys_suite="cam7"   >  98288.0D0 </value>
+      <!-- Scale Dry Air Mass: for cases with no topography (aquaplanet) -->
+      <value aquaplanet="1"> 101080.0D0 </value>
+    </values>
+  </entry>
 <!-- Topography -->
 
   <entry id="bnd_topo">
@@ -402,6 +425,200 @@
       <value>-99</value>
     </values>
   </entry>
+
+<!-- Radiatively active aerosol -->
+  <entry id="mode_defs">
+    <type>char*256(120)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Definitions for the aerosol modes that may be used in the rad_climate and
+      rad_aer_diag_* variables.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="bin_defs">
+    <type>char*256(640)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Definitions for the aerosol bins that may be used in the rad_climate and
+      rad_aer_diag_* variables.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_climate">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      A list of the radiatively active species, i.e., species that affect the
+      climate simulation via the radiative heating rate calculation.
+    </desc>
+    <values>
+      <value>''</value>
+      <!-- cam4: bulk (BAM) aerosols registered by the prescribed_aerosols scheme.
+           The species names must match the constituent names in prescribed_aero_specifier.
+           Aquaplanet runs have no prescribed aerosols, so they keep the empty default. -->
+      <value phys_suite="cam4" aquaplanet="0">
+        'N:sulf:${DIN_LOC_ROOT}/atm/cam/physprops/sulfate_rrtmg_c080918.nc',
+        'N:dust1:${DIN_LOC_ROOT}/atm/cam/physprops/dust1_rrtmg_c080918.nc',
+        'N:dust2:${DIN_LOC_ROOT}/atm/cam/physprops/dust2_rrtmg_c080918.nc',
+        'N:dust3:${DIN_LOC_ROOT}/atm/cam/physprops/dust3_rrtmg_c080918.nc',
+        'N:dust4:${DIN_LOC_ROOT}/atm/cam/physprops/dust4_rrtmg_c080918.nc',
+        'N:bcar1:${DIN_LOC_ROOT}/atm/cam/physprops/bcpho_rrtmg_c080918.nc',
+        'N:bcar2:${DIN_LOC_ROOT}/atm/cam/physprops/bcphi_rrtmg_c080918.nc',
+        'N:ocar1:${DIN_LOC_ROOT}/atm/cam/physprops/ocpho_rrtmg_c080918.nc',
+        'N:ocar2:${DIN_LOC_ROOT}/atm/cam/physprops/ocphi_rrtmg_c080918.nc',
+        'N:sslt1:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt1_rrtmg_c080918.nc',
+        'N:sslt2:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt2_rrtmg_c080918.nc',
+        'N:sslt3:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
+        'N:sslt4:${DIN_LOC_ROOT}/atm/cam/physprops/seasalt4_rrtmg_c080918.nc'
+      </value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_1">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      A list of species to be used in the first diagnostic radiative heating rate
+      calculation. These species are not the ones affecting the climate
+      simulation. This is a hook for performing radiative forcing calculations.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_2">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 2nd diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_3">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 3rd diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_4">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 4th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_5">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 5th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_6">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 6th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_7">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 7th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_8">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 8th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_9">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 9th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
+  <entry id="rad_aer_diag_10">
+    <type>char*256(80)</type>
+    <category>radiation</category>
+    <group>rad_aer_nl</group>
+    <units>none</units>
+    <desc>
+      Analogous to rad_aer_diag_1, but for the 10th diagnostic calculation.
+    </desc>
+    <values>
+      <value>''</value>
+    </values>
+  </entry>
+
 
 <!-- Vertical Coordinate -->
 

@@ -190,7 +190,7 @@ contains
       ! trop_cloud_top_lev
       call mark_as_initialized("vertical_layer_index_of_troposphere_cloud_physics_top")
       ! clim_modal_aero_top_lev
-      call mark_as_initialized("index_of_air_pressure_at_top_of_aerosol_model")
+      call mark_as_initialized("vertical_layer_index_of_aerosol_model_top")
       ! do_molec_press
       call mark_as_initialized("largest_model_top_pressure_that_allows_molecular_diffusion")
       ! molec_diff_bot_press

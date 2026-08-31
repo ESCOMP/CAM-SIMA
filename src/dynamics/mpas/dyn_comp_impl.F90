@@ -129,8 +129,7 @@ contains
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
         use cam_constituents, only: const_name, const_is_water_species, &
-                                    num_advected, &
-                                    readtrace
+                                    num_advected
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info
@@ -219,14 +218,8 @@ contains
                 ! the actual availability (checked and handled by MPAS).
                 call dyn_exchange_constituent_states(direction='e', exchange=.true., conversion=.false.)
 
-                ! Namelist option that controls if constituents are to be read from a file.
-                if (readtrace) then
-                    ! Read variables that belong to the "input" stream in MPAS.
-                    call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
-                else
-                    ! Read variables that belong to the "input" stream in MPAS, excluding constituents.
-                    call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input-scalars')
-                end if
+                ! Read variables that belong to the "input" stream in MPAS.
+                call mpas_dynamical_core % read_write_stream(pio_init_file, 'r', 'input')
             end if
         else
             ! Run type is branch or restart run.
@@ -960,7 +953,8 @@ contains
     !> (KCW, 2024-05-23)
     subroutine mark_variables_as_initialized()
         ! Module(s) from CAM-SIMA.
-        use cam_constituents, only: const_name, &
+        use cam_constituents, only: const_mark_as_initialized, &
+                                    const_name, &
                                     num_advected
         use cam_logfile, only: debugout_debug
         ! Module(s) from CCPP.
@@ -1009,8 +1003,12 @@ contains
         call mark_as_initialized('tendency_of_northward_wind_due_to_model_physics')
 
         ! CCPP standard names of constituents.
+        ! The name-based `mark_as_initialized` silently ignores runtime-registered constituents
+        ! because they have no registry entry, so also mark each constituent by index to keep
+        ! the physics-grid initial condition read from overwriting any advected constituent.
         do i = 1, num_advected
             call mark_as_initialized(trim(adjustl(const_name(advected_constituent_index(i)))))
+            call const_mark_as_initialized(advected_constituent_index(i))
         end do
 
         ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.

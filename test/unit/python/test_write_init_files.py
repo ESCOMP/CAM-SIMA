@@ -1087,6 +1087,91 @@ class WriteInitTest(unittest.TestCase):
         self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
                                     shallow=False), msg=amsg)
 
+    def test_ddt_scheme_arg_write_init(self):
+        """
+        Test that the 'write_init_files' function
+        skips a whole-DDT host variable that a scheme
+        takes as an argument (such variables cannot be
+        read from initial-conditions files; they are
+        initialized by the host model at run time).
+        """
+
+        # Setup registry inputs:
+        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        out_source_name = "physics_types_simple"
+        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
+        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+
+        # Setup capgen inputs:
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        ddt_host_mod = os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_host_mod.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_ddt_arg.xml")
+        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+                        os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_scheme.meta")]
+        cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_arg.xml")
+
+        host_files = [model_host, ddt_host_mod, out_meta]
+
+        # Setup write_init_files inputs:
+        vic_name = "phys_vars_init_check_ddt_arg.F90"
+        pi_name = "physics_inputs_ddt_arg.F90"
+        check_init_in = os.path.join(_INIT_SAMPLES_DIR, vic_name)
+        phys_input_in = os.path.join(_INIT_SAMPLES_DIR, pi_name)
+        check_init_out = os.path.join(_TMP_DIR, vic_name)
+        phys_input_out = os.path.join(_TMP_DIR, pi_name)
+
+        # Create local logger:
+        logger = logging.getLogger("write_init_files_ddt_arg")
+
+        # Clear all temporary output files:
+        remove_files([out_source, out_meta, cap_datafile,
+                      check_init_out, phys_input_out])
+
+        # Generate registry files:
+        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+                         _SRC_MOD_DIR, _CAM_ROOT,
+                         loglevel=logging.ERROR,
+                         error_on_no_validate=True)
+
+        # Generate CCPP capgen files:
+        kind_types = ['kind_phys=REAL64']
+        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
+                                   scheme_files=scheme_files, suites=sdf,
+                                   preproc_directives='',
+                                   generate_docfiles=False,
+                                   host_name='cam', kind_types=kind_types,
+                                   use_error_obj=False,
+                                   force_overwrite=True,
+                                   output_root=_TMP_DIR,
+                                   ccpp_datafile=cap_datafile)
+        cap_database = capgen(run_env, return_db=True)
+
+        # Generate physics initialization files:
+        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
+                                             find_file, _INC_SEARCH_DIRS,
+                                             3, logger,
+                                             phys_check_filename=vic_name,
+                                             phys_input_filename=pi_name)
+
+        # Check return message:
+        amsg = f"Test failure: retmsg={retmsg}"
+        self.assertEqual(retmsg, '', msg=amsg)
+
+        # Make sure each output file was created:
+        amsg = f"{check_init_out} does not exist"
+        self.assertTrue(os.path.exists(check_init_out), msg=amsg)
+        amsg = f"{phys_input_out} does not exist"
+        self.assertTrue(os.path.exists(phys_input_out), msg=amsg)
+
+        # For each output file, make sure it matches input file.
+        # The DDT variable must not appear in either file.
+        amsg = f"{check_init_out} does not match {check_init_in}"
+        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
+                                    shallow=False), msg=amsg)
+        amsg = f"{phys_input_out} does not match {phys_input_in}"
+        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
+                                    shallow=False), msg=amsg)
+
     def test_meta_file_reg_write_init(self):
         """
         Test that the 'write_init_files' function
