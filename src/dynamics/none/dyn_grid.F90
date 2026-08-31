@@ -10,9 +10,8 @@ module dyn_grid
 
    implicit none
    private
-   save
 
-   public model_grid_init
+   public :: model_grid_init
 
    ! Private module variables
 
@@ -52,7 +51,7 @@ module dyn_grid
    private :: find_energy_formula
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    subroutine model_grid_init()
@@ -132,7 +131,7 @@ CONTAINS
       call pio_seterrorhandling(fh_ini, PIO_BCAST_ERROR, oldmethod=err_handling)
 
       ! Find the latitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lat     ', 'lat_d   ', 'latitude' /), lat_name,         &
+      call cam_pio_find_var(fh_ini, ['lat     ', 'lat_d   ', 'latitude'], lat_name,         &
            lat_vardesc, var_found)
       if (var_found) then
          ! Find the variable latitude dimension info
@@ -152,8 +151,8 @@ CONTAINS
             call endrun(errormsg)
          end if
       else
-         write(errormsg, '(3a)') subname, ": Could not find latitude ",       &
-              "on initial data file"
+         write(errormsg, '(3a)') subname, ': Could not find latitude ',       &
+              'on initial data file'
          call endrun(errormsg)
       end if
       if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
@@ -170,7 +169,7 @@ CONTAINS
       call find_energy_formula(fh_ini, grid_is_latlon)
 
       ! Find the longitude variable and dimension(s)
-      call cam_pio_find_var(fh_ini, (/ 'lon      ', 'lon_d    ', 'longitude' /), lon_name,         &
+      call cam_pio_find_var(fh_ini, ['lon      ', 'lon_d    ', 'longitude'], lon_name,         &
            lon_vardesc, var_found)
       if (var_found) then
          ! Find the longitude variable dimension info
@@ -180,19 +179,19 @@ CONTAINS
          if (grid_is_latlon) then
             num_lons = dimlens(1)
             if (index(lon_dim_name, 'lon') <= 0) then
-               write(errormsg, '(5a)') subname, ": Bad Longitude variable ",  &
+               write(errormsg, '(5a)') subname, ': Bad Longitude variable ',  &
                     "dimension, '", trim(lon_dim_name), "'"
                call endrun(errormsg)
             end if ! No else needed, everything is fine
          else if (index(lat_dim_name, 'ncol') <= 0) then
-            write(errormsg, '(8a)') subname, ": Longitude variable ",         &
+            write(errormsg, '(8a)') subname, ': Longitude variable ',         &
                  "dimension, '", trim(lon_dim_name), "', does not match ",    &
                  "latitude, '", trim(lat_dim_name), "'"
                call endrun(errormsg)
          end if ! No else, we have a good dimension
       else
-         write(errormsg, '(3a)') subname, ": Could not find longitude ",      &
-              "on initial data file"
+         write(errormsg, '(3a)') subname, ': Could not find longitude ',      &
+              'on initial data file'
          call endrun(errormsg)
       end if
       if (masterproc .and. (debug_output > DEBUGOUT_NONE)) then
