@@ -46,6 +46,13 @@
       <value dyn="se" hgrid="ne240np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/homme/cami_1850-01-01_ne240np4_L26_c110314.nc</value>
       <value dyn="se" hgrid="ne240np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/homme/cami_0000-09-01_ne240np4_L26_c061106.nc</value>
       <value dyn="se" hgrid="ne240np4" ic_ymd="10101" nlev="30">${DIN_LOC_ROOT}/atm/cam/inic/homme/cami-mam3_0000-01-ne240np4_L30_c111004.nc</value>
+      <!-- Transient historical (HIST) compsets start at 1979-01-01, which never
+           matches the ic_ymd guards above (ic_ymd is the full yyyymmdd start date;
+           there is no month-day fallback), so select CAM4 (L26) start-up ICs by
+           sim_year instead. -->
+      <value dyn="se" hgrid="ne3np4"  nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L26_c120525.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne16np4_L26_c171020.nc</value>
+      <value dyn="se" hgrid="ne30np4" nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne30np4_L26_c171020.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne5np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne5np4_L26_c170517.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne16np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne16np4_L26_c170417.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne30np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne30np4_L26_c170417.nc</value>
