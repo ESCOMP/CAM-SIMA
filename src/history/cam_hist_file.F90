@@ -1388,7 +1388,7 @@ CONTAINS
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,        allocatable :: mdimids(:)
 
-      ! Set the restart filename using current timestep
+      ! Set the restart filename using current timestamp
       call this%set_restart_filename()
 
       restart = .true.
