@@ -1,1 +1,3 @@
 ./xmlchange CAM_LINKED_LIBS=" "
+./xmlchange REST_N=3
+./xmlchange REST_OPTION=nsteps
