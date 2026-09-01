@@ -24,6 +24,7 @@
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/gravity_wave_drag_ridge_read.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/aerosol/radiative_aerosol_definitions.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/air_composition.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/cam_thermo_formula.meta</metadata_file>
@@ -448,7 +449,7 @@
               standard_name="dycore_calculates_geopotential_using_logarithms"
               units="flag" type="logical" access="protected">
       <initial_value>.false.</initial_value>
-      <initial_value dyn="SE,FV">.true.</initial_value>
+      <initial_value dyn="FV,FV3">.true.</initial_value>
     </variable>
     <ddt type="physics_state">
       <data>air_temperature</data>
@@ -664,6 +665,39 @@
       <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
     </variable>
+    <variable local_name="numliq"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of cloud liquid water wrt moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMLIQ cnst_NUMLIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="numice"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water"
+              units="kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of cloud ice water crystals with respect to mass of moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMICE cnst_NUMICE</ic_file_input_names>
+    </variable>
+    <variable local_name="numrai"
+              standard_name="mass_number_concentration_of_rain_drops_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of rain drops with respect to mass of moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>NUMRAI cnst_NUMRAI</ic_file_input_names>
+    </variable>
+    <variable local_name="numsno"
+              standard_name="mass_number_concentration_of_snow_crystals_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of snow crystals with respect to the mass of moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>NUMSNO cnst_NUMSNO</ic_file_input_names>
+    </variable>
+    <variable local_name="numgra"
+              standard_name="mass_number_concentration_of_graupel_particles_in_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>mass number concentration of graupel particles with respect to the mass of moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>NUMGRA cnst_NUMGRA</ic_file_input_names>
+    </variable>
     <variable local_name="H2O"
 	      standard_name="H2O"
 	      units="kg kg-1" type="real" constituent="true">
@@ -681,15 +715,6 @@
     </variable>
 
     <!-- temporaries from pbuf for snapshot usage. -->
-    <variable local_name="landm"
-              standard_name="smoothed_land_area_fraction"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <!-- Note: In CAM, landm is read from the topo dataset (or if disabled, set to zero) -->
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>LANDM_COSLAT pbuf_LANDM</ic_file_input_names>
-    </variable>
     <variable local_name="ast"
               standard_name="stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
@@ -1070,16 +1095,16 @@
       <ic_file_input_names>bcphodry cam_out_bcphodry</ic_file_input_names>
     </variable>
     <variable local_name="co2diag"
-              standard_name="co2diag_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="diagnostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>co2diag cam_out_co2diag</ic_file_input_names>
     </variable>
     <variable local_name="co2prog"
-              standard_name="co2prog_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="prognostic_volume_mixing_ratio_of_co2_to_coupler"
+              units="ppmv" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
@@ -1415,8 +1440,8 @@
        <data>dry_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>wet_deposition_flux_of_hydrophilic_black_carbon_at_surface_to_coupler</data>
        <data>dry_deposition_flux_of_hydrophobic_black_carbon_at_surface_to_coupler</data>
-       <data>co2diag_tbd</data>
-       <data>co2prog_tbd</data>
+       <data>diagnostic_volume_mixing_ratio_of_co2_to_coupler</data>
+       <data>prognostic_volume_mixing_ratio_of_co2_to_coupler</data>
        <data>dry_deposition_of_dust_bin1_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin2_at_surface_to_coupler</data>
        <data>dry_deposition_of_dust_bin3_at_surface_to_coupler</data>
@@ -1460,6 +1485,32 @@
       <long_name> </long_name>
     </variable>
 
+    <!-- Topography dataset fields: default to 0 when no topo (aquap) -->
+    <variable local_name="sgh"
+              standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_SGH</ic_file_input_names>
+    </variable>
+    <variable local_name="sgh30"
+              standard_name="standard_deviation_of_subgrid_orography_for_turbulent_orographic_form_drag"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_SGH30</ic_file_input_names>
+    </variable>
+    <variable local_name="landm"
+              standard_name="smoothed_land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_LANDM</ic_file_input_names>
+    </variable>
+
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
@@ -1485,7 +1536,16 @@
               units="m s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_WSEDL</ic_file_input_names>
+    </variable>
+    <variable local_name="wp2_nadv"
+              standard_name="advected_variance_of_vertical_velocity_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_WP2_nadv</ic_file_input_names>
     </variable>
 
     <!-- Temporary initializations for gravity wave parameterizations -->
@@ -1514,6 +1574,161 @@
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
+    <!-- Temporary initializations for aerosol models -->
+    <variable local_name="qsatfac"
+              standard_name="subgrid_cloud_water_saturation_scaling_factor_for_microphysics"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_QSATFAC</ic_file_input_names>
+    </variable>
+    <variable local_name="aist"
+              standard_name="stratiform_cloud_ice_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_AIST</ic_file_input_names>
+    </variable>
+
+    <!-- Aerosol model properties -->
+    <variable local_name="prog_modal_aero"
+              standard_name="do_prognostic_modal_aerosol"
+              units="flag" type="logical">
+      <long_name>flag indicating whether prognostic modal aerosols are present in the run</long_name>
+      <initial_value>.false.</initial_value>
+      <!-- is true when chemistry uses interactive MAM - currently not in CAM-SIMA, default to false. -->
+    </variable>
+    <variable local_name="ndust"
+              standard_name="dust_size_bin_dimension"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>number of dust size bins used in aerosol model</long_name>
+      <initial_value>4</initial_value>
+      <!-- this is not runtime configurable, and
+           not even easily compile-time configurable, because the assumption that
+           there are four dust bins is deeply embedded in the microphysics and
+           coupling to the land model (see dstdry1/2/3/4, dstwet1/2/3/4) -->
+    </variable>
+
+    <!-- Modal aerosol persistent state -->
+    <variable local_name="nmodes_aero"
+              standard_name="number_of_aerosol_modes"
+              units="count" type="integer" allocatable="parameter">
+      <long_name>number of aerosol modes (set by mam_mode_metadata_init)</long_name>
+      <initial_value>4</initial_value>
+    </variable>
+    <variable local_name="dgncur_a"
+              standard_name="dry_number_mode_diameter_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable, target">
+      <long_name>dry number mode diameter of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dgncur_awet"
+              standard_name="wet_number_mode_diameter_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable, target">
+      <long_name>wet number mode diameter of modal aerosol (from previous timestep)</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="hygro_aer"
+              standard_name="volume_weighted_hygroscopicity_of_modal_aerosol"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>volume-weighted hygroscopicity of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dryvol_aer"
+              standard_name="single_particle_dry_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean dry volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dryrad_aer"
+              standard_name="dry_volume_mean_radius_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>dry volume mean radius of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="drymass_aer"
+              standard_name="single_particle_dry_mass_of_modal_aerosol"
+              units="kg" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean dry mass of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="so4dryvol_aer"
+              standard_name="single_particle_sulfate_dry_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean sulfate dry volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="naer_mmr"
+              standard_name="mass_number_concentration_of_modal_aerosol_wrt_moist_air_and_condensed_water"
+              units="kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>aerosol number mixing ratio per mode</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wetrad_aer"
+              standard_name="wet_radius_of_modal_aerosol"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>wet radius of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wetvol_aer"
+              standard_name="single_particle_wet_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean wet volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="wtrvol_aer"
+              standard_name="single_particle_water_volume_of_modal_aerosol"
+              units="m3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>single-particle mean water volume of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="qaerwat_aer"
+              standard_name="aerosol_water_mixing_ratio_of_modal_aerosol_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable, target">
+      <long_name>aerosol water mass mixing ratio per mode</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="sulfeq_aer"
+              standard_name="equilibrium_h2so4_mixing_ratio_of_modal_aerosol"
+              units="mol mol-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>H2SO4 equilibrium mixing ratio of modal aerosol</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_aerosol_modes</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="do_strat_sulfate"
+              standard_name="flag_for_stratospheric_sulfate_treatment"
+              units="flag" type="logical">
+      <long_name>flag for stratospheric sulfate equilibrium treatment in modal aerosol</long_name>
+      <initial_value>.false.</initial_value>
+    </variable>
+
     <!-- Gravity wave variables - need to be kept in the CAM registry -->
     <variable local_name="kvt"
               standard_name="molecular_kinematic_temperature_conductivity_at_interfaces"
@@ -1522,14 +1737,6 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_kvt</ic_file_input_names>
-    </variable>
-    <variable local_name="sgh"
-              standard_name="standard_deviation_of_subgrid_orography_for_orographic_gravity_wave_drag"
-              units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>pbuf_SGH</ic_file_input_names>
     </variable>
 
     <!-- Cloud fraction variables - need to be kept in the CAM registry -->
@@ -1587,14 +1794,6 @@
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
-    <variable local_name="sgh30"
-              standard_name="standard_deviation_of_subgrid_orography_for_turbulent_orographic_form_drag"
-              units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>SGH30 pbuf_SGH30</ic_file_input_names>
-    </variable>
     <variable local_name="kvm"
               standard_name="eddy_momentum_diffusivity_at_interfaces"
               units="m2 s-1" type="real" kind="kind_phys"
@@ -1610,6 +1809,14 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_kvh</ic_file_input_names>
+    </variable>
+    <variable local_name="tke"
+              standard_name="tke_at_interfaces"
+              units="m2 s-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_tke</ic_file_input_names>
     </variable>
     <variable local_name="tauresx"
               standard_name="eastward_reserved_stress_at_surface_on_previous_timestep"
@@ -1798,12 +2005,55 @@
       <ic_file_input_names>VOLC_RAD_GEOM pbuf_VOLC_RAD_GEOM</ic_file_input_names>
     </variable>
 
+    <!-- Aerosol nucleation/activation data into microphysics -->
+    <variable local_name="naai"
+              standard_name="tendency_of_mass_number_concentration_of_activated_ice_nuclei"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NAAI</ic_file_input_names>
+    </variable>
+    <variable local_name="naai_hom"
+              standard_name="tendency_of_mass_number_concentration_of_activated_ice_nuclei_due_to_homogeneous_freezing"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NAAI_HOM</ic_file_input_names>
+    </variable>
+    <variable local_name="npccn"
+              standard_name="tendency_of_mass_number_concentration_of_activated_cloud_condensation_nuclei"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NPCCN</ic_file_input_names>
+    </variable>
+    <!-- the below dust size bin dimensions are problematic: -->
+    <variable local_name="nacon"
+              standard_name="dust_number_concentration_by_size_bin_for_contact_freezing"
+              units="m-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NACON</ic_file_input_names>
+    </variable>
+    <variable local_name="rndst"
+              standard_name="dust_radii_by_size_bin"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_RNDST</ic_file_input_names>
+    </variable>
     <!-- Zhang McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
     </variable>
     <variable local_name="cldfrc"
@@ -1965,7 +2215,7 @@
       <ic_file_input_names>ICSWP pbuf_ICSWP</ic_file_input_names>
     </variable>
     <variable local_name="dei"
-              standard_name="effective_diameter_of_stratiform_cloud_ice_particle_for_radiation"
+              standard_name="effective_diameter_of_stratiform_cloud_ice_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1973,7 +2223,7 @@
       <ic_file_input_names>DEI pbuf_DEI</ic_file_input_names>
     </variable>
     <variable local_name="des"
-              standard_name="effective_diameter_of_stratiform_snow_particle_for_radiation"
+              standard_name="effective_diameter_of_stratiform_snow_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -2050,6 +2300,35 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
+    </variable>
+    <!-- Net radiative flux profiles for persistence across timesteps (including those without radiation) -->
+    <variable local_name="fns"
+              standard_name="shortwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcns"
+              standard_name="shortwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fnl"
+              standard_name="longwave_net_radiative_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+    </variable>
+    <variable local_name="fcnl"
+              standard_name="longwave_net_radiative_clear_sky_flux"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
     </variable>
     <variable local_name="two"
               standard_name="constant_dimension_two"

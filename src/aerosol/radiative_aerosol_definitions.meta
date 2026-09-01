@@ -1,0 +1,130 @@
+[ccpp-table-properties]
+  name = rad_cnst_namelist_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = rad_cnst_namelist_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = mode_component_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = mode_component_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = modes_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = modes_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = bin_component_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = bin_component_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = bins_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = bins_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = aerosol_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = aerosol_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = aerlist_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = aerlist_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = modelist_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = modelist_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = binlist_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = binlist_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = radiative_aerosol_definitions
+  type = module
+
+[ccpp-arg-table]
+  name  = radiative_aerosol_definitions
+  type  = module
+[ N_DIAG ]
+  standard_name = number_of_radiative_aerosol_diagnostic_lists
+  units = count
+  type = integer
+  dimensions = ()
+[ n_rad_cnst ]
+  standard_name = maximum_number_of_radiative_constituents
+  units = count
+  type = integer
+  dimensions = ()
+[ id_climate ]
+  standard_name = index_of_climate_radiative_aerosol_list
+  units = none
+  type = integer
+  dimensions = ()
+[ radcnst_namelist ]
+  standard_name = radiative_constituent_namelist_data
+  units = none
+  type = rad_cnst_namelist_t
+  dimensions = (index_of_climate_radiative_aerosol_list:number_of_radiative_aerosol_diagnostic_lists)
+[ active_calls ]
+  standard_name = flag_for_active_radiative_aerosol_diagnostic_list
+  units = flag
+  type = logical
+  dimensions = (index_of_climate_radiative_aerosol_list:number_of_radiative_aerosol_diagnostic_lists)
+[ modes ]
+  standard_name = modal_aerosol_mode_definitions
+  units = none
+  type = modes_t
+  dimensions = ()
+[ bins ]
+  standard_name = sectional_aerosol_bin_definitions
+  units = none
+  type = bins_t
+  dimensions = ()
+[ bulk_aerosol_list ]
+  standard_name = bulk_aerosol_list_for_radiative_calculations
+  units = none
+  type = aerlist_t
+  dimensions = (index_of_climate_radiative_aerosol_list:number_of_radiative_aerosol_diagnostic_lists)
+[ modal_aerosol_list ]
+  standard_name = modal_aerosol_list_for_radiative_calculations
+  units = none
+  type = modelist_t
+  dimensions = (index_of_climate_radiative_aerosol_list:number_of_radiative_aerosol_diagnostic_lists)
+[ sectional_aerosol_list ]
+  standard_name = sectional_aerosol_list_for_radiative_calculations
+  units = none
+  type = binlist_t
+  dimensions = (index_of_climate_radiative_aerosol_list:number_of_radiative_aerosol_diagnostic_lists)
+

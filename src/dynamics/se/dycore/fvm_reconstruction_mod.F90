@@ -1,8 +1,8 @@
 !==================================================================================
-! The subroutine reconstruction is called from both a horizontal 
-!    threaded region and a nested region for horizontal and 
+! The subroutine reconstruction is called from both a horizontal
+!    threaded region and a nested region for horizontal and
 !    vertical threading.  if horz_num_threads != horz_num_threads*vert_num_threads
-!    then the timers calls will generate segfault...  So the simple solution is 
+!    then the timers calls will generate segfault...  So the simple solution is
 !    to deactivate them by default.
 !
 #define FVM_TIMERS .FALSE.
@@ -23,6 +23,7 @@ module fvm_reconstruction_mod
   use control_mod,            only: north, south, east, west, neast, nwest, seast, swest
   use cam_abortutils,         only: endrun
   use perf_mod,               only: t_startf, t_stopf
+  use cam_logfile,            only: iulog
 
 
   implicit none
@@ -52,69 +53,70 @@ contains
        rot_matrix,centroid_stretch,&
        vertex_recons_weights,vtx_cart,&
        irecons_actual_in)
-    implicit none
     !
     ! dimension(1-nhc:nc+nhc, 1-nhc:nc+nhc)
     !
-    integer, intent(in) :: irecons
-    integer, intent(in) :: nlev_in, k_in
-    integer, intent(in) :: ntrac_in,nc,nhe,nhr,nhc,nht,ns,nh,cubeboundary
-    real (kind=r8), dimension(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev_in,ntrac_in), intent(inout) :: fcube
-    real (kind=r8), dimension(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe,ntrac_in), intent(out)   :: recons
-    integer, intent(in) :: jx_min(3), jx_max(3), jy_min(3), jy_max(3)
-    integer              , intent(in):: ibase(1-nh:nc+nh,1:nhr,2)
-    real (kind=r8), intent(in):: halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2)
-    real (kind=r8), intent(in):: spherecentroid(irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
-    real (kind=r8), intent(in):: recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe)
-    real (kind=r8), intent(in):: recons_metrics_integral(3,1-nhe:nc+nhe,1-nhe:nc+nhe)
-    integer              , intent(in):: rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
-    real (kind=r8), intent(in):: centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe)
-    real (kind=r8), intent(in):: vertex_recons_weights(4,1:irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
-    real (kind=r8), intent(in):: vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
+    integer,       intent(in)    :: irecons
+    integer,       intent(in)    :: nlev_in, k_in
+    integer,       intent(in)    :: ntrac_in,nc,nhe,nhr,nhc,nht,ns,nh,cubeboundary
+    real(kind=r8), intent(inout) :: fcube(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev_in,ntrac_in)
+    real(kind=r8), intent(out)   :: recons(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe,ntrac_in)
+    integer,       intent(in)    :: jx_min(3), jx_max(3), jy_min(3), jy_max(3)
+    integer,       intent(in)    :: ibase(1-nh:nc+nh,1:nhr,2)
+    real(kind=r8), intent(in)    :: halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2)
+    real(kind=r8), intent(in)    :: spherecentroid(irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8), intent(in)    :: recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8), intent(in)    :: recons_metrics_integral(3,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    integer,       intent(in)    :: rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
+    real(kind=r8), intent(in)    :: centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8), intent(in)    :: vertex_recons_weights(4,1:irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8), intent(in)    :: vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
 
     logical,           intent(in) :: llimiter(ntrac_in)
     integer, optional, intent(in) :: irecons_actual_in
 
     integer                       :: irecons_actual
 
-    real (kind=r8), dimension(1-nht:nc+nht,1-nht:nc+nht,3) :: f
+    real(kind=r8) :: f(1-nht:nc+nht,1-nht:nc+nht,3)
 
-    integer :: i,j,in,h,itr
-    integer,               dimension(2,3)                              :: jx,jy
+    integer :: i,j,in,h,itr,k
+    integer :: jx(2,3),jy(2,3)
 
-    if (present(irecons_actual_in)) then 
+    if (present(irecons_actual_in)) then
        irecons_actual = irecons_actual_in
     else
        irecons_actual = irecons
     end if
-    
 
-    jx(1,1)=jx_min(1); jx(2,1)=jx_max(1)-1
-    jx(1,2)=jx_min(2); jx(2,2)=jx_max(2)-1
-    jx(1,3)=jx_min(3); jx(2,3)=jx_max(3)-1
+    jx(1,1)=jx_min(1)
+    jx(2,1)=jx_max(1)-1
+    jx(1,2)=jx_min(2)
+    jx(2,2)=jx_max(2)-1
+    jx(1,3)=jx_min(3)
+    jx(2,3)=jx_max(3)-1
 
-    jy(1,1)=jy_min(1); jy(2,1)=jy_max(1)-1
-    jy(1,2)=jy_min(2); jy(2,2)=jy_max(2)-1
-    jy(1,3)=jy_min(3); jy(2,3)=jy_max(3)-1
+    jy(1,1)=jy_min(1)
+    jy(2,1)=jy_max(1)-1
+    jy(1,2)=jy_min(2)
+    jy(2,2)=jy_max(2)-1
+    jy(1,3)=jy_min(3)
+    jy(2,3)=jy_max(3)-1
 
     !
     ! Initialize recons
-    !    
+    !
     call zero_non_existent_ghost_cell(recons,irecons,cubeboundary,nc,nhe,ntrac_in)
     if (irecons_actual>1) then
        if(FVM_TIMERS) call t_startf('FVM:reconstruction:part#1')
        if (nhe>0) then
           do itr=1,ntrac_in
-             !        f=-9e9_r8
              call extend_panel_interpolate(nc,nhc,nhr,nht,ns,nh,&
-                  fcube(:,:,k_in,itr),cubeboundary,halo_interp_weight,ibase,f(:,:,1),f(:,:,2:3))             
+                  fcube(:,:,k_in,itr),cubeboundary,halo_interp_weight,ibase,f(:,:,1),f(:,:,2:3))
              call get_gradients(f(:,:,:),jx,jy,irecons,recons(:,:,:,itr),&
                   rot_matrix,centroid_stretch,nc,nht,nhe,nhc,irecons_actual)
           end do
        else
           do itr=1,ntrac_in
-             !        f=-9e9_r8!to avoid floating point exception for uninitialized variables
-             !                 !in non-existent cells (corners of cube)
              call extend_panel_interpolate(nc,nhc,nhr,nht,ns,nh,&
                   fcube(:,:,k_in,itr),cubeboundary,halo_interp_weight,ibase,f(:,:,1))
              call get_gradients(f(:,:,:),jx,jy,irecons,recons(:,:,:,itr),&
@@ -122,42 +124,12 @@ contains
           end do
        end if
        if(FVM_TIMERS) call t_stopf('FVM:reconstruction:part#1')
-       if(FVM_TIMERS) call t_startf('FVM:reconstruction:part#2')       
-       !
-       ! fill in non-existent (in physical space) corner values to simplify
-       ! logic in limiter code (min/max operation)
-       !
-       do itr=1,ntrac_in
-          if (llimiter(itr)) then
-             if (cubeboundary>4) then
-                select case(cubeboundary)
-                case (nwest)
-                   do h=1,nhe+1
-                      fcube(0,nc+h  ,k_in,itr) = fcube(1-h,nc  ,k_in,itr)
-                      fcube(1-h,nc+1,k_in,itr) = fcube(1  ,nc+h,k_in,itr)
-                   end do
-                case (swest)
-                   do h=1,nhe+1
-                      fcube(1-h,0,k_in,itr) = fcube(1,1-h,k_in,itr)
-                      fcube(0,1-h,k_in,itr) = fcube(1-h,1,k_in,itr)
-                   end do
-                case (seast)
-                   do h=1,nhe+1
-                      fcube(nc+h,0  ,k_in,itr) = fcube(nc,1-h,k_in,itr)
-                      fcube(nc+1,1-h,k_in,itr) = fcube(nc+h,1,k_in,itr)
-                   end do
-                case (neast)
-                   do h=1,nhe+1
-                      fcube(nc+h,nc+1,k_in,itr) = fcube(nc,nc+h,k_in,itr)
-                      fcube(nc+1,nc+h,k_in,itr) = fcube(nc+h,nc,k_in,itr)
-                   end do
-                end select
-             end if
-             call slope_limiter(nhe,nc,nhc,fcube(:,:,k_in,itr),jx,jy,irecons,recons(:,:,:,itr),&
-                  spherecentroid(:,1-nhe:nc+nhe,1-nhe:nc+nhe),&
-                  recons_metrics,vertex_recons_weights,vtx_cart,irecons_actual)
-          end if
-       end do
+       if(FVM_TIMERS) call t_startf('FVM:reconstruction:part#2')
+
+       call slope_limiter(nhe,nc,nhc,fcube,jx,jy,k_in,nlev_in,ntrac_in,irecons,recons,&
+            spherecentroid(:,1-nhe:nc+nhe,1-nhe:nc+nhe),&
+            recons_metrics,vertex_recons_weights,vtx_cart,irecons_actual,llimiter,&
+            cubeboundary)
        if(FVM_TIMERS) call t_stopf('FVM:reconstruction:part#2')
     end if
     if(FVM_TIMERS) call t_startf('FVM:reconstruction:part#3')
@@ -188,8 +160,6 @@ contains
       end do
     case(6)
       do itr=1,ntrac_in
-!        do j=1-nhe,nc+nhe
-!          do i=1-nhe,nc+nhe
         do in=1,3
           do j=jy(1,in),jy(2,in)
             do i=jx(1,in),jx(2,in)
@@ -213,7 +183,7 @@ contains
         end do
       end do
     case default
-      write(*,*) "irecons out of range in get_ceof", irecons
+      write(iulog,*) 'irecons out of range in get_ceof', irecons
     end select
     if(FVM_TIMERS) call t_stopf('FVM:reconstruction:part#3')
 
@@ -232,19 +202,18 @@ contains
   !END SUBROUTINE RECONSTRUCTION--------------------------------------------CE-for FVM!
 
   subroutine get_gradients(f,jx,jy,irecons,gradient,rot_matrix,centroid_stretch,nc,nht,nhe,nhc,irecons_actual)
-    implicit none
-    integer,                                                         intent(in)   :: irecons,nc,nht,nhe,nhc,irecons_actual
-    real (kind=r8), dimension(1-nht:nc+nht,1-nht:nc+nht,3),          intent(in)   :: f
-    real (kind=r8), dimension(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe),    intent(inout):: gradient
-    integer,               dimension(2,3),                           intent(in)   :: jx,jy
-    integer              , dimension(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc), intent(in)   :: rot_matrix
-    real (kind=r8), dimension(7,1-nhe:nc+nhe,1-nhe:nc+nhe),          intent(in)   :: centroid_stretch
+    integer,        intent(in)    :: irecons,nc,nht,nhe,nhc,irecons_actual
+    real (kind=r8), intent(in)    :: f(1-nht:nc+nht,1-nht:nc+nht,3)
+    real (kind=r8), intent(inout) :: gradient(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    integer,        intent(in)    :: jx(2,3),jy(2,3)
+    integer,        intent(in)    :: rot_matrix(2,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
+    real (kind=r8), intent(in)    :: centroid_stretch(7,1-nhe:nc+nhe,1-nhe:nc+nhe)
 
-    integer                     :: i,j,in
-    real (kind=r8), dimension(2):: g
-    real (kind=r8)              :: sign
-    character(len=128)          :: errormsg 
-    
+    integer            :: i,j,in
+    real (kind=r8)     :: g(2)
+    real (kind=r8)     :: sign
+    character(len=128) :: errormsg
+
 
     select case (irecons_actual)
     case(3)
@@ -290,10 +259,10 @@ contains
           !
           gradient(2,i,j) = centroid_stretch(1,i,j)*gradient(2,i,j)
           gradient(3,i,j) = centroid_stretch(2,i,j)*gradient(3,i,j)
-          
+
           gradient(4,i,j) = centroid_stretch(3,i,j)*gradient(4,i,j)+centroid_stretch(6,i,j)*gradient(2,i,j)
           gradient(5,i,j) = centroid_stretch(4,i,j)*gradient(5,i,j)+centroid_stretch(7,i,j)*gradient(3,i,j)
-          
+
           gradient(6,i,j) = centroid_stretch(5,i,j)*gradient(6,i,j)
         end do
       end do
@@ -319,10 +288,10 @@ contains
             !
             gradient(2,i,j) = centroid_stretch(1,i,j)*gradient(2,i,j)
             gradient(3,i,j) = centroid_stretch(2,i,j)*gradient(3,i,j)
-            
+
             gradient(4,i,j) = centroid_stretch(3,i,j)*gradient(4,i,j)+centroid_stretch(6,i,j)*gradient(2,i,j)
             gradient(5,i,j) = centroid_stretch(4,i,j)*gradient(5,i,j)+centroid_stretch(7,i,j)*gradient(3,i,j)
-            
+
             gradient(6,i,j) = centroid_stretch(5,i,j)*gradient(6,i,j)
           end do
         end do
@@ -334,31 +303,68 @@ contains
   end subroutine get_gradients
 
 
-  subroutine slope_limiter(nhe,nc,nhc,fcube,jx,jy,irecons,recons,spherecentroid,recons_metrics,&
-       vertex_recons_weights,vtx_cart,irecons_actual)
-    implicit none
-    integer                                                           , intent(in) :: irecons,nhe,nc,nhc,irecons_actual
-    real (kind=r8), dimension(1-nhc:, 1-nhc:)                         , intent(in) :: fcube
-    real (kind=r8), dimension(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe)      , intent(inout):: recons
-    integer,               dimension(2,3)                             , intent(in) :: jx,jy
-    real (kind=r8), dimension(irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)    , intent(in) :: spherecentroid
-    real (kind=r8), dimension(3,1-nhe:nc+nhe,1-nhe:nc+nhe)            , intent(in) :: recons_metrics
-    real (kind=r8), dimension(4,1:irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe), intent(in) :: vertex_recons_weights
-    real (kind=r8), dimension(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc)          , intent(in) :: vtx_cart
+  subroutine slope_limiter(nhe,nc,nhc,fcube,jx,jy,k,nlev,ntrac,irecons,recons,spherecentroid,recons_metrics,&
+       vertex_recons_weights,vtx_cart,irecons_actual,llimiter,cubeboundary)
+    integer         , intent(in) :: irecons_actual,k,nlev,ntrac
+    integer         , intent(in) :: irecons,nhe,nc,nhc
+    real(kind=r8), intent(inout) :: fcube(1-nhc:nc+nhc,1-nhc:nc+nhc,nlev,ntrac)
+    real(kind=r8), intent(inout) :: recons(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe,ntrac)
+    integer,          intent(in) :: jx(2,3), jy(2,3)
+    real(kind=r8),    intent(in) :: spherecentroid(irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8),    intent(in) :: recons_metrics(3,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8),    intent(in) :: vertex_recons_weights(4,1:irecons-1,1-nhe:nc+nhe,1-nhe:nc+nhe)
+    real(kind=r8),    intent(in) :: vtx_cart(4,2,1-nhc:nc+nhc,1-nhc:nc+nhc)
+    logical,          intent(in) :: llimiter(ntrac)
+    integer,          intent(in) :: cubeboundary
 
-    real (kind=r8):: minval_patch,maxval_patch
-    real (kind=r8):: phi, min_val, max_val,disc
+    real(kind=r8) :: minval_patch,maxval_patch
+    real(kind=r8) :: phi, min_val, max_val,disc
+    real(kind=r8) :: v1,v2,v3,v4,vx1,vx2,vx3,vx4,vy1,vy2,vy3,vy4,r2,r3,r4,r5,r6,scx,scy,dx,dy,ex1,ex2,f0,val
+    real(kind=r8) :: m1,m2,m3
 
-    real (kind=r8):: min_phi
-    real (kind=r8):: extrema(2), xminmax(2),yminmax(2),extrema_value(13)
+    real(kind=r8) :: min_phi
+    real(kind=r8) :: extrema(2), xminmax(2),yminmax(2),extrema_value(13)
 
     real(kind=r8) :: invtmp  ! temporary to pre-compute inverses
-    integer       :: itmp1,itmp2,i,j,in,vertex,n
+    integer       :: itmp1,itmp2,i,j,in,vertex,n,itr,h
 
-!    real (kind=r8), dimension(-1:5) :: diff_value
-    real (kind=r8), dimension(-1:1) :: minval_array, maxval_array
+    real (kind=r8)            :: minval_array(-1:1), maxval_array(-1:1)
     real (kind=r8), parameter :: threshold = 1.0E-40_r8
-    character(len=128)        :: errormsg 
+    character(len=128)        :: errormsg
+    integer :: im1,jm1,ip1,jp1
+
+    !
+    ! fill in non-existent (in physical space) corner values to simplify
+    ! logic in limiter code (min/max operation)
+    !
+    do itr=1,ntrac
+       if (.not. llimiter(itr)) cycle
+       if (cubeboundary>4) then
+          select case(cubeboundary)
+          case (nwest)
+             do h=1,nhe+1
+                fcube(0,nc+h  ,k,itr) = fcube(1-h,nc  ,k,itr)
+                fcube(1-h,nc+1,k,itr) = fcube(1  ,nc+h,k,itr)
+             end do
+          case (swest)
+             do h=1,nhe+1
+                fcube(1-h,0,k,itr) = fcube(1,1-h,k,itr)
+                fcube(0,1-h,k,itr) = fcube(1-h,1,k,itr)
+             end do
+          case (seast)
+             do h=1,nhe+1
+                fcube(nc+h,0  ,k,itr) = fcube(nc,1-h,k,itr)
+                fcube(nc+1,1-h,k,itr) = fcube(nc+h,1,k,itr)
+             end do
+          case (neast)
+             do h=1,nhe+1
+                fcube(nc+h,nc+1,k,itr) = fcube(nc,nc+h,k,itr)
+                fcube(nc+1,nc+h,k,itr) = fcube(nc+h,nc,k,itr)
+             end do
+          end select
+       end if
+    end do
+
     select case (irecons_actual)
        !
        ! PLM limiter
@@ -367,52 +373,51 @@ contains
        do in=1,3
           do j=jy(1,in),jy(2,in)
              do i=jx(1,in),jx(2,in)
-                !rck combined min/max and unrolled inner loop
-                !minval_patch = MINVAL(fcube(i-1:i+1,j-1:j+1))
-                !maxval_patch = MAXVAL(fcube(i-1:i+1,j-1:j+1))
-                !DIR$ SIMD
-                do itmp2=-1,+1
-                   itmp1 = j+itmp2
-                   minval_array(itmp2) = min(fcube(i-1,itmp1),fcube(i,itmp1),fcube(i+1,itmp1))
-                   maxval_array(itmp2) = max(fcube(i-1,itmp1),fcube(i,itmp1),fcube(i+1,itmp1))
-                enddo
-                minval_patch = min(minval_array(-1),minval_array(0),minval_array(1))
-                maxval_patch = max(maxval_array(-1),maxval_array(0),maxval_array(1))
-                
-                min_phi=1.0_r8
-
-                !
-                ! coordinate bounds (could be pre-computed!)
-                !
-                xminmax(1) = min(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
-                xminmax(2) = max(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
-                yminmax(1) = min(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
-                yminmax(2) = max(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
-                
-                !rck restructured loop
-                !DIR$ SIMD
-                do vertex=1,4
-                  call recons_val_cart_plm(fcube(i,j), vtx_cart(vertex,1,i,j), vtx_cart(vertex,2,i,j), spherecentroid(:,i,j), &
-                       recons(1:3,i,j), extrema_value(vertex))                   
-                end do
-                max_val = MAXVAL(extrema_value(1:4))
-                min_val = MINVAL(extrema_value(1:4))
-
-                if (max_val>maxval_patch.and.abs(max_val-fcube(i,j))>threshold) then
-                  phi = (maxval_patch-fcube(i,j))/(max_val-fcube(i,j))
-                  if (phi<min_phi) min_phi=phi
-                end if
-                if (min_val<minval_patch.and.abs(min_val-fcube(i,j))>threshold) then
-                  phi = (minval_patch-fcube(i,j))/(min_val-fcube(i,j))
-                  if (phi<min_phi) min_phi=phi
-                end if
-                ! Apply monotone limiter to all reconstruction coefficients
-                recons(2:3,i,j)=min_phi*recons(2:3,i,j)                
-              end do
+                tracers:do itr = 1, ntrac
+                   if (.not. llimiter(itr)) cycle tracers
+                   !rck combined min/max and unrolled inner loop
+                   !minval_patch = MINVAL(fcube(i-1:i+1,j-1:j+1))
+                   !maxval_patch = MAXVAL(fcube(i-1:i+1,j-1:j+1))
+                   !DIR$ SIMD
+                   do itmp2=-1,+1
+                      itmp1 = j+itmp2
+                      minval_array(itmp2) = min(fcube(i-1,itmp1,k,itr),fcube(i,itmp1,k,itr),fcube(i+1,itmp1,k,itr))
+                      maxval_array(itmp2) = max(fcube(i-1,itmp1,k,itr),fcube(i,itmp1,k,itr),fcube(i+1,itmp1,k,itr))
+                   end do
+                   minval_patch = min(minval_array(-1),minval_array(0),minval_array(1))
+                   maxval_patch = max(maxval_array(-1),maxval_array(0),maxval_array(1))
+                   min_phi=1.0_r8
+                   !
+                   ! coordinate bounds (could be pre-computed!)
+                   !
+                   xminmax(1) = min(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
+                   xminmax(2) = max(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
+                   yminmax(1) = min(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
+                   yminmax(2) = max(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
+                   !rck restructured loop
+                   !DIR$ SIMD
+                   do vertex=1,4
+                      call recons_val_cart_plm(fcube(i,j,k,itr), vtx_cart(vertex,1,i,j), vtx_cart(vertex,2,i,j), &
+                              spherecentroid(:,i,j), recons(1:3,i,j,itr), extrema_value(vertex))
+                   end do
+                   max_val = MAXVAL(extrema_value(1:4))
+                   min_val = MINVAL(extrema_value(1:4))
+                   if (max_val>maxval_patch.and.abs(max_val-fcube(i,j,k,itr))>threshold) then
+                      phi = (maxval_patch-fcube(i,j,k,itr))/(max_val-fcube(i,j,k,itr))
+                      if (phi<min_phi) min_phi=phi
+                   end if
+                   if (min_val<minval_patch.and.abs(min_val-fcube(i,j,k,itr))>threshold) then
+                      phi = (minval_patch-fcube(i,j,k,itr))/(min_val-fcube(i,j,k,itr))
+                      if (phi<min_phi) min_phi=phi
+                   end if
+                   ! Apply monotone limiter to all reconstruction coefficients
+                   recons(2:3,i,j,itr)=min_phi*recons(2:3,i,j,itr)
+                end do tracers
+             end do
           end do
        end do
        !
-       ! PPM limiter
+       ! PPM limiter (optimized)
        !
     case(6)
        !
@@ -421,127 +426,128 @@ contains
        do in=1,3
           do j=jy(1,in),jy(2,in)
              do i=jx(1,in),jx(2,in)
-                !rck combined min/max and unrolled inner loop
-                !minval_patch = MINVAL(fcube(i-1:i+1,j-1:j+1))
-                !maxval_patch = MAXVAL(fcube(i-1:i+1,j-1:j+1))
-                !DIR$ SIMD
-                do itmp2=-1,+1
-                   itmp1 = j+itmp2
-                   minval_array(itmp2) = min(fcube(i-1,itmp1),fcube(i,itmp1),fcube(i+1,itmp1))
-                   maxval_array(itmp2) = max(fcube(i-1,itmp1),fcube(i,itmp1),fcube(i+1,itmp1))
-                enddo
-                minval_patch = min(minval_array(-1),minval_array(0),minval_array(1))
-                maxval_patch = max(maxval_array(-1),maxval_array(0),maxval_array(1))
-
-                min_phi=1.0_r8
-                !rck restructured loop
-
-                extrema_value(1:4) = fcube(i,j)
-!DIR$ SIMD
-                do vertex=1,4
-                  do itmp1=1,irecons-1
-                    extrema_value(vertex) = extrema_value(vertex) + &
-                         recons(itmp1+1,i,j)*vertex_recons_weights(vertex,itmp1,i,j)
-                  enddo
-                enddo
-                extrema_value(5:13) = extrema_value(1)
                 !
                 ! coordinate bounds (could be pre-computed!)
                 !
-                xminmax(1) = min(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
-                xminmax(2) = max(vtx_cart(1,1,i,j),vtx_cart(2,1,i,j),vtx_cart(3,1,i,j),vtx_cart(4,1,i,j))
-                yminmax(1) = min(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
-                yminmax(2) = max(vtx_cart(1,2,i,j),vtx_cart(2,2,i,j),vtx_cart(3,2,i,j),vtx_cart(4,2,i,j))
+                vx1 = vtx_cart(1,1,i,j)
+                vy1 = vtx_cart(1,2,i,j)
+                vx2 = vtx_cart(2,1,i,j)
+                vy2 = vtx_cart(2,2,i,j)
+                vx3 = vtx_cart(3,1,i,j)
+                vy3 = vtx_cart(3,2,i,j)
+                vx4 = vtx_cart(4,1,i,j)
+                vy4 = vtx_cart(4,2,i,j)
+                xminmax(1) = min(vx1,vx2,vx3,vx4)
+                xminmax(2) = max(vx1,vx2,vx3,vx4)
+                yminmax(1) = min(vy1,vy2,vy3,vy4)
+                yminmax(2) = max(vy1,vy2,vy3,vy4)
+                scx = spherecentroid(1,i,j)
+                scy = spherecentroid(2,i,j)
+                m1 = recons_metrics(1,i,j)
+                m2 = recons_metrics(2,i,j)
+                m3 = recons_metrics(3,i,j)
+                im1 = i-1
+                ip1 = i+1
+                jm1 = j-1
+                jp1 = j+1
+                tracer_loop:do itr = 1, ntrac
+                   if (.not. llimiter(itr)) cycle tracer_loop
+                   !rck combined min/max and unrolled inner loop
+                   !minval_patch = MINVAL(fcube(i-1:i+1,j-1:j+1))
+                   !maxval_patch = MAXVAL(fcube(i-1:i+1,j-1:j+1))
+                   minval_patch = min(min(fcube(im1,jm1,k,itr), fcube(i ,jm1,k,itr), fcube(ip1,jm1,k,itr)), &
+                                      min(fcube(im1,j  ,k,itr), fcube(i ,j  ,k,itr), fcube(ip1,j  ,k,itr)), &
+                                      min(fcube(im1,jp1,k,itr), fcube(i ,jp1,k,itr), fcube(ip1,jp1,k,itr)))
+                   maxval_patch = max(max(fcube(im1,jm1,k,itr), fcube(i ,jm1,k,itr), fcube(ip1,jm1,k,itr)), &
+                                      max(fcube(im1,j  ,k,itr), fcube(i ,j  ,k,itr), fcube(ip1,j  ,k,itr)), &
+                                      max(fcube(im1,jp1,k,itr), fcube(i ,jp1,k,itr), fcube(ip1,jp1,k,itr)))
+                   min_phi=1.0_r8
 
-                ! Check if the quadratic is minimized within the element
-                ! Extrema in the interior of the element (there might be just one candidate)
-                ! DO NOT NEED ABS here, if disc<0 we have a saddle point (no maximum or minimum)
-                disc =  4.0_r8 * recons(4,i,j) * recons(5,i,j) - recons(6,i,j)**2
-                if (abs(disc) > threshold) then
-                   extrema(1) = recons(6,i,j) * recons(3,i,j) - 2.0_r8 * recons(5,i,j) * recons(2,i,j)
-                   extrema(2) = recons(6,i,j) * recons(2,i,j) - 2.0_r8 * recons(4,i,j) * recons(3,i,j)
+                   f0  = fcube(i,j,k,itr)
+                   min_val = f0 !initialize min
+                   max_val = f0 !initialize max
+                   !
+                   ! compute min/max value at cell corners
+                   !DIR$ SIMD
+                   do vertex=1,4
+                      val = f0
+                      do itmp1=1,irecons-1
+                         val = val + recons(itmp1+1,i,j,itr)*vertex_recons_weights(vertex,itmp1,i,j)
+                      end do
+                      min_val = min(min_val,val)
+                      max_val = max(max_val,val)
+                   end do
+                   r2 = recons(2,i,j,itr)
+                   r3 = recons(3,i,j,itr)
+                   r4 = recons(4,i,j,itr)
+                   r5 = recons(5,i,j,itr)
+                   r6 = recons(6,i,j,itr)
+                   ! Check if the quadratic is minimized within the element
+                   ! Extrema in the interior of the element (there might be just one candidate)
+                   ! DO NOT NEED ABS here, if disc<0 we have a saddle point (no maximum or minimum)
+                   disc = 4.0_r8 * r4 *r5 - r6*r6
+                   if (abs(disc) > threshold) then
+                      ex1 = (r6*r3 - 2.0_r8*r5*r2)
+                      ex2 = (r6*r2 - 2.0_r8*r4*r3)
+                      disc = 1 /disc
+                      ex1 = ex1*disc+scx
+                      ex2 = ex2*disc+scy
+                     if (ex1 > xminmax(1)-threshold .and. ex1 < xminmax(2)+threshold .and. &
+                           ex2 > yminmax(1)-threshold .and. ex2 < yminmax(2)+threshold) then
+                         dx = ex1 - scx
+                         dy = ex2 - scy
+                         v1 = f0 + r2*dx + r3*dy + r4*(m1+dx*dx) + r5*(m2+dy*dy) + r6*(m3+dx*dy)
+                         max_val = max(max_val, v1)
+                         min_val = min(min_val, v1)
+                      end if
+                   end if
+                   !
+                   ! Check all potential minimizer points along element boundaries
+                   !
 
-                   disc=1.0_r8/disc
-                   extrema(1) = extrema(1) * disc + spherecentroid(1,i,j)
-                   extrema(2) = extrema(2) * disc + spherecentroid(2,i,j)
-                   if ( (extrema(1) - xminmax(1) > -threshold) .and. &    !xmin
-                        (extrema(1) - xminmax(2) <  threshold) .and. &    !xmax
-                        (extrema(2) - yminmax(1) > -threshold) .and. &    !ymin
-                        (extrema(2) - yminmax(2) <  threshold)) then      !ymax
-                      call recons_val_cart(fcube(i,j), extrema(1), extrema(2), spherecentroid(:,i,j), &
-                           recons_metrics(:,i,j), recons(:,i,j), extrema_value(5))
-                   endif
-                endif
-                !
-                ! Check all potential minimizer points along element boundaries
-                !
-                if (abs(recons(6,i,j)) > threshold) then
-                   invtmp = 1.0_r8 / (recons(6,i,j) + spherecentroid(2,i,j))
-                   do n=1,2
-                      ! Left edge, intercept with du/dx = 0
-                      extrema(2) = invtmp * (-recons(2,i,j) - 2.0_r8 * recons(4,i,j) * (xminmax(n) - spherecentroid(1,i,j)))
-                      if ((extrema(2) > yminmax(1)-threshold) .and. (extrema(2) < yminmax(2)+threshold)) then
-                         call recons_val_cart(fcube(i,j), xminmax(n), extrema(2), spherecentroid(:,i,j), &
-                              recons_metrics(:,i,j), recons(:,i,j), extrema_value(5+n))
-                      endif
-                   enddo
-                   ! Top/bottom edge, intercept with du/dy = 0
-                   invtmp = 1.0_r8 / recons(6,i,j) + spherecentroid(1,i,j)
-                   do n = 1,2
-                      extrema(1) = invtmp * (-recons(3,i,j) - 2.0_r8 * recons(5,i,j) * (yminmax(n) - spherecentroid(2,i,j)))
-                      if ((extrema(1) > xminmax(1)-threshold) .and. (extrema(1) < xminmax(2)+threshold)) then
-                         call recons_val_cart(fcube(i,j), extrema(1), yminmax(n),spherecentroid(:,i,j), &
-                              recons_metrics(:,i,j), recons(:,i,j), extrema_value(7+n))
-                      endif
-                   enddo
-                endif
-
-                ! Top/bottom edge, y=const., du/dx=0
-                if (abs(recons(4,i,j)) > threshold) then
-                   invtmp = 1.0_r8 / (2.0_r8 * recons(4,i,j))! + spherecentroid(1,i,j)
-                   do n = 1,2
-                      extrema(1) = spherecentroid(1,i,j)+&
-                           invtmp * (-recons(2,i,j) - recons(6,i,j) * (yminmax(n) - spherecentroid(2,i,j)))
-
-                      if ((extrema(1) > xminmax(1)-threshold) .and. (extrema(1) < xminmax(2)+threshold)) then
-                         call recons_val_cart(fcube(i,j), extrema(1), yminmax(n), spherecentroid(:,i,j),&
-                              recons_metrics(:,i,j),recons(:,i,j), extrema_value(9+n))
-                      endif
-                   enddo
-                endif
-                ! Left/right edge, x=const., du/dy=0
-                if (abs(recons(5,i,j)) > threshold) then
-                   invtmp = 1.0_r8 / (2.0_r8 * recons(5,i,j))
-                   do n = 1,2
-                      extrema(2) = spherecentroid(2,i,j)+&
-                           invtmp * (-recons(3,i,j) - recons(6,i,j) * (xminmax(n) - spherecentroid(1,i,j)))
-
-                      if ((extrema(2)>yminmax(1)-threshold) .and. (extrema(2) < yminmax(2)+threshold)) then
-                         call recons_val_cart(fcube(i,j), xminmax(n), extrema(2), spherecentroid(:,i,j), &
-                              recons_metrics(:,i,j), recons(:,i,j), extrema_value(11+n))
-                      endif
-                   enddo
-                endif
-                !rck - combined min/max calculation and unrolled
-                !           max_val = MAXVAL(extrema_value)
-                !           min_val = MINVAL(extrema_value)
-                max_val = extrema_value(13)
-                min_val = extrema_value(13)
-                do itmp1 = 1,12,4
-                   max_val = max(max_val, extrema_value(itmp1),extrema_value(itmp1+1),extrema_value(itmp1+2),extrema_value(itmp1+3))
-                   min_val = min(min_val, extrema_value(itmp1),extrema_value(itmp1+1),extrema_value(itmp1+2),extrema_value(itmp1+3))
-                enddo
-                !rck
-
-                if (max_val>maxval_patch.and.abs(max_val-fcube(i,j))>threshold) then
-                   phi = (maxval_patch-fcube(i,j))/(max_val-fcube(i,j))
-                   if (phi<min_phi) min_phi=phi
-                end if
-                if (min_val<minval_patch.and.abs(min_val-fcube(i,j))>threshold) then
-                   phi = (minval_patch-fcube(i,j))/(min_val-fcube(i,j))
-                   if (phi<min_phi) min_phi=phi
-                end if
-                recons(2:6,i,j)=min_phi*recons(2:6,i,j)
+                   !
+                   ! Top/bottom edge, y=const., du/dx=0
+                   !
+                   if (abs(r4) > threshold) then
+                      invtmp = 1.0_r8 / (2.0_r8 * r4)
+                      do n = 1,2
+                         ex1 = scx+invtmp * (-r2 - r6 * (yminmax(n) - scy))
+                         if ((ex1 > xminmax(1)-threshold) .and. (ex1 < xminmax(2)+threshold)) then
+                            dx = ex1 - scx
+                            dy = yminmax(n) - scy
+                            v1 = f0 + r2*dx + r3*dy + r4*(m1+dx*dx) + r5*(m2+dy*dy) + r6*(m3+dx*dy)
+                            max_val = max(max_val, v1)
+                            min_val = min(min_val, v1)
+                         end if
+                      end do
+                   end if
+                   !
+                   ! Left/right edge, x=const., du/dy=0
+                   !
+                   if (abs(r5) > threshold) then
+                      invtmp = 1.0_r8 / (2.0_r8 * r5)
+                      do n = 1,2
+                         ex1 = scy+invtmp * (-r3 - r6 * (xminmax(n) - scx))
+                         if ((ex1 > yminmax(1)-threshold) .and. (ex1 < yminmax(2)+threshold)) then
+                            dx = xminmax(n) - scx
+                            dy = ex1 - scy
+                            v1 = f0 + r2*dx + r3*dy + r4*(m1+dx*dx) + r5*(m2+dy*dy) + r6*(m3+dx*dy)
+                            max_val = max(max_val, v1)
+                            min_val = min(min_val, v1)
+                         end if
+                      end do
+                   end if
+                   !
+                   if (max_val>maxval_patch.and.abs(max_val-fcube(i,j,k,itr))>threshold) then
+                      phi = (maxval_patch-fcube(i,j,k,itr))/(max_val-fcube(i,j,k,itr))
+                      if (phi<min_phi) min_phi=phi
+                   end if
+                   if (min_val<minval_patch.and.abs(min_val-fcube(i,j,k,itr))>threshold) then
+                      phi = (minval_patch-fcube(i,j,k,itr))/(min_val-fcube(i,j,k,itr))
+                      if (phi<min_phi) min_phi=phi
+                   end if
+                   recons(2:6,i,j,itr)=min_phi*recons(2:6,i,j,itr)
+                end do tracer_loop
              end do
           end do
        end do
@@ -551,8 +557,6 @@ contains
     end select
 
   end subroutine slope_limiter
-
-
 
   ! ----------------------------------------------------------------------------------!
   !SUBROUTINE RECONS_VAL_CART-----------------------------------------------CE-for FVM!
@@ -567,13 +571,13 @@ contains
   !        recons ...  array of reconstructed coefficients                            !
   ! OUTPUT: value ... evaluation at a given point                                     !
   !-----------------------------------------------------------------------------------!
+  !DIR$ ATTRIBUTES FORCEINLINE :: recons_val_cart
   subroutine recons_val_cart(fcube, cartx, carty, centroid, pre_computed_metrics, recons, value)
-    implicit none
     real(kind=r8), intent(in) :: fcube
     real(kind=r8), intent(in) :: cartx, carty
-    real(kind=r8), dimension(1:5), intent(in) :: centroid
-    real(kind=r8), dimension(3),   intent(in) :: pre_computed_metrics
-    real(kind=r8), dimension(1:6), intent(in) :: recons
+    real(kind=r8), intent(in) :: centroid(1:5)
+    real(kind=r8), intent(in) :: pre_computed_metrics(3)
+    real(kind=r8), intent(in) :: recons(1:6)
     real(kind=r8), intent(out) :: value
     real(kind=r8) :: dx, dy
     dx = cartx - centroid(1)
@@ -587,14 +591,13 @@ contains
          recons(4) * (pre_computed_metrics(1) + dx*dx) + &
          recons(5) * (pre_computed_metrics(2) + dy*dy) + &
          recons(6) * (pre_computed_metrics(3) + dx*dy)
-  END subroutine recons_val_cart
-
+  end subroutine recons_val_cart
+    !DIR$ ATTRIBUTES FORCEINLINE :: recons_val_cart_plm
     subroutine recons_val_cart_plm(fcube, cartx, carty, centroid, recons, value)
-    implicit none
     real(kind=r8), intent(in) :: fcube
     real(kind=r8), intent(in) :: cartx, carty
-    real(kind=r8), dimension(1:5), intent(in) :: centroid
-    real(kind=r8), dimension(1:3), intent(in) :: recons
+    real(kind=r8), intent(in) :: centroid(1:5)
+    real(kind=r8), intent(in) :: recons(1:3)
     real(kind=r8), intent(out) :: value
     real(kind=r8) :: dx, dy
     dx = cartx - centroid(1)
@@ -603,8 +606,8 @@ contains
     value = fcube + &
          ! Evaluate linear order terms
          recons(2) * dx + &
-         recons(3) * dy 
-  END subroutine recons_val_cart_plm
+         recons(3) * dy
+  end subroutine recons_val_cart_plm
 
 
   ! ----------------------------------------------------------------------------------!
@@ -621,7 +624,6 @@ contains
   !                           extrema on the cell                                     !
   !-----------------------------------------------------------------------------------!
   subroutine slopelimiter_val(value, cell_value, local_min, local_max, min_phi)
-    implicit none
     real (kind=r8), intent(in)    :: value, cell_value
     real (kind=r8), intent(in)    :: local_min, local_max
     real (kind=r8), intent(inout) :: min_phi
@@ -632,54 +634,67 @@ contains
       phi = (local_max - cell_value) / (value - cell_value)
       if (phi < min_phi) then
         min_phi = phi
-      endif
+      end if
       ! Check against the maximum bound on the reconstruction
-    elseif (value - cell_value < -1.0e-12_r8 * value) then
+    else if (value - cell_value < -1.0e-12_r8 * value) then
       phi = (local_min - cell_value) / (value - cell_value)
       if(phi < min_phi) then
         min_phi = phi
-      endif
-    endif
+      end if
+    end if
   end subroutine slopelimiter_val
   !END SUBROUTINE SLOPELIMITER_VAL------------------------------------------CE-for FVM!
+  !DIR$ ATTRIBUTES FORCEINLINE :: dotproduct
+  pure function dotproduct(w,f,ns) result(product_dot)
+    real (kind=r8)            :: product_dot
+    real (kind=r8),intent(in) :: w(:),f(:)      !dimension(ns)
+    integer,       intent(in) :: ns
+    integer :: k
 
-  function matmul_w(w,f,ns)
-    implicit none
-    real (kind=r8)                          :: matmul_w
-    real (kind=r8),dimension(:), intent(in) :: w,f      !dimension(ns)
-    integer,                     intent(in) :: ns
-    integer                                 :: k
-    matmul_w = 0.0_r8
+    if(ns==3) then
+      product_dot = DotProduct_3(w,f)
+    else
+      product_dot = DotProduct_gen(w,f,ns)
+    end if
+
+  end function dotproduct
+
+  !DIR$ ATTRIBUTES FORCEINLINE :: DotProduct_gen
+  pure function DotProduct_gen(w,f,ns) result(product_dot)
+    real (kind=r8)             :: product_dot
+    real (kind=r8), intent(in) :: w(:),f(:)    !dimension(ns)
+    integer,        intent(in) :: ns
+    integer :: k
+    product_dot = 0.0_r8
     do k=1,ns
-      matmul_w = matmul_w+w(k)*f(k)
+       product_dot = product_dot+w(k)*f(k)
     end do
-  end function matmul_w
+  end function DotProduct_gen
 
   ! special hard-coded version of the function where ns=3
   ! for performance optimization
-!  function matmul_w(w, f)
-!    IMPLICIT NONE
-!    REAL(KIND=r8), dimension(3), intent(in) :: w
-!    REAL(KIND=r8), dimension(3), intent(in) :: f
-!    REAL(KIND=r8) :: matmul_w
-!    matmul_w = w(1)*f(1) + w(2)*f(2) + w(3)*f(3)
-!  end function matmul_w
+  !DIR$ ATTRIBUTES FORCEINLINE :: DotProduct_3
+  pure function DotProduct_3(w, f) result(product_dot)
+    real(kind=r8), intent(in) :: w(3)
+    real(kind=r8), intent(in) :: f(3)
+    real(kind=r8) :: product_dot
+    product_dot = w(1)*f(1) + w(2)*f(2) + w(3)*f(3)
+  end function DotProduct_3
 
-  subroutine extend_panel_interpolate(nc,nhc,nhr,nht,ns,nh,fcube,cubeboundary,halo_interp_weight,ibase,&
+  subroutine extend_panel_interpolate(nc,nhc,nhr,nht,ns,nh,fcube,cubeboundary,hWeight,ibase,&
        fpanel,fotherpanel)
-    implicit none
-    integer, intent(in) :: cubeboundary,nc,nhr,nht,nh,nhc,ns
-    real (kind=r8),   &
-         dimension(1-nhc:nc+nhc, 1-nhc:nc+nhc), intent(in)          :: fcube
+    integer,       intent(in) :: cubeboundary,nc,nhr,nht,nh,nhc,ns
+    real(kind=r8), intent(in) :: fcube(1-nhc:nc+nhc, 1-nhc:nc+nhc)
 
-    real (kind=r8), intent(in) :: halo_interp_weight(1:ns,1-nh:nc+nh,1:nhr,2)
-    integer              , intent(in) :: ibase(1-nh:nc+nh,1:nhr,2)
+    real(kind=r8), intent(in) :: hWeight(1:ns,1-nh:nc+nh,1:nhr,2)
+    integer      , intent(in) :: ibase(1-nh:nc+nh,1:nhr,2)
 
-    real (kind=r8)  , dimension(1-nht:nc+nht, 1-nht:nc+nht ), intent(out)           :: fpanel
-    real   (kind=r8), dimension(1-nht:nc+nht,1-nht:nc+nht,2), intent(out), optional :: fotherpanel
+    real(kind=r8), intent(out)           :: fpanel(1-nht:nc+nht, 1-nht:nc+nht)
+    real(kind=r8), intent(out), optional :: fotherpanel(1-nht:nc+nht,1-nht:nc+nht,2)
 
     integer :: i, halo,ibaseref
-    real (kind=r8), dimension(1:ns,1-nh:nc+nh,1:nhr) :: w
+
+    real (kind=r8) :: ftmp(1-nhc:nc+nhc)
     !
     !  fpanel = 1.0E19 !dbg
     !
@@ -786,12 +801,11 @@ contains
       !
       ! fill in values that are on the west panels projection
       !
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
+        ftmp(:) = fcube(1-halo,:)   ! copy to a temporary
         do i=halo-nh,nc+nh-(halo-1)
           ibaseref=ibase(i,halo,1)
-          !           ibaseref = ibase(i,halo,1)
-          fpanel(1-halo ,i) = matmul_w(w(:,i,halo),fcube(1-halo ,ibaseref:ibaseref+ns-1),ns)
+          fpanel(1-halo ,i) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
         end do
       end do
 
@@ -802,12 +816,13 @@ contains
         fotherpanel (1-nht:0,1-nht:nc+nht,1)=fcube(1-nht:0,1-nht:nc+nht)
         !
         do halo=1,nhr
+          ftmp(:) = fcube(halo,:)   ! copy to a temporary
           do i=halo-nh,nc+nh-(halo-1)
             ibaseref=ibase(i,halo,1)
             !
             ! Exploit symmetry in interpolation weights
             !
-            fotherpanel(halo,i,1)     = matmul_w(w(:,i,halo),fcube(halo   ,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel(halo,i,1)     = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
       end if
@@ -854,21 +869,21 @@ contains
       !      -3 |-2 |-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
       !
       fpanel      (1-nht:nc     ,1-nht:nc+nht  )=fcube(1-nht:nc     ,1-nht:nc+nht)
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
+        ftmp(:) = fcube(nc+halo,:)   ! copy to a temporary
         do i=halo-nh,nc+nh-(halo-1)
           ibaseref = ibase(i,halo,1)
-          fpanel      (nc+halo   ,i  ) = matmul_w(w(:,i,halo),fcube(nc  +halo,ibaseref:ibaseref+ns-1),ns)
+          fpanel      (nc+halo   ,i  ) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
         end do
       end do
 
       if (present(fotherpanel)) then
         fotherpanel (nc+1 :nc+nht ,1-nht:nc+nht,1)=fcube(nc+1 :nc+nht ,1-nht:nc+nht) !
         do halo=1,nhr
+          ftmp(:) = fcube(nc+1-halo,:)   ! copy to a temporary
           do i=halo-nh,nc+nh-(halo-1)
-            !           ibaseref=ibase(i,halo,1 )
             ibaseref = ibase(i,halo,1)
-            fotherpanel (nc+1-halo ,i,1) = matmul_w(w(:,i,halo),fcube(nc+1-halo,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel (nc+1-halo ,i,1) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
       end if
@@ -908,11 +923,10 @@ contains
       !
       ! fill in values that are on the same projection as "main" element
       fpanel      (1-nht:nc+nht ,1-nht:nc)=fcube(1-nht:nc+nht ,1-nht:nc)
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
         do i=halo-nh,nc+nh-(halo-1)
           ibaseref = ibase(i,halo,1)
-          fpanel      (i,nc+halo    ) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+halo  ),ns) !north
+          fpanel      (i,nc+halo    ) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,nc+halo),ns) !north
         end do
       end do
       if (present(fotherpanel)) then
@@ -922,7 +936,7 @@ contains
         do halo=1,nhr
           do i=halo-nh,nc+nh-(halo-1)
             ibaseref = ibase(i,halo,1)
-            fotherpanel (i,nc+1-halo,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
+            fotherpanel (i,nc+1-halo,1) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
           end do
         end do
       end if
@@ -963,11 +977,10 @@ contains
       ! fill in values that are on the same projection as "main" element (marked with "i" in Figure above)
       !
       fpanel      (1-nht:nc+nht,1:nc+nht  )=fcube(1-nht:nc+nht,1:nc+nht)
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
         do i=halo-nh,nc+nh-(halo-1)
           ibaseref=ibase(i,halo,1)!ibase(i,halo,2)
-          fpanel      (i,1-halo ) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,1-halo),ns)  !south
+          fpanel      (i,1-halo ) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,1-halo),ns)  !south
         end do
       end do
       if (present(fotherpanel)) then
@@ -975,7 +988,7 @@ contains
         do halo=1,nhr
           do i=halo-nh,nc+nh-(halo-1)
             ibaseref=ibase(i,halo,1)!ibase(i,halo,2)
-            fotherpanel (i,  halo,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,  halo),ns)
+            fotherpanel (i,  halo,1) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,  halo),ns)
           end do
         end do
       end if
@@ -1021,12 +1034,12 @@ contains
       !
       ! fill in west part (marked with "w" on Figure above) and south part (marked with "s")
       !
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
+        ftmp(:)  = fcube(1-halo,:)   ! copy to a temporary
         do i=max(halo-nh,0),nc+nh-(halo-1)
           ibaseref=ibase(i,halo,1)!ibase(i,halo,1)
-          fpanel(1-halo ,i) = matmul_w(w(:,i,halo),fcube(1-halo ,ibaseref:ibaseref+ns-1),ns) !west
-          fpanel(i,1-halo ) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,1-halo) ,ns)  !south
+          fpanel(1-halo ,i) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)   !west
+          fpanel(i,1-halo ) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,1-halo) ,ns)  !south
         end do
       end do
       !
@@ -1078,20 +1091,18 @@ contains
         !
         ! compute interpolated cell average values in "p" cells on Figure on above
         !
-        w = halo_interp_weight(:,:,:,1)
         do halo=1,nhr
           do i=max(halo-nh,0),nc+nh-(halo-1)
             ibaseref=ibase(i,halo,1)
             !
             ! use same weights as interpolation south from main panel (symmetric)
             !
-            fotherpanel(i,halo,1)  = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,halo),ns)
+            fotherpanel(i,halo,1)  = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,halo),ns)
           end do
         end do
         !
         ! compute interpolated cell average values in "w" cells on Figure on above
         !
-        w = halo_interp_weight(:,:,:,2)
         do halo=1,nhr
           do i=nc+halo-nhr,nc+1
             ibaseref=ibase(i,halo,2)-nc
@@ -1111,7 +1122,7 @@ contains
             ! !              |              |
             ! ===============================
             !
-            fotherpanel(1-halo,i-nc,1)  = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,halo),ns)
+            fotherpanel(1-halo,i-nc,1)  = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,halo),ns)
           end do
         end do
         fotherpanel(0,1,1) = 0.25_r8*(fotherpanel(-1,1,1)+fotherpanel(1,1,1)+fotherpanel(0,2,1)+fotherpanel(0,0,1))
@@ -1167,21 +1178,21 @@ contains
         !
         ! compute interpolated cell average values in "p" cells on Figure on above
         !
-        w = halo_interp_weight(:,:,:,1) ! symmetry
         do halo=1,nhr
+          ftmp(:) = fcube(halo,:)   ! copy to a temporary
           do i=max(halo-nh,0),nc+nh-(halo-1)
             ibaseref=ibase(i,halo,1)
             !
             ! use same weights as interpolation south from main panel (symmetric)
             !
-            fotherpanel(halo,i,2)  = matmul_w(w(:,i,halo),fcube(halo,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel(halo,i,2)  = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
         !
         ! compute interpolated cell average values in "s" cells on Figure on above
         !
-        w = halo_interp_weight(:,:,:,2)
         do halo=1,nhr
+          ftmp(:) = fcube(halo,:)   ! copy to a temporary
           do i=nc+halo-nhr,nc+1
             ibaseref=ibase(i,halo,2)-nc
             !
@@ -1200,7 +1211,7 @@ contains
             ! !              |              |
             ! ===============================
             !
-            fotherpanel(i-nc,1-halo,2)  = matmul_w(w(:,i,halo),fcube(halo,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel(i-nc,1-halo,2)  = dotproduct(hWeight(:,i,halo,2),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
         fotherpanel(1,0,2) = 0.25_r8*(fotherpanel(0,0,2)+fotherpanel(2,0,2)+fotherpanel(1,-1,2)+fotherpanel(1,1,2))
@@ -1238,24 +1249,23 @@ contains
       !
       ! east
       !
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
+        ftmp(:) = fcube(nc+halo,:)   ! copy to a temporary
         do i=max(halo-nh,0),nc+nh-(halo-1)
           ibaseref = ibase(i,halo,1)
-          fpanel(nc+halo,i) = matmul_w(w(:,i,halo),fcube(nc  +halo,ibaseref:ibaseref+ns-1),ns)
+          fpanel(nc+halo,i) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
         end do
       end do
       !
       ! south
       !
-      w = halo_interp_weight(:,:,:,2)
       do halo=1,nhr
         do i=halo-nh,min(nc+nh-(halo-1),nc+1)
           ibaseref = ibase(i,halo,2)
-          fpanel(i,1-halo ) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,1-halo),ns)  !south
+          fpanel(i,1-halo) = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,1-halo),ns)  !south
         end do
       end do
-      fpanel(nc+1,0   )=0.25_r8*(&
+      fpanel(nc+1,0)=0.25_r8*(&
            fpanel(nc+1,1)+fpanel(nc,0)+fpanel(nc+2,0)+fpanel(nc+1,-1))
       !
       ! ****************************************************************
@@ -1302,20 +1312,18 @@ contains
       if (present(fotherpanel)) then
         fotherpanel(1-nht:nc,1-nht:0,1)  = fcube(1-nht:nc,1-nht:0)
         !
-        w = halo_interp_weight(:,:,:,2)
         !
         ! fill in "n" on Figure above
         !
         do halo=1,nhr
           do i=halo-nh,min(nc+nh-(halo-1),nc+1)
             ibaseref = ibase(i,halo,2)
-            fotherpanel (i,halo,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,  halo),ns)
+            fotherpanel (i,halo,1) = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,  halo),ns)
           end do
         end do
         !
         ! fill in "e" on Figure above
         !
-        w = halo_interp_weight(:,:,:,1)
         do halo=1,nhr
           do i=0,nht-halo!nc+nh-(halo-1)
             ibaseref = ibase(i,halo,1)
@@ -1325,7 +1333,7 @@ contains
             ! use symmetry for weights (same weights as East from main panel but for south panel
             ! projection the indecies are rotated)
             !
-            fotherpanel (nc+halo ,1-i,1) = matmul_w(w(:,i,halo),fcube(nc+ibaseref:nc+ibaseref+ns-1,halo),ns)
+            fotherpanel (nc+halo ,1-i,1) = dotproduct(hWeight(:,i,halo,1),fcube(nc+ibaseref:nc+ibaseref+ns-1,halo),ns)
           end do
         end do
         fotherpanel(nc+1,1,1) = 0.25_r8*(fotherpanel(nc+2,1,1)+fotherpanel(nc,1,1)&
@@ -1381,18 +1389,18 @@ contains
         !
         ! fill in "w" on Figure above
         !
-        w = halo_interp_weight(:,:,:,1)
         do halo=1,nhr
+          ftmp(:) = fcube(nc+1-halo,:)   ! copy to a temporary
           do i=0,nc+nh-(halo-1)
             ibaseref = ibase(i,halo,1)
-            fotherpanel(nc+1-halo,i,2) = matmul_w(w(:,i,halo),fcube(nc+1-halo,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel(nc+1-halo,i,2) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
         !
         ! fill in "s" on Figure above
         !
-        w = halo_interp_weight(:,:,:,2)
         do halo=1,nhr
+          ftmp(:) = fcube(nc+1-halo,:)   ! copy to a temporary
           do i=nc+1-nht+halo,nc+1
             !
             !
@@ -1420,7 +1428,7 @@ contains
             !
             ! fcube index: due to rotation (see Figure above)
             !
-            fotherpanel(nc+(nc+1-i),1-halo,2) = matmul_w(w(:,i,halo),fcube(nc+1-halo,ibaseref:ibaseref+ns-1),ns)
+            fotherpanel(nc+(nc+1-i),1-halo,2) = dotproduct(hWeight(:,i,halo,2),ftmp(ibaseref:ibaseref+ns-1),ns)
           end do
         end do
         fotherpanel(nc,0,2) = 0.25_r8*(fotherpanel(nc+1,0,2)+fotherpanel(nc-1,0,2)&
@@ -1457,21 +1465,20 @@ contains
       !
       ! west
       !
-      w = halo_interp_weight(:,:,:,1)
       do halo=1,nhr
+        ftmp(:) = fcube(1-halo,:)   ! copy to a temporary
         do i=halo-nh,min(nc+nh-(halo-1),nc+1)
           ibaseref=ibase(i,halo,1)
-          fpanel(1-halo ,i) = matmul_w(w(:,i,halo),fcube(1-halo ,ibaseref:ibaseref+ns-1),ns)
+          fpanel(1-halo ,i) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
         end do
       end do
       !
       ! north
       !
-      w = halo_interp_weight(:,:,:,2)
       do halo=1,nhr
         do i=max(halo-nh,0),nc+nh-(halo-1)
            ibaseref = ibase(i,halo,2)
-           fpanel(i,nc+halo) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+halo  ),ns) !north
+           fpanel(i,nc+halo) = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,nc+halo),ns) !north
          end do
        end do
        fpanel(0   ,nc+1)=0.25_r8*(&
@@ -1512,11 +1519,10 @@ contains
          !
          ! (use code from north above)
          !
-         w = halo_interp_weight(:,:,:,2)
          do halo=1,nhr
            do i=max(halo-nh,0),nc+nh-(halo-1)
              ibaseref = ibase(i,halo,2)
-             fotherpanel(i,nc+1-halo,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+1-halo  ),ns)
+             fotherpanel(i,nc+1-halo,1) = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
            end do
          end do
          !
@@ -1524,11 +1530,10 @@ contains
          !
          ! (use code from west above)
          !
-         w = halo_interp_weight(:,:,:,1)
          do halo=1,nhr
            do i=nc+1-nht+halo,nc+1
              ibaseref=ibase(i,halo,1)-nc
-             fotherpanel(1-halo,nc-(i-(nc+1)),1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
+             fotherpanel(1-halo,nc-(i-(nc+1)),1) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
            end do
          end do
          fotherpanel(0,nc,1)=0.25_r8*(&
@@ -1577,11 +1582,11 @@ contains
          !
          ! (use code from west above)
          !
-         w = halo_interp_weight(:,:,:,1)
          do halo=1,nhr
+           ftmp(:) = fcube(halo,:)   ! copy to a temporary
            do i=halo-nh,min(nc+nh-(halo-1),nc+1)
              ibaseref=ibase(i,halo,1)
-             fotherpanel(halo ,i,2) = matmul_w(w(:,i,halo),fcube(halo ,ibaseref:ibaseref+ns-1),ns)
+             fotherpanel(halo ,i,2) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
            end do
          end do
          !
@@ -1590,11 +1595,11 @@ contains
          !
          ! (use code from north above)
          !
-         w = halo_interp_weight(:,:,:,2)
          do halo=1,nhr
+           ftmp(:) = fcube(halo,:)   ! copy to a temporary
            do i=0,nht-halo
              ibaseref = ibase(i,halo,2)+nc
-             fotherpanel(1-i,nc+halo,2) = matmul_w(w(:,i,halo),fcube(halo,ibaseref:ibaseref+ns-1),ns) !north
+             fotherpanel(1-i,nc+halo,2) = dotproduct(hWeight(:,i,halo,2),ftmp(ibaseref:ibaseref+ns-1),ns) !north
            end do
          end do
          fotherpanel(1,nc+1,2)=0.25_r8*(&
@@ -1633,21 +1638,20 @@ contains
        !
        ! east
        !
-       w = halo_interp_weight(:,:,:,1)
        do halo=1,nhr
+         ftmp(:) = fcube(nc+halo,:)   ! copy to a temporary
          do i=halo-nh,min(nc+nh-(halo-1),nc+1)
-           ibaseref=ibase(i,halo,1 )
-           fpanel(nc+halo,i) = matmul_w(w(:,i,halo),fcube(nc  +halo,ibaseref:ibaseref+ns-1),ns)
+           ibaseref=ibase(i,halo,1)
+           fpanel(nc+halo,i) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
          end do
        end do
        !
        ! north
        !
-       !     w = halo_interp_weight(:,:,:,1)
        do halo=1,nhr
          do i=halo-nh,min(nc+nh-(halo-1),nc+1)
            ibaseref=ibase(i,halo,1)
-           fpanel(i,nc+halo) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+halo  ),ns) !north
+           fpanel(i,nc+halo) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,nc+halo),ns) !north
          end do
        end do
        fpanel(nc+1,nc+1)=0.25_r8*(&
@@ -1700,17 +1704,15 @@ contains
          !
          ! (use north case from above and shift/reverse j-index
          !
-         w = halo_interp_weight(:,:,:,1)
          do halo=1,nhr
            do i=halo-nh,min(nc+nh-(halo-1),nc+1)
              ibaseref=ibase(i,halo,1)
-             fotherpanel (i,nc+1-halo,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
+             fotherpanel (i,nc+1-halo,1) = dotproduct(hWeight(:,i,halo,1),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
            end do
          end do
          !
          ! fill in "e" on Figure above
          !
-         w = halo_interp_weight(:,:,:,2)
          do halo=1,nhr
            do i=max(halo-nh,0),nht-halo
              ibaseref=ibase(i,halo,2) +nc
@@ -1718,7 +1720,7 @@ contains
              ! fotherpanel uses indexing of main panel's projection
              ! fcube: rotated indexing
              !
-             fotherpanel (nc+halo,nc+i,1) = matmul_w(w(:,i,halo),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
+             fotherpanel (nc+halo,nc+i,1) = dotproduct(hWeight(:,i,halo,2),fcube(ibaseref:ibaseref+ns-1,nc+1-halo),ns)
            end do
          end do
          fotherpanel(nc+1,nc,1)=0.25_r8*(&
@@ -1777,25 +1779,25 @@ contains
          !
          ! (use east case from above and shift/reverse j-index
          !
-         w = halo_interp_weight(:,:,:,1)
          do halo=1,nhr
+           ftmp(:) = fcube(nc+1-halo,:)   ! copy to a temporary
            do i=halo-nh,min(nc+nh-(halo-1),nc+1)
-             ibaseref=ibase(i,halo,1 )
-             fotherpanel(nc+1-halo,i,2) = matmul_w(w(:,i,halo),fcube(nc+1-halo,ibaseref:ibaseref+ns-1),ns)
+             ibaseref=ibase(i,halo,1)
+             fotherpanel(nc+1-halo,i,2) = dotproduct(hWeight(:,i,halo,1),ftmp(ibaseref:ibaseref+ns-1),ns)
            end do
          end do
          !
          ! fill in "n" on Figure above
          !
-         w = halo_interp_weight(:,:,:,2)
          do halo=1,nhr
+           ftmp(:) = fcube(nc+1-halo,:)   ! copy to a temporary
            do i=max(halo-nh,0),nht-halo
              ibaseref=ibase(i,halo,2) +nc
              !
              ! fotherpanel uses indexing of main panel's projection
              ! fcube: rotated indexing
              !
-             fotherpanel (nc+i,nc+halo,2) = matmul_w(w(:,i,halo),fcube(nc+1-halo,ibaseref:ibaseref+ns-1),ns)
+             fotherpanel (nc+i,nc+halo,2) = dotproduct(hWeight(:,i,halo,2),ftmp(ibaseref:ibaseref+ns-1),ns)
            end do
          end do
          fotherpanel(nc,nc+1,2)=0.25_r8*(&
@@ -1810,7 +1812,7 @@ contains
      use control_mod, only : north, south, east, west, neast, nwest, seast, swest
 
      integer,          intent(in)  :: nc,nhe,cubeboundary,irecons,ntrac_in
-     real (kind=r8), dimension(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe,ntrac_in), intent(out):: recons
+     real(kind=r8),    intent(out) :: recons(irecons,1-nhe:nc+nhe,1-nhe:nc+nhe,ntrac_in)
 
      integer :: i,j
 

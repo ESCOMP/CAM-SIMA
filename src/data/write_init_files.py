@@ -12,6 +12,7 @@ import os.path
 
 # CCPP Framework import statements
 from ccpp_state_machine import CCPP_STATE_MACH
+from ddt_library import VarDDT
 from fortran_tools import FortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
@@ -287,6 +288,15 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
     """
     missing_vars = []
     hvar = host_dict.find_variable(stdname)
+    if hvar and hvar.is_ddt() and not isinstance(hvar, VarDDT):
+        # A whole-DDT host variable (e.g. a scheme argument of DDT type;
+        # a VarDDT is instead a field *inside* a DDT and is handled below)
+        # cannot be read from initial-conditions files; the host model
+        # initializes it at run time and marks it via mark_as_initialized.
+        # Exclude it from generated read/check code. (Var.intrinsic_elements
+        # would also raise a CCPPError for a DDT variable when called
+        # without a DDT library, as done below.)
+        return missing_vars
     if hvar and (hvar.source.ptype != 'host'):
         var_dict[stdname] = hvar
         # Process elements (if any)
@@ -979,6 +989,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  [phys_check_fname_str, ["phys_var_num", "phys_var_stdnames",
                                          "input_var_names", "std_name_len",
                                          "is_initialized"]],
+                 ["cam_constituents", ["const_is_initialized"]],
                  ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]],
                  ["cam_logfile", ["iulog"]]]
 
@@ -1180,6 +1191,13 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Iterate over all registered constituents", 2)
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
     outfile.write("var_found = .false.", 3)
+    outfile.comment("Skip constituents from physics grid initial condition read for", 3)
+    outfile.comment("constituents whose initial values are already set", 3)
+    # Uses indices rather than standard names because phys_var_stdnames does not have access
+    # to runtime constituents' standard names at the point of code generation:
+    outfile.write("if (const_is_initialized(constituent_idx)) then", 3)
+    outfile.write("cycle", 4)
+    outfile.write("end if", 3)
     outfile.comment("Check if constituent standard name in registered SIMA standard names list:", 3)
     outfile.write("call const_props(constituent_idx)%standard_name(std_name)", 3)
     outfile.comment("Find array index to extract correct input names", 3)

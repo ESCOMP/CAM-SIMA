@@ -29,11 +29,13 @@ jobs:
     name: Check if jobs should run
     runs-on: ubuntu-slim
     outputs:
-      should-run: ${{ steps.conditional.outputs.result }}
+      # Encoded in base64 to preserve the matched paths exactly.
+      matched-paths: ${{ steps.conditional.outputs.matched-paths }}
+      should-run: ${{ steps.conditional.outputs.should-run }}
     timeout-minutes: 1
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if there are changes to Fortran source code
         id: conditional
@@ -41,15 +43,21 @@ jobs:
           set -euo pipefail
 
           write_result_and_exit() {
+            if [ -f matched-paths.txt ]; then
+              echo "matched-paths=$(base64 -w 0 < matched-paths.txt)" >> "$GITHUB_OUTPUT"
+            else
+              echo "matched-paths=" >> "$GITHUB_OUTPUT"
+            fi
+
             case "$1" in
               false)
                 echo "Result: Skip jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               true)
                 echo "Result: Run jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               error|*)
@@ -114,7 +122,7 @@ jobs:
           echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
           git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
 
-          if grep -E -q '(^\.github\/workflows\/cam_sima_fortran_ci\.yml$|^share$|^src\/.+$|^test\/unit\/.+$)' changed-paths.txt; then
+          if grep -E '^\.github/workflows/cam_sima_fortran_ci\.yml$|^share$|^src/.+$|^test/unit/.+$' changed-paths.txt > matched-paths.txt; then
             write_result_and_exit true
           else
             write_result_and_exit false
@@ -129,6 +137,7 @@ jobs:
     name: Overall status (CAM-SIMA Fortran CI)
     needs:
       - conditional-check
+      - source-code-linting
       - unit-tests
     if: ${{ always() }}
     runs-on: ubuntu-slim
@@ -167,6 +176,18 @@ jobs:
               ;;
           esac
 
+          case "${{ needs.source-code-linting.result }}" in
+            skipped|success)
+              :
+              ;;
+            cancelled|failure)
+              write_result_and_exit false
+              ;;
+            *)
+              write_result_and_exit error
+              ;;
+          esac
+
           case "${{ needs.unit-tests.result }}" in
             skipped|success)
               :
@@ -180,6 +201,73 @@ jobs:
           esac
 
           write_result_and_exit true
+  source-code-linting:
+    name: Lint Fortran source code
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    runs-on: ubuntu-slim
+    env:
+      FORTITUDE_VERSION: 0.9.*
+      SOURCE_CODE_PATH: ${{ github.workspace }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout CAM-SIMA
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          cache: pip
+          python-version: 3.12
+
+      - name: Install Fortitude
+        run: |
+          python3 -m venv venv-fortitude
+          source venv-fortitude/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
+
+      - name: Lint Fortran source code
+        run: |
+          # Retrieve the matched paths.
+          echo "${{ needs.conditional-check.outputs.matched-paths }}" | base64 -d > matched-paths.txt
+
+          # Filter Fortran files for Fortitude.
+          # Fortitude will choke if it encounters non-Fortran files in the command line arguments.
+          if grep -E '[^/]+\.(F|f|F90|f90|pf)$' matched-paths.txt > filtered-paths.txt; then
+            set --
+            while IFS="" read -r LINE || [ -n "$LINE" ]; do
+              [ -f "$LINE" ] && set -- "$@" "$LINE"
+            done < filtered-paths.txt
+
+            # Fortitude will still choke if there are no command line arguments.
+            if [ "$#" -gt 0 ]; then
+              source venv-fortitude/bin/activate
+              # First run: Annotated output for GitHub Actions.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-format github \
+                "$@" | sed -e "s|file=$SOURCE_CODE_PATH/|file=|g"
+              # Second run: Output to a log file for uploading.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --exit-zero \
+                --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
+                "$@"
+            fi
+          fi
+
+      - name: Upload Fortran source code linting log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          if-no-files-found: ignore
+          name: source-code-linting-log
+          path: ${{ env.SOURCE_CODE_PATH }}/source-code-linting.log
+          retention-days: 7
   unit-tests:
     name: Build and run unit tests (${{ matrix.compiler }})
     needs: conditional-check
@@ -218,14 +306,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Checkout dependencies
         run: |
           ./bin/git-fleximod update ncar-physics share
 
       - name: Checkout rrtmgp-data for PIO file reader tests
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: earth-system-radiation/rrtmgp-data
           ref: ${{ env.RRTMGP_DATA_REFERENCE }}
