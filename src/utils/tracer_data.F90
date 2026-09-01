@@ -36,6 +36,7 @@ module tracer_data
   public :: read_trc_restart
   public :: init_trc_restart
   public :: incr_filename
+  public :: findplb
 
   type input3d
     real(r8), dimension(:, :), allocatable :: data ! ncol, lev
