@@ -147,6 +147,7 @@ module cam_hist_file
       procedure :: set_beg_time => config_set_beg_time
       procedure :: set_end_time => config_set_end_time
       procedure :: set_filenames => config_set_filenames
+      procedure :: set_restart_filename => config_set_restart_filename
       procedure :: set_last_month_written => config_set_last_month_written
       procedure :: set_last_year_written => config_set_last_year_written
       procedure :: set_up_fields => config_set_up_fields
@@ -221,10 +222,19 @@ CONTAINS
            incomplete_ok=.false.)
       end do
 
+   end subroutine config_set_filenames
+
+   ! ========================================================================
+
+   subroutine config_set_restart_filename(this)
+      use cam_filenames,  only: interpret_filename_spec
+      ! Dummy argument
+      class(hist_file_t), intent(inout) :: this
+
       this%restart_file_name = interpret_filename_spec(rh_filename_spec, &
               unit=this%volume, incomplete_ok=.false.)
 
-   end subroutine config_set_filenames
+   end subroutine config_set_restart_filename
 
    ! ========================================================================
 
@@ -255,7 +265,11 @@ CONTAINS
       class(hist_file_t), intent(in) :: this
       character(len=CL)              :: cfiles(max_split_files)
 
-      cfiles = this%file_names
+      if (.not. allocated(this%file_names)) then
+         cfiles = ['UNSET','UNSET']
+      else
+         cfiles = this%file_names
+      end if
 
    end function config_get_filenames
 
@@ -1373,6 +1387,9 @@ CONTAINS
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,        allocatable :: mdimids(:)
+
+      ! Set the restart filename using current timestep
+      call this%set_restart_filename()
 
       restart = .true.
       split_file = .false.

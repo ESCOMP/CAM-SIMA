@@ -314,7 +314,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.blank_line()
     outfile.comment("Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
     outfile.comment("Allocate cnst_desc to total size of constituents array; some will be unused", 2)
-    outfile.write("allocate(cnst_desc(size(const_props)))", 2)
+    outfile.write("if (.not. allocated(cnst_desc)) then", 2)
+    outfile.write("allocate(cnst_desc(size(const_props)))", 3)
+    outfile.write("end if", 2)
     outfile.write("nonadvected_idx = 1", 2)
     hdimids = []
     hdimids.append(dimensions_dict['horizontal_dimension']['index'])

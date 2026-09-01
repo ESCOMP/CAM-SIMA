@@ -8,5 +8,5 @@ SMS_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_gnu.cam-outfrq_zm_derecho (Overall:
   - known failure due to ZM science update after merging atmos_phys #392
   - CAM-SIMA issue #502: need to update ZM snapshot in CAM
 
-ERS_Ln9.mpasa480_mpasa480.QPC4.derecho_gnu.cam-outfrq_analy_ic_cam
+ERC_Ln9.mpasa480_mpasa480.QPC4.derecho_gnu.cam-outfrq_analy_ic_cam
   - known failure until restart reading is implemented
