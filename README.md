@@ -27,3 +27,7 @@ bin/git-fleximod update
 ```
 
 Good luck, and have a great day!
+
+## Acknowledgements
+
+The refactoring of the CAM4 and CAM5 physics routines into the CAM-SIMA codebase was supposed by [NSF award 2311276](https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2311376).
