@@ -1732,7 +1732,7 @@ contains
 
       call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldliq, abort=.false.)
       call const_get_index('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldice, abort=.false.)
-      call const_get_index('TT_LW' , ixtt    , abort=.false.)
+      call const_get_index('TT_LW' , ixtt    , abort=.false., warning=.false.)
 
       do ie=nets,nete
         call util_function(qdp(:,:,:,1,ie),nx,nlev,name_out1,ie)
