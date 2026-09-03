@@ -272,20 +272,18 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
   type(ESMF_TimeInterval) :: diff
   integer :: useday
 
-  call ESMF_TimeSet( date, yy=year, mm=month, dd=day, s=sec, calendar=tm_cal, rc=rc)
   !
-  ! If the subroutine returned error, check if it is Feb 29 of a non-leap year
-  ! (legitimately used by the time-interpolation routines in tracer_data.F90)
-  ! in which case, substitute Feb 28 for the day
+  ! Feb 29 is legitimately passed in by the time-interpolation routines in
+  ! tracer_data.F90 when a data file carries a leap day. On a no-leap calendar
+  ! substitute Feb 28 up front rather than probing ESMF_TimeSet: a failed probe
+  ! is logged as an ESMF error, which opens the PET log files for the whole run.
   !
-  if ( rc .ne. ESMF_SUCCESS ) then
-     if ( ( month .eq. 2 ) .and. ( day .eq. 29 ) ) then ! assume the failure is because it is leap day
-        useday = 28
-        call ESMF_TimeSet( date, yy=year, mm=month, dd=useday, s=sec, calendar=tm_cal, rc=rc)
-     else  ! legitimate error, let the model quit
-        call chkrc(rc, sub//': error return from ESMF_TimeSet for set_time_float_from_date')
-     endif
-  endif
+  useday = day
+  if ( ( month .eq. 2 ) .and. ( day .eq. 29 ) .and. timemgr_is_caltype(shr_cal_noleap) ) then
+     useday = 28
+  end if
+  call ESMF_TimeSet( date, yy=year, mm=month, dd=useday, s=sec, calendar=tm_cal, rc=rc)
+  call chkrc(rc, sub//': error return from ESMF_TimeSet for set_time_float_from_date')
 
   call ESMF_ClockGet(tm_clock, refTime=ref_date, rc=rc )
   call chkrc(rc, sub//': error return from ESMF_ClockGet for set_time_float_from_date')
