@@ -1,5 +1,5 @@
-ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_gnu_before_c20260820.nc'
-ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_gnu_after_c20260820.nc'
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_intel_before_c20260820.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_intel_after_c20260820.nc'
 ncdata_check_err=.true.
 debug_output=0
 pver=58
