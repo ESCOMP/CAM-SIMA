@@ -110,11 +110,6 @@ contains
          ! Loop over all required variables and read from file if uninitialized:
          do req_idx = 1, size(ccpp_required_data, 1)
 
-            ! Skip variables the suite sets (intent out) before any of its schemes reads them, as they need no initial condition:
-            if (suite_sets_before_use(suite_names(suite_idx), ccpp_required_data(req_idx))) then
-               cycle
-            end if
-
             ! Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)
 
@@ -432,18 +427,5 @@ contains
          call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)
       end if
    end subroutine physics_check_data
-
-   logical function suite_sets_before_use(suite_name, std_name)
-
-      ! True if suite <suite_name> sets <std_name> (intent out) before any of its schemes reads it, in the phases that run after
-      ! physics_read_data (timestep_initial, run, timestep_final), so the variable needs no initial condition:
-
-      ! Dummy arguments
-      character(len=*), intent(in) :: suite_name
-      character(len=*), intent(in) :: std_name
-
-      suite_sets_before_use = .false.
-
-   end function suite_sets_before_use
 
 end module physics_inputs_bvd

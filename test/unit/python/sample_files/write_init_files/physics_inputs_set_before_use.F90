@@ -447,7 +447,7 @@ contains
       end if
    end subroutine physics_check_data
 
-   logical function suite_sets_before_use(suite_name, std_name)
+   pure logical function suite_sets_before_use(suite_name, std_name)
 
       ! True if suite <suite_name> sets <std_name> (intent out) before any of its schemes reads it, in the phases that run after
       ! physics_read_data (timestep_initial, run, timestep_final), so the variable needs no initial condition:

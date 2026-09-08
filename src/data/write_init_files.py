@@ -262,7 +262,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, host_dict, in_vars, host_imports,
                                    phys_check_fname_str, constituent_set,
-                                   vars_init_value)
+                                   vars_init_value, set_before_use)
 
         outfile.blank_line()
 
@@ -272,10 +272,12 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
 
-        outfile.blank_line()
-
-        # Write suite_sets_before_use function:
-        write_set_before_use_function(outfile, set_before_use)
+        # Write suite_sets_before_use function, only needed if some
+        #    suite sets a variable before use:
+        if set_before_use:
+            outfile.blank_line()
+            write_set_before_use_function(outfile, set_before_use)
+        # end if
 
     # --------------------------------------
 
@@ -950,7 +952,7 @@ def get_dimension_info(hvar):
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
-                               vars_init_value):
+                               vars_init_value, set_before_use):
 
     """
     Write the "physics_read_data" subroutine, which
@@ -1159,14 +1161,16 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.blank_line()
 
     # Skip variables the suite sets before it reads them:
-    outfile.comment("Skip variables the suite sets (intent out) before " +   \
-                    "any of its schemes reads them, as they need no " +      \
-                    "initial condition:", 4)
-    outfile.write("if (suite_sets_before_use(suite_names(suite_idx), " +     \
-                  "ccpp_required_data(req_idx))) then", 4)
-    outfile.write("cycle", 5)
-    outfile.write("end if", 4)
-    outfile.blank_line()
+    if set_before_use:
+        outfile.comment("Skip variables the suite sets (intent out) before " + \
+                        "any of its schemes reads them, as they need no " +    \
+                        "initial condition:", 4)
+        outfile.write("if (suite_sets_before_use(suite_names(suite_idx), " +   \
+                      "ccpp_required_data(req_idx))) then", 4)
+        outfile.write("cycle", 5)
+        outfile.write("end if", 4)
+        outfile.blank_line()
+    # end if
 
     # Call input name search function:
     outfile.comment("Find IC file input name array index for required variable:", 4)
@@ -1672,12 +1676,12 @@ def write_set_before_use_function(outfile, set_before_use):
     returns .true. if a suite sets a variable (intent out)
     before any of its schemes reads it, so that
     "physics_read_data" can skip reading that variable.
-    <set_before_use> is the dictionary returned by
+    <set_before_use> is the (non-empty) dictionary returned by
     "gather_set_before_use_vars".
     """
 
     # Add function header:
-    outfile.write("logical function suite_sets_before_use(suite_name, std_name)", 1)
+    outfile.write("pure logical function suite_sets_before_use(suite_name, std_name)", 1)
     outfile.blank_line()
     outfile.comment("True if suite <suite_name> sets <std_name> (intent out) " + \
                     "before any of its schemes reads it, in the phases that " + \
@@ -1694,22 +1698,20 @@ def write_set_before_use_function(outfile, set_before_use):
 
     # Write per-suite standard name lists:
     outfile.write("suite_sets_before_use = .false.", 2)
-    if set_before_use:
-        outfile.write("select case (trim(suite_name))", 2)
-        for suite_name, stdnames in set_before_use.items():
-            outfile.write(f"case ('{suite_name}')", 3)
-            outfile.write("select case (trim(std_name))", 4)
-            for index, stdname in enumerate(stdnames):
-                prefix = "case (" if index == 0 else ""
-                suffix = ")" if index == len(stdnames)-1 else ", &"
-                outfile.write(f"{prefix}'{stdname}'{suffix}", 5,
-                              continue_line=(index > 0))
-            # end for
-            outfile.write("suite_sets_before_use = .true.", 6)
-            outfile.write("end select", 4)
+    outfile.write("select case (trim(suite_name))", 2)
+    for suite_name, stdnames in set_before_use.items():
+        outfile.write(f"case ('{suite_name}')", 3)
+        outfile.write("select case (trim(std_name))", 4)
+        for index, stdname in enumerate(stdnames):
+            prefix = "case (" if index == 0 else ""
+            suffix = ")" if index == len(stdnames)-1 else ", &"
+            outfile.write(f"{prefix}'{stdname}'{suffix}", 5,
+                          continue_line=(index > 0))
         # end for
-        outfile.write("end select", 2)
-    # end if
+        outfile.write("suite_sets_before_use = .true.", 6)
+        outfile.write("end select", 4)
+    # end for
+    outfile.write("end select", 2)
     outfile.blank_line()
 
     # End function:
