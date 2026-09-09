@@ -6,7 +6,7 @@ module modal_aerosol_state_mod
   use aerosol_mmr_host, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num, aero_host_binding_t
   use aerosol_mmr_host, only: get_mode_dry_diameter, get_mode_wet_diameter, get_mode_aer_water
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
-  use physconst,  only: rhoh2o, pi
+  use physconst,  only: rhoh2o, pi, rair
   use cam_abortutils, only: endrun
 
   implicit none
@@ -950,7 +950,7 @@ contains
 
     do i = 1,ncol
        do k = beglev(i), endlev(i)
-          rho_air = pmid(i,k)/(temp(i,k)*287.04_r8)
+          rho_air = pmid(i,k)/(temp(i,k)*rair)
           do l=1,nbins
              !
              ! compute a mass weighting of the number

@@ -7,6 +7,7 @@ module bulk_aerosol_state_mod
 
   use aerosol_state_mod,      only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
+  use physconst,              only: rair
 
   implicit none
 
@@ -668,7 +669,7 @@ contains
           !-------------------------------------------------------------------------
           ! 	... air density (kg/m3)
           !-------------------------------------------------------------------------
-          rho_air = pmid(i,k)/(temp(i,k)*287.04_r8)
+          rho_air = pmid(i,k)/(temp(i,k)*rair)
           !-------------------------------------------------------------------------
           !       ... aerosol growth interpolated from M.Chin's table
           !-------------------------------------------------------------------------
