@@ -66,7 +66,7 @@ contains
       use cam_pio_utils,    only: cam_pio_handle_error, cam_pio_find_var
       use cam_pio_utils,    only: cam_pio_var_info, pio_subsystem
       use cam_pio_utils,    only: cam_pio_newdecomp
-      use cam_abortutils,   only: endrun
+      use cam_abortutils,   only: endrun, check_allocate
       use cam_logfile,      only: cam_log_multiwrite
       use cam_initfiles,    only: initial_file_get_id, unset_path_str
       use phys_comp,        only: ncdata_check
@@ -219,12 +219,12 @@ contains
       if (debug_output >= DEBUGOUT_DEBUG) then
          ! Expensive, print out decomp info from every task
          call cam_log_multiwrite(subname, ':  PE   # cols  start    end',     &
-              '(a,i4,i9,2i7)', (/ num_local_columns, col_start, col_end/))
+              '(a,i4,i9,2i7)', [num_local_columns, col_start, col_end])
       end if
       ! Find a 3D variable and get its dimensions
-      call cam_pio_find_var(fh_ini, (/ 'U            ',                       &
-                                       'state_u      ',                       &
-                                       'eastward_wind' /),                    &
+      call cam_pio_find_var(fh_ini, ['U            ',                         &
+                                     'state_u      ',                         &
+                                     'eastward_wind'],                        &
                             fieldname, vardesc, var_found)
       if (var_found) then
          ! Check that snapshot file has 64-bit floats (ndens=1).
@@ -309,25 +309,19 @@ contains
          if (debug_output > 2) then
             ! Expensive, print out lat/lon decomp info from every task
             call cam_log_multiwrite(subname, ':  PE   # lats  start    end',  &
-                 '(a,i4,i9,2i7)', (/ kount(1), start(1), start(1)+kount(1)-1/))
+                 '(a,i4,i9,2i7)', [kount(1), start(1), start(1)+kount(1)-1])
          end if
          if (is_degrees) then
-            allocate(local_lons_deg(num_lons), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_lons_deg(num_lons) failed with stat: '//&
-                           to_str(iret))
-            end if
-            allocate(local_lats_deg(kount(1)), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_lats_deg(kount) failed with stat: '//&
-                           to_str(iret))
-            end if
-            allocate(temp_arr(num_lats), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate temp_arr(num_lats) failed with stat: '//&
-                           to_str(iret))
-            end if
-            iret = pio_get_var(fh_ini, lat_vardesc, (/ 1 /), (/ num_lats /),  &
+            allocate(local_lons_deg(num_lons), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_lons_deg(num_lons)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            allocate(local_lats_deg(kount(1)), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_lats_deg(kount)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            allocate(temp_arr(num_lats), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'temp_arr(num_lats)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            iret = pio_get_var(fh_ini, lat_vardesc, [1], [num_lats],          &
                  temp_arr)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read latitude')
@@ -347,31 +341,23 @@ contains
       else
          ! Do parallel read of lat and lon
          if (is_degrees) then
-            allocate(local_lats_deg(num_local_columns), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_lats_deg(num_local_columns) '//&
-                           'failed with stat: '//to_str(iret))
-            end if
-            allocate(local_lons_deg(num_local_columns), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_lons_deg(num_local_columns) '//&
-                           'failed with stat: '//to_str(iret))
-            end if
-            allocate(ldof(num_local_columns), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate ldof(num_local_columns) '//&
-                           'failed with stat: '//to_str(iret))
-            end if
+            allocate(local_lats_deg(num_local_columns), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_lats_deg(num_local_columns)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            allocate(local_lons_deg(num_local_columns), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_lons_deg(num_local_columns)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            allocate(ldof(num_local_columns), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'ldof(num_local_columns)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
             ldof = 0_iMap
             do lindex = 1, num_local_columns
                ldof(lindex) = col_start + lindex - 1
             end do
-            allocate(iodesc, stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate iodesc failed with stat: '//&
-                           to_str(iret))
-            end if
-            call cam_pio_newdecomp(iodesc, (/ num_global_columns /), ldof,    &
+            allocate(iodesc, stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'iodesc', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            call cam_pio_newdecomp(iodesc, [num_global_columns], ldof,        &
                  PIO_DOUBLE)
             call pio_read_darray(fh_ini, lat_vardesc, iodesc, local_lats_deg, &
                  iret)
@@ -386,7 +372,7 @@ contains
          end if
       end if
       ! Find the grid area and / or weight terms
-      call cam_pio_find_var(fh_ini, (/ 'gw       ', 'area     ', 'cell_area' /), var_name,           &
+      call cam_pio_find_var(fh_ini, ['gw       ', 'area     ', 'cell_area'], var_name,               &
            vardesc, var_found)
       if (var_found) then
          ! Find the variable dimension info
@@ -397,22 +383,18 @@ contains
             call endrun(errormsg)
          end if
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
-            allocate(local_areas(num_lats), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_areas(num_lats) failed with stat: '//&
-                           to_str(iret))
-            end if
+            allocate(local_areas(num_lats), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_areas(num_lats)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
             start(1) = 1
             kount(1) = num_lats
             iret = pio_get_var(fh_ini, vardesc, start, kount, local_areas)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read '//trim(var_name))
          else if (dimlens(1) == num_global_columns) then
-            allocate(local_areas(num_local_columns), stat=iret)
-            if (iret /= 0) then
-               call endrun(subname//': allocate local_areas(num_local_columns) '//&
-                           'failed with stat: '//to_str(iret))
-            end if
+            allocate(local_areas(num_local_columns), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_areas(num_local_columns)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
             call pio_read_darray(fh_ini, vardesc, iodesc, local_areas, iret)
             call cam_pio_handle_error(iret, subname//': Unable to read areas')
          else
@@ -434,22 +416,18 @@ contains
 
       ! Allocate dyn_columns structure if not already allocated:
       if (.not.allocated(dyn_columns)) then
-         allocate(dyn_columns(num_local_columns), stat=iret)
-         if (iret /= 0) then
-            call endrun(subname//': allocate dyn_columns(num_local_columns) '//&
-                        'failed with stat: '//to_str(iret))
-         end if
+         allocate(dyn_columns(num_local_columns), stat=iret, errmsg=errormsg)
+         call check_allocate(iret, subname, 'dyn_columns(num_local_columns)', &
+                             file=__FILE__, line=__LINE__, errmsg=errormsg)
       end if
 
       ! Set dyn_columns values:
       call set_dyn_col_values()
 
       ! The null dycore has no grid attributes, so allocate to size zero.
-      allocate(grid_attribute_names(0), stat=iret)
-      if (iret /= 0) then
-         call endrun(subname//': allocate grid_attribute_names(0) failed with stat: '//&
-                     to_str(iret))
-      end if
+      allocate(grid_attribute_names(0), stat=iret, errmsg=errormsg)
+      call check_allocate(iret, subname, 'grid_attribute_names(0)', &
+                          file=__FILE__, line=__LINE__, errmsg=errormsg)
 
       ! Initialize physics grid decomposition:
       call phys_grid_init(num_lons, num_lats, 'NULL', &
@@ -473,8 +451,9 @@ contains
       ! which are the physics columns as they exist on the
       ! dynamics decomposition.
 
+      use shr_kind_mod,   only: SHR_KIND_CL
       use shr_const_mod,  only: SHR_CONST_PI
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: endrun, check_allocate
       use spmd_utils,     only: iam
 
       ! Local variables:
@@ -483,6 +462,7 @@ contains
       integer                         :: lat_index, lat1
       integer                         :: lon_index
       integer                         :: ierr
+      character(len=SHR_KIND_CL)      :: errmsg
 
       real(r8),         parameter     :: radtodeg = 180.0_r8 / SHR_CONST_PI
       real(r8),         parameter     :: degtorad = SHR_CONST_PI / 180.0_r8
@@ -541,12 +521,11 @@ contains
          dyn_columns(lindex)%global_dyn_block = iam + 1
          !  If there is more than one block lindex, they are in the same order
          !    as in the dynamics block structure
-         allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr)
-         if (ierr /= 0) then
-            call endrun(subname//': allocate dyn_columns('//&
-                        to_str(lindex)//')%dyn_block_index(1)'//&
-                        ' failed with stat: '//to_str(ierr))
-         end if
+         allocate(dyn_columns(lindex)%dyn_block_index(1), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname,                                   &
+                             'dyn_columns('//to_str(lindex)//                 &
+                             ')%dyn_block_index(1)',                          &
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          dyn_columns(lindex)%dyn_block_index(1) = lindex
       end do

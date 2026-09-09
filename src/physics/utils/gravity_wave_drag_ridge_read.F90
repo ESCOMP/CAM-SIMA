@@ -82,7 +82,7 @@ contains
     errflg = 0
 
     if (masterproc) then
-       open(newunit=unitn, file=trim(nlfile), status='old')
+       open(newunit=unitn, action='read', file=trim(nlfile), status='old')
        call find_group_name(unitn, 'gw_drag_input_nl', status=errflg)
        if (errflg == 0) then
           read(unitn, gw_drag_input_nl, iostat=errflg, iomsg=errmsg)
@@ -222,31 +222,31 @@ contains
       endif
 
       ! Read required 2D field: HWDTH (ridge half-widths)
-      call cam_read_field('HWDTH', fh_topo, rdg_hwdth, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('HWDTH', fh_topo, rdg_hwdth, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': HWDTH not found in input file')
       endif
 
       ! Read required 2D field: CLNGT (ridge length)
-      call cam_read_field('CLNGT', fh_topo, rdg_clngt, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('CLNGT', fh_topo, rdg_clngt, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': CLNGT not found in input file')
       endif
 
       ! Read required 2D field: MXDIS (ridge/obstacle height)
-      call cam_read_field('MXDIS', fh_topo, rdg_mxdis, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('MXDIS', fh_topo, rdg_mxdis, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': MXDIS not found in input file')
       endif
 
       ! Read required 2D field: ANIXY (ridge anisotropy)
-      call cam_read_field('ANIXY', fh_topo, rdg_anixy, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('ANIXY', fh_topo, rdg_anixy, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANIXY not found in input file')
       endif
 
       ! Read required 2D field: ANGLL (ridge clockwise angle w.r.t. N-S direction)
-      call cam_read_field('ANGLL', fh_topo, rdg_angll, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('ANGLL', fh_topo, rdg_angll, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANGLL not found in input file')
       endif
@@ -312,19 +312,19 @@ contains
       ! gravity_wave_drag_ridge_gamma_run implementation.
 
       ! Read required 2D field: HWDTH (ridge half-widths gamma)
-      call cam_read_field('HWDTH', fh_rdggm, rdg_hwdthg, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('HWDTH', fh_rdggm, rdg_hwdthg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': HWDTH not found in gamma ridge file')
       endif
 
       ! Read required 2D field: CLNGT (ridge length gamma)
-      call cam_read_field('CLNGT', fh_rdggm, rdg_clngtg, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('CLNGT', fh_rdggm, rdg_clngtg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': CLNGT not found in gamma ridge file')
       endif
 
       ! Read required 2D field: MXDIS (ridge/obstacle height gamma)
-      call cam_read_field('MXDIS', fh_rdggm, rdg_mxdisg, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('MXDIS', fh_rdggm, rdg_mxdisg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': MXDIS not found in gamma ridge file')
       endif
@@ -335,13 +335,13 @@ contains
       end where
 
       ! Read required 2D field: ANIXY (ridge anisotropy gamma)
-      call cam_read_field('ANIXY', fh_rdggm, rdg_anixyg, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('ANIXY', fh_rdggm, rdg_anixyg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANIXY not found in gamma ridge file')
       endif
 
       ! Read required 2D field: ANGLL (ridge clockwise angle w.r.t. N-S direction gamma)
-      call cam_read_field('ANGLL', fh_rdggm, rdg_angllg, found, dim3name='nrdg', dim3_bnds=(/1, prdg/))
+      call cam_read_field('ANGLL', fh_rdggm, rdg_angllg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANGLL not found in gamma ridge file')
       endif
