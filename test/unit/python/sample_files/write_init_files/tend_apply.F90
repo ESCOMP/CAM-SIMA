@@ -1,18 +1,16 @@
-!simple demonstration parameterization which uses
-!the tendency set by temp_adjust
-!
+! simple demonstration parameterization which uses
+! the tendency set by temp_adjust
+module tend_apply
 
-MODULE tend_apply
+  use ccpp_kinds, only: kind_phys
 
-  USE ccpp_kinds, ONLY: kind_phys
+  implicit none
+  private
 
-  IMPLICIT NONE
-  PRIVATE
+  public :: tend_apply_init
+  public :: tend_apply_run
 
-  PUBLIC :: tend_apply_init
-  PUBLIC :: tend_apply_run
-
-CONTAINS
+contains
 
 !> \section arg_table_tend_apply_init  Argument Table
 !! \htmlinclude arg_table_tend_apply_init.html
@@ -48,4 +46,4 @@ CONTAINS
 
   end subroutine tend_apply_run
 
-END MODULE tend_apply
+end module tend_apply
