@@ -1000,16 +1000,6 @@ class NamelistFiles:
         else:
             self.__outdir = args.output_dir
         # end if
-        if logger:
-            if args.debug:
-                loglevel = logging.DEBUG
-            elif args.quiet:
-                loglevel = logging.ERROR
-            else:
-                loglevel = logging.INFO
-            # end if
-            logger.setLevel(loglevel)
-        # end if
         self.__scheme_read_file = None
         self.__nlfile_arg = "nlfile"
         self.__active_schemes_arg = "active_schemes"
