@@ -10,7 +10,6 @@ module air_composition
 
    implicit none
    private
-   save
 
    public  :: air_composition_init
    public  :: dry_air_composition_update
@@ -478,18 +477,18 @@ CONTAINS
       dry_air_species_num = dry_species_num
       thermodynamic_active_species_num = water_species_num + dry_species_num
 
-      allocate(thermodynamic_active_species_liq_idx(liq_num), stat=ierr)
+      allocate(thermodynamic_active_species_liq_idx(liq_num), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_liq_idx(liq_num)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_liq_idx_dycore(liq_num), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_liq_idx_dycore(liq_num), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_liq_idx_dycore(liq_num)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_ice_idx(ice_num), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_ice_idx(ice_num), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_ice_idx(ice_num)', &
-                          file=__FILE__, line=__LINE__)
-      allocate(thermodynamic_active_species_ice_idx_dycore(ice_num), stat=ierr)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(thermodynamic_active_species_ice_idx_dycore(ice_num), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname,'thermodynamic_active_species_ice_idx_dycore(ice_num)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       thermodynamic_active_species_liq_idx = liq_idx(1:liq_num)
       thermodynamic_active_species_liq_num = liq_num
@@ -580,7 +579,7 @@ CONTAINS
          ! (equation 92 in Eldred et al. 2023; doi:10.1002/qj.4353)
          cp_or_cv_dycore(:ncol,:) = cp_or_cv_dycore(:ncol,:) * (cpairv(:ncol,:) - rairv(:ncol,:)) / rairv(:ncol,:)
       else
-         call endrun(subname//': dycore energy formula (value = '//stringify((/energy_formula/))//') not supported')
+         call endrun(subname//': dycore energy formula (value = '//stringify([energy_formula])//') not supported')
       end if
    end subroutine water_composition_update
 

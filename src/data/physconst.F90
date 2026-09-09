@@ -36,7 +36,6 @@ module physconst
 
    implicit none
    private
-   save
 
    public :: physconst_readnl
 
@@ -116,6 +115,7 @@ CONTAINS
       use mpi,             only: mpi_real8
       use cam_logfile,     only: iulog
       use runtime_obj,     only: unset_real
+      use shr_kind_mod,    only: shr_kind_cm
 
       ! Dummy argument: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -134,6 +134,7 @@ CONTAINS
       integer,          parameter :: lsize = 76
       integer,          parameter :: fsize = 23
       character(len=*), parameter :: subname = 'physconst_readnl :: '
+      character(len=shr_kind_cm)  :: errmsg
       character(len=lsize)        :: banner
       character(len=lsize)        :: bline
       character(len=fsize)        :: field
@@ -166,12 +167,12 @@ CONTAINS
       bline = "***"//repeat(' ', lsize - 6)//"***"
 2000  format("*** ",a,2("   ",E18.10),"  ***")
       if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
+         open(newunit=unitn, action='read', file=trim(nlfile), status='old')
          call find_group_name(unitn, 'physconst_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, physconst_nl, iostat=ierr)
+            read(unitn, physconst_nl, iostat=ierr, iomsg=errmsg)
             if (ierr /= 0) then
-               call endrun(subname//'ERROR reading namelist, physconst_nl')
+               call endrun(subname//'ERROR reading namelist, physconst_nl: '//trim(errmsg))
             end if
          end if
          close(unitn)
