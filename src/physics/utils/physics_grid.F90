@@ -149,11 +149,11 @@ CONTAINS
 
       ! Check that the physics grid is not already initialized:
       if (phys_grid_initialized) then
-         call endrun(subname//": Physics grid is already initialized.")
+         call endrun(subname//': Physics grid is already initialized.')
       end if
 
       call t_adj_detailf(-2)
-      call t_startf("phys_grid_init")
+      call t_startf('phys_grid_init')
 
       ! Set public variables:
       hdim1_d            = hdim1_d_in
@@ -347,7 +347,7 @@ CONTAINS
       ! Set flag indicating physics grid is now set
       phys_grid_initialized = .true.
 
-      call t_stopf("phys_grid_init")
+      call t_stopf('phys_grid_init')
       call t_adj_detailf(+2)
 
       ! Calculate memory usage stats if requested:

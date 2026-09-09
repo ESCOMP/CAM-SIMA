@@ -106,14 +106,14 @@ contains
         write(iulog,*) '  Gravity wave meso-Beta ridge topo file: ', trim(bnd_topo)
       else
         write(iulog,*) '  Gravity wave meso-Beta ridge input data unavailable.'
-      endif
+      end if
 
       if(bnd_rdggm /= unset_path_str) then
         write(iulog,*) '  Gravity wave meso-Gamma ridge input file: ', trim(bnd_rdggm)
       else
         write(iulog,*) '  Gravity wave meso-Gamma ridge input data unavailable.'
-      endif
-    endif
+      end if
+    end if
   end subroutine gravity_wave_drag_ridge_read_readnl
 
   subroutine gravity_wave_drag_ridge_read_file()
@@ -158,12 +158,12 @@ contains
       if(.not. associated(fh_topo)) then
         ! I think this case will never be hit in SIMA.
         ! There was a fallback in CAM.
-        call endrun(trim(subname) // ": fh_topo from cam_initfiles is not available and this is not implemented.")
-      endif
+        call endrun(trim(subname) // ': fh_topo from cam_initfiles is not available and this is not implemented.')
+      end if
 
       if(masterproc) then
         write (iulog,*) trim(subname)//': Reading meso-Beta ridge data from ', trim(bnd_topo_loc)
-      endif
+      end if
 
       ! Allocate and initialize data to zeros.
       allocate(rdg_gbxar(ncol), stat=errflg, errmsg=errmsg)
@@ -198,7 +198,7 @@ contains
       call cam_read_field('GBXAR', fh_topo, rdg_gbxar, found)
       if(.not. found) then
         call endrun(trim(subname) // ': GBXAR not found in input file')
-      endif
+      end if
       ! Convert from m2 to km2
       rdg_gbxar = rdg_gbxar * (rearth/1000._kind_phys) * (rearth/1000._kind_phys)
       has_gbxar_from_topo = .true.
@@ -208,48 +208,48 @@ contains
       if(.not. found) then
         if(masterproc) then
           write(iulog,*) trim(subname) // ': ISOVAR not found in topo file, using zero values'
-        endif
+        end if
         ! rdg_isovar already initialized to zero above
-      endif
+      end if
 
       ! Read optional 1D field: ISOWGT (isotropic weight)
       call cam_read_field('ISOWGT', fh_topo, rdg_isowgt, found)
       if(.not. found) then
         if(masterproc) then
           write(iulog,*) trim(subname) // ': ISOWGT not found in topo file, using zero values'
-        endif
+        end if
         ! rdg_isowgt already initialized to zero above
-      endif
+      end if
 
       ! Read required 2D field: HWDTH (ridge half-widths)
       call cam_read_field('HWDTH', fh_topo, rdg_hwdth, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': HWDTH not found in input file')
-      endif
+      end if
 
       ! Read required 2D field: CLNGT (ridge length)
       call cam_read_field('CLNGT', fh_topo, rdg_clngt, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': CLNGT not found in input file')
-      endif
+      end if
 
       ! Read required 2D field: MXDIS (ridge/obstacle height)
       call cam_read_field('MXDIS', fh_topo, rdg_mxdis, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': MXDIS not found in input file')
-      endif
+      end if
 
       ! Read required 2D field: ANIXY (ridge anisotropy)
       call cam_read_field('ANIXY', fh_topo, rdg_anixy, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANIXY not found in input file')
-      endif
+      end if
 
       ! Read required 2D field: ANGLL (ridge clockwise angle w.r.t. N-S direction)
       call cam_read_field('ANGLL', fh_topo, rdg_angll, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANGLL not found in input file')
-      endif
+      end if
 
       ! Mark variables as initialized so they are not read from ic file.
       call mark_as_initialized('grid_box_area_for_beta_ridge_gravity_wave_drag')
@@ -260,7 +260,7 @@ contains
       call mark_as_initialized('ridge_obstacle_height_for_beta_ridge_gravity_wave_drag')
       call mark_as_initialized('ridge_anisotropy_for_beta_ridge_gravity_wave_drag')
       call mark_as_initialized('ridge_clockwise_angle_from_north_for_beta_ridge_gravity_wave_drag')
-    endif
+    end if
 
     ! Do we have meso-Gamma file?
     if(bnd_rdggm /= unset_path_str) then
@@ -269,7 +269,7 @@ contains
 
       if(masterproc) then
         write (iulog,*) trim(subname)//': Reading meso-Gamma ridge data from ', trim(bnd_rdggm_loc)
-      endif
+      end if
 
       ! Allocate meso-Gamma ridge data arrays
       allocate(rdg_gbxarg(ncol), stat=errflg, errmsg=errmsg)
@@ -297,14 +297,14 @@ contains
         call cam_read_field('GBXAR', fh_rdggm, rdg_gbxarg, found)
         if(.not. found) then
           call endrun(trim(subname) // ': GBXAR not found in neither topo or gamma ridge file')
-        endif
+        end if
         ! Convert from m2 to km2
         rdg_gbxarg = rdg_gbxarg * (rearth/1000._kind_phys) * (rearth/1000._kind_phys)
       else
         if(masterproc) then
           write(iulog,*) trim(subname) // ': Using GBXAR from topo file, skipping gamma file GBXAR'
-        endif
-      endif
+        end if
+      end if
 
       ! ISOVAR and ISOWGT are intentionally not read from gamma file,
       ! because (1) they are unavailable, and (2) the original code did not read them in
@@ -315,19 +315,19 @@ contains
       call cam_read_field('HWDTH', fh_rdggm, rdg_hwdthg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': HWDTH not found in gamma ridge file')
-      endif
+      end if
 
       ! Read required 2D field: CLNGT (ridge length gamma)
       call cam_read_field('CLNGT', fh_rdggm, rdg_clngtg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': CLNGT not found in gamma ridge file')
-      endif
+      end if
 
       ! Read required 2D field: MXDIS (ridge/obstacle height gamma)
       call cam_read_field('MXDIS', fh_rdggm, rdg_mxdisg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': MXDIS not found in gamma ridge file')
-      endif
+      end if
 
       ! Apply negative value correction for gamma ridge maximum displacement
       where (rdg_mxdisg < 0._kind_phys)
@@ -338,13 +338,13 @@ contains
       call cam_read_field('ANIXY', fh_rdggm, rdg_anixyg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANIXY not found in gamma ridge file')
-      endif
+      end if
 
       ! Read required 2D field: ANGLL (ridge clockwise angle w.r.t. N-S direction gamma)
       call cam_read_field('ANGLL', fh_rdggm, rdg_angllg, found, dim3name='nrdg', dim3_bnds=[1, prdg])
       if(.not. found) then
         call endrun(trim(subname) // ': ANGLL not found in gamma ridge file')
-      endif
+      end if
 
       call cam_pio_closefile(fh_rdggm)
       deallocate(fh_rdggm)
@@ -357,7 +357,7 @@ contains
       call mark_as_initialized('ridge_obstacle_height_for_gamma_ridge_gravity_wave_drag')
       call mark_as_initialized('ridge_anisotropy_for_gamma_ridge_gravity_wave_drag')
       call mark_as_initialized('ridge_clockwise_angle_from_north_for_gamma_ridge_gravity_wave_drag')
-    endif
+    end if
   end subroutine gravity_wave_drag_ridge_read_file
 
 end module gravity_wave_drag_ridge_read

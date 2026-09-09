@@ -669,7 +669,7 @@ contains
          dycore_energy_consistency_adjust = .false.
          if(masterproc) then
             write(iulog, *) subname, ': Null dycore will use FV dycore energy formula'
-         endif
+         end if
       else
          ! Is SE dycore?
          ierr = pio_inq_att(file, pio_global, 'ne', xtype)
@@ -680,7 +680,7 @@ contains
             dycore_energy_consistency_adjust = .true.
             if(masterproc) then
                write(iulog, *) subname, ': Null dycore will use SE dycore energy formula'
-            endif
+            end if
          else
             ! Is unstructured and is MPAS dycore
             ! there are no global attributes to identify MPAS dycore, so this has to do for now.
@@ -688,13 +688,13 @@ contains
             dycore_energy_consistency_adjust = .true.
             if(masterproc) then
                write(iulog, *) subname, ': Null dycore will use MPAS dycore energy formula'
-            endif
-         endif
-      endif
+            end if
+         end if
+      end if
 
       if(energy_formula_dycore /= -1) then
          call mark_as_initialized("total_energy_formula_for_dycore")
-      endif
+      end if
       call mark_as_initialized("flag_for_dycore_energy_consistency_adjustment")
 
       ! Mark other energy variables calculated by check_energy_timestep_init

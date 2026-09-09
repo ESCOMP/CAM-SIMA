@@ -46,7 +46,7 @@ module physics_data
    real(r8)                        :: verbose_avg_snapshot(max_verbose_entries)
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    integer function find_input_name_idx(stdname, use_init_variables, constituent_index) result(name_idx)
@@ -568,7 +568,7 @@ CONTAINS
 
             if(var_found) then
                exit base_idx_loop
-            endif
+            end if
          end do const_idx_loop
       end do base_idx_loop
 
