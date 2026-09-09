@@ -42,53 +42,53 @@ module phys_vars_init_check_set_before_use
    integer, public, parameter :: ic_name_len = 9
 
    ! Physics-related input variable standard names:
-   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [ &
       'potential_temperature    ', &
       'air_pressure_at_sea_level', &
       'tendency_of_peverwhee    ', &
       'eddy_length_scale        ', &
-      'scalar_variable_llama    ' /)
+      'scalar_variable_llama    ']
 
-   character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
-      "ccpp_constituent_minimum_values     ", &
-      "ccpp_constituent_properties         ", &
-      "ccpp_constituent_tendencies         ", &
-      "ccpp_constituents                   ", &
-      "ccpp_error_code                     ", &
-      "ccpp_error_message                  ", &
-      "do_log_output                       ", &
-      "log_output_unit                     ", &
-      "mpi_communicator                    ", &
-      "mpi_rank                            ", &
-      "mpi_root                            ", &
-      "number_of_ccpp_advected_constituents", &
-      "number_of_ccpp_constituents         ", &
-      "number_of_mpi_tasks                 ", &
-      "suite_name                          ", &
-      "suite_part                          " /)
+   character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &
+      'ccpp_constituent_minimum_values     ', &
+      'ccpp_constituent_properties         ', &
+      'ccpp_constituent_tendencies         ', &
+      'ccpp_constituents                   ', &
+      'ccpp_error_code                     ', &
+      'ccpp_error_message                  ', &
+      'do_log_output                       ', &
+      'log_output_unit                     ', &
+      'mpi_communicator                    ', &
+      'mpi_rank                            ', &
+      'mpi_root                            ', &
+      'number_of_ccpp_advected_constituents', &
+      'number_of_ccpp_constituents         ', &
+      'number_of_mpi_tasks                 ', &
+      'suite_name                          ', &
+      'suite_part                          ']
    !Array storing all registered IC file input names for each variable:
-   character(len=9), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
+   character(len=9), public, protected :: input_var_names(1, phys_var_num) = reshape([ &
       'theta    ', &
       'slp      ', &
       'ptend    ', &
       'eddy_len ', &
-      'var_nodim' /), (/1, phys_var_num/))
+      'var_nodim'], [1, phys_var_num])
 
    ! Array indicating whether or not variable is protected:
-   logical, public, protected :: protected_vars(phys_var_num)= (/ &
+   logical, public, protected :: protected_vars(phys_var_num)= [ &
       .false., &
       .false., &
       .false., &
       .false., &
-      .false. /)
+      .false.]
 
    ! Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):
-   integer, public, protected :: initialized_vars(phys_var_num)= (/ &
+   integer, public, protected :: initialized_vars(phys_var_num)= [ &
       UNINITIALIZED, &
       UNINITIALIZED, &
       UNINITIALIZED, &
       UNINITIALIZED, &
-      UNINITIALIZED /)
+      UNINITIALIZED]
 
 
 contains
@@ -165,7 +165,7 @@ contains
 
    end subroutine mark_as_read_from_file
 
-   logical function is_initialized(varname)
+   logical function is_initialized(varname) result(var_is_init)
 
       ! This function checks if the variable, <varname>, is already
       !    initialized according to the 'initialized_vars' array.
@@ -181,13 +181,13 @@ contains
       logical                     :: found      ! Check that <varname> was found
       character(len=*), parameter :: subname = 'is_initialized: '
 
-      is_initialized = .false.
+      var_is_init = .false.
       found = .false.
 
       ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
          if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
-            is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
+            var_is_init = (initialized_vars(stdnam_idx) > UNINITIALIZED)
             found = .true.
             exit ! Exit loop once variable has been found and checked
          end if
