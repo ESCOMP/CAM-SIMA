@@ -1,0 +1,5 @@
+ncdata=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_184_ne3pg3_fhistc_ltso_pumas_snapshot_derecho_gnu_before_c20260629.nc
+ncdata_check=/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_184_ne3pg3_fhistc_ltso_pumas_snapshot_derecho_gnu_after_c20260629.nc
+ncdata_check_err=.true.
+debug_output=0
+pver=58
