@@ -915,7 +915,6 @@ CONTAINS
    !***************************************************************************
    !
    ! get_R: Compute generalized R
-   !        This code (both 1hd and 2hd) is currently unused and untested
    !
    !***************************************************************************
    !

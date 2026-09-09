@@ -350,7 +350,7 @@ def _build_musica(clone_dest: str) -> str:
         "cmake",
         f"-D CMAKE_INSTALL_PREFIX={install_dir}",
         f"-D CMAKE_BUILD_TYPE={cmake_build_type}",
-        f"-D CMAKE_Fotran_FLAGS={arg_dict['FFLAGS']}",
+        f"-D CMAKE_Fortran_FLAGS={arg_dict['FFLAGS']}",
         "-D MUSICA_ENABLE_TESTS=OFF",
         "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
         "-D MUSICA_SET_MICM_DEFAULT_VECTOR_SIZE=128",

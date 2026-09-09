@@ -208,8 +208,8 @@ CONTAINS
       !------------------------------------------------------------------------
       !  Initialize constituent dependent properties
       !------------------------------------------------------------------------
-      kmvis(:pcols,  :pver) = shr_infnan_qnan
-      kmcnd(:pcols,  :pver) = shr_infnan_qnan
+      kmvis(:pcols,  :pverp) = shr_infnan_qnan
+      kmcnd(:pcols,  :pverp) = shr_infnan_qnan
 
    end subroutine cam_thermo_init
 

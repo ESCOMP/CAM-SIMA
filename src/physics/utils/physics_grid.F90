@@ -87,7 +87,7 @@ module physics_grid
    real(kind_phys), protected, allocatable, public :: weight(:)
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    subroutine phys_grid_init(hdim1_d_in, hdim2_d_in, dycore_name_in, &

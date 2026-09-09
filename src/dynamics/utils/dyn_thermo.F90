@@ -719,7 +719,7 @@ CONTAINS
          call check_allocate(iret, subname, &
                              'kmvis_phys', &
                              file=__FILE__, line=__LINE__)
-         allocate(kmcnd_phys(size(kmcnd,1), size(kmcnd,3), size(kmcnd,3)), stat=iret)
+         allocate(kmcnd_phys(size(kmcnd,1), size(kmcnd,2), size(kmcnd,3)), stat=iret)
          call check_allocate(iret, subname, &
                              'kmcnd_phys', &
                              file=__FILE__, line=__LINE__)
@@ -1463,7 +1463,7 @@ CONTAINS
          !Set local variables:
          tracer_mass_phys    = real(tracer_mass, kind_phys)
          temp_phys           = real(temp, kind_phys)
-         dp_dry_phys         = real(dp_dry_phys, kind_phys)
+         dp_dry_phys         = real(dp_dry, kind_phys)
 
          !Call physics routine using local vriables with matching kinds:
          call get_enthalpy_phys(tracer_mass_phys,temp_phys,&

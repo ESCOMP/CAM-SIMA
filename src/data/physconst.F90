@@ -208,7 +208,7 @@ CONTAINS
       newomega =  user_defined_omega  /= shr_const_omega .and. user_defined_omega /= UNSET_NAMELIST
 
       if (newg .or. newsday .or. newmwh2o .or. newcpwv .or. newmwdry .or.     &
-           newrearth .or. newtmelt .or. newomega) then
+           newrearth .or. newtmelt .or. newomega .or. newcpair) then
 
          ! Populate the new constants into module after mpi_bcast
          if(newg)      gravit = user_defined_gravit
