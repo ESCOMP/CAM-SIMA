@@ -2280,7 +2280,7 @@
       <ic_file_input_names>GB_TOTCLDICEMR pbuf_GB_TOTCLDICEMR</ic_file_input_names>
     </variable>
     <variable local_name="one_mom_clouds"
-              standard_name="flag_for_one_moment_cloud_microphysics"
+              standard_name="is_one_moment_cloud_microphysics"
               units="flag" type="logical">
       <long_name>flag indicating one-moment (RK) cloud microphysics is active</long_name>
       <initial_value>.false.</initial_value>
