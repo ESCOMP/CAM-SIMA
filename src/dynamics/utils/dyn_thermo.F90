@@ -31,7 +31,7 @@ module dyn_thermo
    public :: get_enthalpy
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    !
@@ -80,7 +80,7 @@ CONTAINS
          else
             call get_cp_phys(tracer,inv_cp,cp, &
                              active_species_idx_dycore=active_species_idx_dycore)
-         endif
+         end if
 
       else
 
@@ -492,7 +492,8 @@ CONTAINS
 
       !Subroutine (dummy) arguments:
 
-      real(kind_dyn), intent(in)   :: hyai(:), hybi(:), ps0
+      real(kind_dyn), intent(in)   :: hyai(:), hybi(:)
+      real(kind_dyn), intent(in)   :: ps0
       real(kind_dyn), intent(in)   :: phis(:,:)
       real(kind_dyn), intent(out)  :: dp_ref(:,:,:)
       real(kind_dyn), intent(out)  :: ps_ref(:,:)

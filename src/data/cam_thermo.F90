@@ -570,7 +570,7 @@ CONTAINS
       real(kind_phys), optional, intent(in)  :: dp_dry(:, :)
       ! sum_species: sum species
       real(kind_phys),           intent(out) :: sum_species(:, :)
-      ! factor: to moist factor 
+      ! factor: to moist factor
       real(kind_phys), optional, intent(out) :: factor(:, :)
       ! Local variables
       real(kind_phys) :: factor_loc(SIZE(tracer, 1), SIZE(tracer, 2))
@@ -850,7 +850,7 @@ CONTAINS
               dp_dry(:, jdx, :), ptop, p00, inv_exner, exner(:, jdx, :))
         end if
      end do
-     
+
    end subroutine get_exner_2hd
 
    !===========================================================================
@@ -909,7 +909,6 @@ CONTAINS
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2))     :: pmid_local, t_v_local, dp_local, R_dry
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2) + 1) :: pint
      character(len=*), parameter                               :: subname = 'get_gz_from_dp_dry_ptop_temp_1hd: '
-     
 
      call get_pmid_from_dp(tracer, mixing_ratio, active_species_idx, &
                               dp_dry, ptop, pmid_local, pint=pint, dp=dp_local)
@@ -1025,7 +1024,7 @@ CONTAINS
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2)) :: gz, theta_v
      real(kind_phys), dimension(SIZE(tracer, 1))                  :: pt1, pt2, phis
      integer :: kdx, kdxm1
-     real(kind_phys), parameter:: ustar2 = 1.E-4_kind_phys
+     real(kind_phys), parameter   :: ustar2 = 1.E-4_kind_phys
 
      phis = 0.0_kind_phys
      call get_gz(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, temp, phis, gz, pmid=pmid, dp=dp)
@@ -1037,7 +1036,7 @@ CONTAINS
        pt1(:) = theta_v(:, kdxm1)
        pt2(:) = theta_v(:, kdx)
        Richardson_number(:, kdx) = (gz(:, kdxm1) - gz(:, kdx)) * (pt1 - pt2) / ( 0.5_kind_phys*(pt1 + pt2) *        &
-            ((v(:, 1, kdxm1) - v(:, 1, kdx)) ** 2 + (v(:, 2, kdxm1) - v(:, 2, kdx)) ** 2 + ustar2) )
+            ((v(:, 1, kdxm1) - v(:, 1, kdx)) ** 2 + (v(:, 2, kdxm1) - v(:, 2, kdx)) ** 2 + ustar2))
      end do
    end subroutine get_Richardson_number_1hd
 
@@ -1346,9 +1345,9 @@ CONTAINS
      !
      ! local vars
      !
-     integer        :: idx, kdx, icnst, ispecies
-     real(kind_phys):: mbarvi, mm, residual             ! Mean mass at mid level
-     real(kind_phys):: cnst_vis, cnst_cnd, temp_local
+     integer         :: idx, kdx, icnst, ispecies
+     real(kind_phys) :: mbarvi, mm, residual             ! Mean mass at mid level
+     real(kind_phys) :: cnst_vis, cnst_cnd, temp_local
      real(kind_phys), dimension(SIZE(tracer,1), SIZE(sponge_factor, 1)) :: factor, mbarv
      integer,         dimension(thermodynamic_active_species_num)       :: idx_local
      character(len=*), parameter :: subname = 'get_molecular_diff_coef_1hd: '
@@ -1394,7 +1393,7 @@ CONTAINS
          factor = fact(:,:)
        else
          factor = 1.0_kind_phys
-       endif
+       end if
        if (present(mbarv_in)) then
          mbarv = mbarv_in
        else
@@ -1428,7 +1427,7 @@ CONTAINS
              mbarvi = 0.5_kind_phys * (mbarv(idx, kdx - 1) + mbarv(idx, kdx))
              kmvis(idx, kdx) = kmvis(idx, kdx) * mbarvi * temp_local ** kv_temp_exp
              kmcnd(idx, kdx) = kmcnd(idx, kdx) * mbarvi * temp_local ** kc_temp_exp
-           enddo
+           end do
          end do
          do idx = 1, SIZE(tracer, 1)
            kmvis(idx, 1) = 1.5_kind_phys * kmvis(idx, 2) - .5_kind_phys * kmvis(idx, 3)

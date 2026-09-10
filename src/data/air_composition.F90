@@ -122,7 +122,7 @@ module air_composition
       module procedure get_mbarv_1hd
    end interface get_mbarv
 
-CONTAINS
+contains
 
    !===========================================================================
 
@@ -1024,9 +1024,9 @@ CONTAINS
      real(kind_phys), optional, intent(in) :: fact(:,:)                 !factor for converting tracer to dry mixing ratio
 
      integer :: idx, kdx, m_cnst, qdx
-     real(kind_phys):: factor(SIZE(mbarv_in, 1), SIZE(mbarv_in, 2))
-     real(kind_phys):: residual(SIZE(tracer, 1), SIZE(mbarv_in, 2))
-     real(kind_phys):: mm
+     real(kind_phys) :: factor(SIZE(mbarv_in, 1), SIZE(mbarv_in, 2))
+     real(kind_phys) :: residual(SIZE(tracer, 1), SIZE(mbarv_in, 2))
+     real(kind_phys) :: mm
      !
      ! dry air not species dependent
      !
@@ -1037,7 +1037,7 @@ CONTAINS
          factor(:,:) = fact(:,:)
        else
          factor(:,:) = 1.0_kind_phys
-       endif
+       end if
 
        mbarv_in = 0.0_kind_phys
        residual = 1.0_kind_phys

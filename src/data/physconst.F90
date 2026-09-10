@@ -105,7 +105,7 @@ module physconst
    real(kind_phys), public, protected :: Cpd_on_Cpv   = real(shr_const_cpdair/shr_const_cpwv, kind_phys)
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    ! Read namelist variables.
