@@ -42,10 +42,10 @@ module phys_vars_init_check_cnst
    integer, public, parameter :: ic_name_len = 13
 
    ! Physics-related input variable standard names:
-   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [ &
-      'potential_temperature    ', &
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [character(len=25) :: &
+      'potential_temperature', &
       'air_pressure_at_sea_level', &
-      'super_cool_cat_const     ']
+      'super_cool_cat_const']
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &
       'ccpp_constituent_minimum_values     ', &

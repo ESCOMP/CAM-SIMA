@@ -32,14 +32,12 @@ contains
       use cam_abortutils,                       only: endrun
       use spmd_utils,                           only: masterproc
       use shr_kind_mod,                         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                         only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx
-      use physics_data,                         only: prot_no_init_idx, const_idx, read_constituent_dimensioned_field
-      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array
-      use cam_ccpp_cap,                         only: cam_model_const_properties
+      use physics_data,                         only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                         only: read_constituent_dimensioned_field
+      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use ccpp_kinds,                           only: kind_phys
       use string_utils,                         only: to_lower, to_upper
-      use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use phys_vars_init_check_constituent_dim, only: is_initialized
+      use phys_vars_init_check_constituent_dim, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
       use cam_constituents,                     only: const_is_initialized
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                          only: iulog
@@ -107,8 +105,7 @@ contains
       do suite_idx = 1, size(suite_names, 1)
 
          ! Search for all needed CCPP input variables, so that they can be read from input file if need be:
-            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., &
-                output_vars=.false.)
+            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          ! Loop over all required variables and read from file if uninitialized:
          suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)
@@ -125,8 +122,8 @@ contains
 
                case (no_exist_idx)
 
-                  ! If an index was never found, then save variable name and check the rest of the variables, after which the
-                  ! model simulation will end:
+                  ! If an index was never found, then save variable name and check the rest of the variables, after which the model simulation will
+                  ! end:
                      missing_required_vars(len_trim(missing_required_vars)+1:) = trim(sep)//trim(ccpp_required_data(req_idx))
 
                   ! Update character separator to now include comma:
@@ -134,8 +131,8 @@ contains
 
                case (prot_no_init_idx)
 
-                  ! If an index was found for a protected variable, but that variable was never marked as initialized, then save
-                  ! the variable name and check the rest of the variables, after which the model simulation will end:
+                  ! If an index was found for a protected variable, but that variable was never marked as initialized, then save the variable name
+                  ! and check the rest of the variables, after which the model simulation will end:
                      protected_non_init_vars(len_trim(protected_non_init_vars)+1:) = trim(sep2)//trim(ccpp_required_data(req_idx))
 
                   ! Update character separator to now include comma:
@@ -157,8 +154,8 @@ contains
                         call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
 
                      case ('super_cool_cat_every_const')
-                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_every_const', &
-                            input_var_names(:,name_idx), timestep, cool_cat_for_each_const)
+                        call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_every_const', input_var_names(:,name_idx), &
+                            timestep, cool_cat_for_each_const)
 
                      case ('super_cool_cat_with_default_every_const')
                         call read_constituent_dimensioned_field(const_props, file, 'super_cool_cat_with_default_every_const', &
@@ -213,18 +210,17 @@ contains
             if (is_initialized(std_name)) then
                cycle
             end if
-            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, &
-                field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+                mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          else
             ! If not in standard names list, then attempt constituent name
             ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.
             ! Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,
             ! so also try the all-upper and all-lower case spellings of the constituent name:
-            call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), &
-                'pbuf_'//trim(std_name), to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), &
-                'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), &
-                'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false., &
-                error_on_not_found=.false., var_found=var_found)
+            call read_field(file, std_name, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), &
+                to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), &
+                'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+                mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
          end if
          if(.not. var_found) then
             constituent_has_default = .false.
@@ -237,8 +233,7 @@ contains
                call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
                field_data_ptr(:,:,constituent_idx) = constituent_min_value
                if (masterproc) then
-                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', &
-                      constituent_min_value
+                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value
                end if
             end if
          end if
@@ -250,10 +245,9 @@ contains
       use pio,                                  only: file_desc_t, pio_nowrite
       use cam_abortutils,                       only: endrun
       use shr_kind_mod,                         only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                         only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx
-      use physics_data,                         only: prot_no_init_idx, const_idx, flush_check_field_verbose
-      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array
-      use cam_ccpp_cap,                         only: cam_model_const_properties
+      use physics_data,                         only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                         only: flush_check_field_verbose
+      use cam_ccpp_cap,                         only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
       use cam_constituents,                     only: const_get_index
       use ccpp_kinds,                           only: kind_phys
       use string_utils,                         only: to_lower, to_upper
@@ -318,15 +312,13 @@ contains
          write(iulog,*) 'TIMESTEP: ', timestep
       end if
       if (file_name == 'UNSET') then
-         write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.', &
-             ' Model will run, but physics check data will not be printed'
+         write(iulog,*) 'WARNING: Namelist variable ncdata_check is UNSET.', ' Model will run, but physics check data will not be printed'
          return
       end if
       ! Open check file:
       call cam_get_file(file_name, ncdata_check_loc, allow_fail=.true., lexist=file_found, log_info=.false.)
       if (.not. file_found) then
-         write(iulog,*) 'WARNING: Check file ', trim(file_name), &
-             ' not found. Model will run, but physics check data will not be printed'
+         write(iulog,*) 'WARNING: Check file ', trim(file_name), ' not found. Model will run, but physics check data will not be printed'
          return
       end if
       allocate(file)
@@ -335,8 +327,7 @@ contains
       do suite_idx = 1, size(suite_names, 1)
 
          ! Search for all needed CCPP input variables, so that they can be read from input file if need be:
-            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.false., &
-                output_vars=.true.)
+            call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.false., output_vars=.true.)
 
          ! Loop over all required variables as specified by CCPP suite:
          suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)
@@ -353,8 +344,8 @@ contains
 
                case (init_mark_idx)
 
-                  ! If variable only has an initial_value but not read from file, then do nothing, even if it is modified by the
-                  ! physics scheme. There is nothing we can check against.
+                  ! If variable only has an initial_value but not read from file, then do nothing, even if it is modified by the physics scheme.
+                  ! There is nothing we can check against.
 
                case (no_exist_idx)
 
@@ -366,8 +357,8 @@ contains
 
                   select case (trim(phys_var_stdnames(name_idx)))
                   case ('potential_temperature')
-                     call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', &
-                         min_difference, min_relative_value, is_first, diff_found)
+                     call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference, &
+                         min_relative_value, is_first, diff_found)
 
                   end select !check variables
                   if (diff_found) then
@@ -399,8 +390,8 @@ contains
             end if
          end do stdname_search
          if(const_input_idx > 0) then
-            call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
-                std_name, min_difference, min_relative_value, is_first, diff_found)
+            call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, &
+                min_difference, min_relative_value, is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if
@@ -409,10 +400,10 @@ contains
             ! and cnst_, pbuf_ prefixes used by CAM snapshots (advected, non-advected) as input names.
             ! Standard names are case-insensitive (capgen lowercases them) but netCDF names are not,
             ! so also try the all-upper and all-lower case spellings of the constituent name:
-            call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), &
-                to_upper(std_name), 'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), &
-                'cnst_'//trim(to_lower(std_name)), 'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, &
-                field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)
+            call check_field(file, [character(len=std_name_len+5) :: std_name, 'cnst_'//trim(std_name), 'pbuf_'//trim(std_name), to_upper(std_name), &
+                'cnst_'//trim(to_upper(std_name)), 'pbuf_'//trim(to_upper(std_name)), to_lower(std_name), 'cnst_'//trim(to_lower(std_name)), &
+                'pbuf_'//trim(to_lower(std_name))], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, &
+                min_relative_value, is_first, diff_found)
             if (diff_found) then
                overall_diff_found = .true.
             end if

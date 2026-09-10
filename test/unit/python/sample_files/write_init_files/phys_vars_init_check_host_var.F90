@@ -42,7 +42,7 @@ module phys_vars_init_check_host_var
    integer, public, parameter :: ic_name_len = 3
 
    ! Physics-related input variable standard names:
-   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [ &
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [character(len=25) :: &
       'air_pressure_at_sea_level']
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &

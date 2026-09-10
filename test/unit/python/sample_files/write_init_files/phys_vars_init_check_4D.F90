@@ -42,10 +42,10 @@ module phys_vars_init_check_4D
    integer, public, parameter :: ic_name_len = 8
 
    ! Physics-related input variable standard names:
-   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [ &
-      'potential_temperature    ', &
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [character(len=25) :: &
+      'potential_temperature', &
       'air_pressure_at_sea_level', &
-      'eddy_length_scale        ']
+      'eddy_length_scale']
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &
       'ccpp_constituent_minimum_values     ', &

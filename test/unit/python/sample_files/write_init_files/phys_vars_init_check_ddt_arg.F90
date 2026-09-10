@@ -42,11 +42,11 @@ module phys_vars_init_check_ddt_arg
    integer, public, parameter :: ic_name_len = 9
 
    ! Physics-related input variable standard names:
-   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [ &
-      'potential_temperature    ', &
+   character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = [character(len=25) :: &
+      'potential_temperature', &
       'air_pressure_at_sea_level', &
-      'tendency_of_peverwhee    ', &
-      'scalar_variable_llama    ']
+      'tendency_of_peverwhee', &
+      'scalar_variable_llama']
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &
       'ccpp_constituent_minimum_values     ', &

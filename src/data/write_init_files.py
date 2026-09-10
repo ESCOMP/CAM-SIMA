@@ -45,11 +45,12 @@ _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
 # Include files to insert in the module body
 _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 
-# Set maximum line lengths by FortranWriter s.t.,
-# no generated line exceeds Fortitude 132 char limit
-# 132 = 130 plus ' &', 131 = 130 plus '&'
-_LINE_FILL_LEN = 130
-_MAX_LINE_LEN = 131
+# Increase allowed line lengths needed to fit extra-long CCPP standard names:
+# FIXME: this cannot be lowered to the Fortitude 132 char limit due to
+# upstream bug in FortranWriter writing a continuation line with only '&' when
+# a statement is only a few chars longer than _LINE_FILL_LEN (syntax error.)
+_LINE_FILL_LEN = 150
+_MAX_LINE_LEN = 200
 
 ##############
 #Main function
@@ -565,8 +566,9 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
             continue
         # end if
 
-        # Create standard_name string with proper size, and append to list:
-        stdname_strs.append(f"'{var_stdname: <{stdname_max_len}}'")
+        # Append standard_name string to list. The array constructor below
+        # sets the element length, so no manual padding is needed:
+        stdname_strs.append(f"'{var_stdname}'")
 
         #Extract input (IC) names list:
         ic_names = ic_name_dict[var_stdname]
@@ -586,7 +588,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
 
     # Add any constituent variables:
     for const in registry_constituents:
-        stdname_strs.append(f"'{const: <{stdname_max_len}}'")
+        stdname_strs.append(f"'{const}'")
 
         #Extract input (IC) names list:
         ic_names = ic_name_dict[const]
@@ -612,7 +614,11 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     vartype = f"character(len={stdname_max_len}), public, protected"
     varname = "phys_var_stdnames(phys_var_num)"
     if stdname_strs:
-        outfile.write(f"{vartype} :: {varname} = [ &", 1)
+        # Use a typed array constructor instead of padding each name out to
+        # <stdname_max_len>: a padded name does not fit on one line, and the
+        # trailing blanks are lost when the line is broken into continuations.
+        outfile.write(f"{vartype} :: {varname} = " +                          \
+                      f"[character(len={stdname_max_len}) :: &", 1)
     else:
         outfile.write(f"{vartype} :: {varname}", 1)
     # end if
