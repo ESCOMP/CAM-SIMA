@@ -31,6 +31,8 @@
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/hycoef.meta</metadata_file>
+  <!-- PUMAS DDT metadata file -->
+  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/pumas/pumas/micro_pumas_diags.meta</metadata_file>
 
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
@@ -44,6 +46,7 @@
     <use module="physconst" reference="rair"/>
     <use module="physconst" reference="mwdry"/>
     <use module="physconst" reference="zvir"/>
+
     <!-- State variables -->
     <variable local_name="ps" standard_name="surface_air_pressure"
               units="Pa" type="real" kind="kind_phys"
@@ -681,20 +684,20 @@
     </variable>
     <variable local_name="numrai"
               standard_name="mass_number_concentration_of_rain_drops_in_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" constituent="true">
+              units="kg-1" type="real" constituent="true">
       <long_name>mass number concentration of rain drops with respect to mass of moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>NUMRAI cnst_NUMRAI</ic_file_input_names>
     </variable>
     <variable local_name="numsno"
               standard_name="mass_number_concentration_of_snow_crystals_in_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" constituent="true">
+              units="kg-1" type="real" constituent="true">
       <long_name>mass number concentration of snow crystals with respect to the mass of moist air plus all airborne condensates</long_name>
       <ic_file_input_names>NUMSNO cnst_NUMSNO</ic_file_input_names>
     </variable>
     <variable local_name="numgra"
               standard_name="mass_number_concentration_of_graupel_particles_in_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" constituent="true">
+              units="kg-1" type="real" constituent="true">
       <long_name>mass number concentration of graupel particles with respect to the mass of moist air plus all airborne condensates</long_name>
       <ic_file_input_names>NUMGRA cnst_NUMGRA</ic_file_input_names>
     </variable>
@@ -2346,6 +2349,69 @@
 	    units="flag" type="logical">
       <initial_value>.false.</initial_value>
     </variable>
+
+    <!-- From CAM's phys_control module -->
+
+    <variable local_name="relvar_in"
+              standard_name="relative_variance_of_subgrid_cloud_condensate_distribution"
+              units="1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>2._kind_phys</initial_value>
+      <ic_file_input_names>RELVAR pbuf_RELVAR</ic_file_input_names>
+    </variable>
+
+    <variable local_name="re_ice_external_in"
+              standard_name="effective_radius_of_stratiform_cloud_ice_crystal_from_external_microphysics"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <long_name>ice effective radius from external microphysics model (e.g. CARMA) used only when do_cldice is false for PUMAS</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>RE_ICE pbuf_RE_ICE</ic_file_input_names>
+    </variable>
+
+    <variable local_name="frzimm_in"
+              standard_name="tendency_of_cloud_liquid_droplet_number_concentration_due_to_immersion_freezing"
+              units="cm-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0</initial_value>
+      <ic_file_input_names>FRZIMM pbuf_FRZIMM</ic_file_input_names>
+    </variable>
+    <variable local_name="frzcnt_in"
+              standard_name="tendency_of_cloud_liquid_droplet_number_concentration_due_to_contact_freezing"
+              units="cm-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0</initial_value>
+      <ic_file_input_names>FRZCNT pbuf_FRZCNT</ic_file_input_names>
+    </variable>
+    <variable local_name="frzdep_in"
+              standard_name="tendency_of_cloud_ice_number_concentration_due_to_deposition_nucleation"
+              units="cm-3" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0</initial_value>
+      <ic_file_input_names>FRZDEP pbuf_FRZDEP</ic_file_input_names>
+    </variable>
+    <variable local_name="snowice_tend_external_in"
+              standard_name="tendency_of_snow_mixing_ratio_wrt_moist_air_and_condensed_water_from_external_microphysics"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cnst_SNOWQM tnd_qsnow pbuf_tnd_qsnow</ic_file_input_names>
+    </variable>
+    <variable local_name="numsnow_tend_external_in"
+              standard_name="tendency_of_mass_number_concentration_of_snow_crystals_in_moist_air_and_condensed_water_from_external_microphysics"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>cnst_NUMSNO tnd_nsnow pbuf_tnd_nsnow</ic_file_input_names>
+    </variable>
+
 
     <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
     <!-- Variables for "bl_gwdo" physics scheme -->

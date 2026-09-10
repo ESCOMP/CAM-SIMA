@@ -11,10 +11,10 @@
 ! CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 !>
-!! @brief Auto-generated Initial conditions source file, physics_inputs_no_horiz.F90
+!! @brief Auto-generated Initial conditions source file, physics_inputs_set_before_use.F90
 !!
 !
-module physics_inputs_no_horiz
+module physics_inputs_set_before_use
 
 
    implicit none
@@ -28,20 +28,20 @@ module physics_inputs_no_horiz
 contains
 
    subroutine physics_read_data(file, suite_names, timestep, read_initialized_variables)
-      use pio,                           only: file_desc_t
-      use cam_abortutils,                only: endrun
-      use spmd_utils,                    only: masterproc
-      use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                  only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use physics_data,                  only: read_constituent_dimensioned_field
-      use cam_ccpp_cap,                  only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
-      use ccpp_kinds,                    only: kind_phys
-      use string_utils,                  only: to_lower, to_upper
-      use phys_vars_init_check_no_horiz, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
-      use cam_constituents,              only: const_is_initialized
-      use ccpp_constituent_prop_mod,     only: ccpp_constituent_prop_ptr_t
-      use cam_logfile,                   only: iulog
-      use physics_types_no_horiz,        only: slp, theta
+      use pio,                                 only: file_desc_t
+      use cam_abortutils,                      only: endrun
+      use spmd_utils,                          only: masterproc
+      use shr_kind_mod,                        only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,                        only: read_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                        only: read_constituent_dimensioned_field
+      use cam_ccpp_cap,                        only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
+      use ccpp_kinds,                          only: kind_phys
+      use string_utils,                        only: to_lower, to_upper
+      use phys_vars_init_check_set_before_use, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len, is_initialized
+      use cam_constituents,                    only: const_is_initialized
+      use ccpp_constituent_prop_mod,           only: ccpp_constituent_prop_ptr_t
+      use cam_logfile,                         only: iulog
+      use physics_types_simple,                only: eddy_len, ptend, slp, theta
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -110,6 +110,11 @@ contains
          ! Loop over all required variables and read from file if uninitialized:
          suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)
 
+            ! Skip variables the suite sets (intent out) before any of its schemes reads them, as they need no initial condition:
+            if (suite_sets_before_use(suite_names(suite_idx), ccpp_required_data(req_idx))) then
+               cycle suite_required_vars
+            end if
+
             ! Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)
 
@@ -151,7 +156,13 @@ contains
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), 'lev', timestep, theta)
 
                      case ('air_pressure_at_sea_level')
-                        call endrun('Cannot read slp from file'//', slp has no horizontal dimension')
+                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
+
+                     case ('tendency_of_peverwhee')
+                        call read_field(file, 'tendency_of_peverwhee', input_var_names(:,name_idx), timestep, ptend)
+
+                     case ('eddy_length_scale')
+                        call read_field(file, 'eddy_length_scale', input_var_names(:,name_idx), timestep, eddy_len)
 
                   end select !read variables
                end select !special indices
@@ -234,23 +245,23 @@ contains
    end subroutine physics_read_data
 
    subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value, err_on_fail)
-      use pio,                           only: file_desc_t, pio_nowrite
-      use cam_abortutils,                only: endrun
-      use shr_kind_mod,                  only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
-      use physics_data,                  only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
-      use physics_data,                  only: flush_check_field_verbose
-      use cam_ccpp_cap,                  only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
-      use cam_constituents,              only: const_get_index
-      use ccpp_kinds,                    only: kind_phys
-      use string_utils,                  only: to_lower, to_upper
-      use cam_logfile,                   only: iulog
-      use spmd_utils,                    only: masterproc
-      use phys_vars_init_check,          only: is_read_from_file
-      use ioFileMod,                     only: cam_get_file
-      use cam_pio_utils,                 only: cam_pio_openfile, cam_pio_closefile
-      use ccpp_constituent_prop_mod,     only: ccpp_constituent_prop_ptr_t
-      use phys_vars_init_check_no_horiz, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_no_horiz,        only: theta
+      use pio,                                 only: file_desc_t, pio_nowrite
+      use cam_abortutils,                      only: endrun
+      use shr_kind_mod,                        only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
+      use physics_data,                        only: check_field, find_input_name_idx, no_exist_idx, init_mark_idx, prot_no_init_idx, const_idx
+      use physics_data,                        only: flush_check_field_verbose
+      use cam_ccpp_cap,                        only: ccpp_physics_suite_variables, cam_constituents_array, cam_model_const_properties
+      use cam_constituents,                    only: const_get_index
+      use ccpp_kinds,                          only: kind_phys
+      use string_utils,                        only: to_lower, to_upper
+      use cam_logfile,                         only: iulog
+      use spmd_utils,                          only: masterproc
+      use phys_vars_init_check,                only: is_read_from_file
+      use ioFileMod,                           only: cam_get_file
+      use cam_pio_utils,                       only: cam_pio_openfile, cam_pio_closefile
+      use ccpp_constituent_prop_mod,           only: ccpp_constituent_prop_ptr_t
+      use phys_vars_init_check_set_before_use, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
+      use physics_types_simple,                only: eddy_len, ptend, theta, var_nodim
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -348,9 +359,20 @@ contains
                   ! Check variable vs input check file:
 
                   select case (trim(phys_var_stdnames(name_idx)))
+                  case ('eddy_length_scale')
+                     call check_field(file, input_var_names(:,name_idx), timestep, eddy_len, 'eddy_length_scale', min_difference, min_relative_value, &
+                         is_first, diff_found)
+
                   case ('potential_temperature')
                      call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference, &
                          min_relative_value, is_first, diff_found)
+
+                  case ('tendency_of_peverwhee')
+                     call check_field(file, input_var_names(:,name_idx), timestep, ptend, 'tendency_of_peverwhee', min_difference, &
+                         min_relative_value, is_first, diff_found)
+
+                  case ('scalar_variable_llama')
+                     ! do nothing - 'var_nodim' can't be checked against a file because var_nodim has no horizontal dimension
 
                   end select !check variables
                   if (diff_found) then
@@ -425,4 +447,24 @@ contains
       end if
    end subroutine physics_check_data
 
-end module physics_inputs_no_horiz
+   pure logical function suite_sets_before_use(suite_name, std_name) result(sets_before_use)
+
+      ! True if suite <suite_name> sets <std_name> (intent out) before any of its schemes reads it, in the phases that run after
+      ! physics_read_data (timestep_initial, run, timestep_final), so the variable needs no initial condition:
+
+      ! Dummy arguments
+      character(len=*), intent(in) :: suite_name
+      character(len=*), intent(in) :: std_name
+
+      sets_before_use = .false.
+      select case (trim(suite_name))
+         case ('set_before_use_suite')
+            select case (trim(std_name))
+               case ('tendency_of_peverwhee')
+                  sets_before_use = .true.
+            end select
+      end select
+
+   end function suite_sets_before_use
+
+end module physics_inputs_set_before_use

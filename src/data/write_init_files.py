@@ -35,6 +35,10 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
 _OUTPUT_TYPES = set(['out', 'inout'])
+# CCPP phases that run before the host calls physics_read_data (the host
+# calls it after the initialize phase and before timestep_initial), see
+# gather_set_before_use_vars:
+_PRE_READ_PHASES = {'register', 'initialize'}
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -42,6 +46,9 @@ _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
 _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 
 # Increase allowed line lengths needed to fit extra-long CCPP standard names:
+# FIXME: this cannot be lowered to the Fortitude 132 char limit due to
+# upstream bug in FortranWriter writing a continuation line with only '&' when
+# a statement is only a few chars longer than _LINE_FILL_LEN (syntax error.)
 _LINE_FILL_LEN = 150
 _MAX_LINE_LEN = 200
 
@@ -126,6 +133,14 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         "ncdata" IC file, or throws a relevant
         error to the user with a list of
         the offending variables.
+
+        It also contains the
+        "suite_sets_before_use" function,
+        which "physics_read_data" uses to
+        skip variables that a suite sets
+        (intent out) before any of its
+        schemes reads them, as those need
+        no initial condition.
     """
 
     #Initialize return message:
@@ -240,12 +255,17 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Grab the host dictionary from the database
         host_dict = cap_database.host_model_dict()
 
+        # Gather, per suite, the input variables that the suite sets
+        #    before any of its schemes reads them:
+        set_before_use = gather_set_before_use_vars(cap_database, in_vars,
+                                                    constituent_set)
+
         # Collect imported host variables for physics read
         host_imports = collect_host_var_imports(in_vars, host_dict, constituent_set)
         # Write physics_read_data subroutine:
         write_phys_read_subroutine(outfile, host_dict, in_vars, host_imports,
                                    phys_check_fname_str, constituent_set,
-                                   vars_init_value)
+                                   vars_init_value, set_before_use)
 
         outfile.blank_line()
 
@@ -254,6 +274,13 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Write physics_check_data subroutine:
         write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
+
+        # Write suite_sets_before_use function, only needed if some
+        #    suite sets a variable before use:
+        if set_before_use:
+            outfile.blank_line()
+            write_set_before_use_function(outfile, set_before_use)
+        # end if
 
     # --------------------------------------
 
@@ -383,6 +410,55 @@ def gather_ccpp_req_vars(cap_database):
     # Return the required variables as a list
     return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
 
+##############################################################################
+def gather_set_before_use_vars(cap_database, host_vars, constituent_set):
+    """
+    For each CCPP suite in <cap_database>, find the variables from
+       <host_vars> (excluding those in <constituent_set>) that the suite
+       sets (intent out) before any of its schemes reads them, walking the
+       schemes in call order over the phases that run after the host calls
+       physics_read_data (i.e., all phases except those in _PRE_READ_PHASES).
+    Such a variable needs no initial condition: the suite defines it before
+       use, and the IC file may hold no valid value for it (e.g., a CAM
+       snapshot taken before the producing scheme ran).
+    Return a dictionary, keyed by suite name, of sorted standard-name lists.
+       Suites with no such variable are not included.
+    """
+
+    host_stdnames = set()
+    for hvar in host_vars:
+        stdname = hvar.get_prop_value('standard_name')
+        if stdname not in constituent_set:
+            host_stdnames.add(stdname)
+        # end if
+    # end for
+
+    set_before_use = {}
+    for suite in cap_database.suite_list():
+        # Intent of the first scheme argument to reference each
+        #    standard name, in call order:
+        first_intent = {}
+        for group in suite.groups:
+            if group.phase() in _PRE_READ_PHASES:
+                continue
+            # end if
+            for scheme in group.schemes():
+                for var in scheme.variable_list():
+                    stdname = var.get_prop_value('standard_name')
+                    if stdname not in first_intent:
+                        first_intent[stdname] = var.get_prop_value('intent')
+                    # end if
+                # end for
+            # end for
+        # end for
+        stdnames = sorted(stdname for stdname, intent in first_intent.items()
+                          if (intent == 'out') and (stdname in host_stdnames))
+        if stdnames:
+            set_before_use[suite.name] = stdnames
+        # end if
+    # end for
+    return set_before_use
+
 ##########################
 #FORTRAN WRITING FUNCTIONS
 ##########################
@@ -490,8 +566,9 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
             continue
         # end if
 
-        # Create standard_name string with proper size, and append to list:
-        stdname_strs.append(f"'{var_stdname: <{stdname_max_len}}'")
+        # Append standard_name string to list. The array constructor below
+        # sets the element length, so no manual padding is needed:
+        stdname_strs.append(f"'{var_stdname}'")
 
         #Extract input (IC) names list:
         ic_names = ic_name_dict[var_stdname]
@@ -511,7 +588,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
 
     # Add any constituent variables:
     for const in registry_constituents:
-        stdname_strs.append(f"'{const: <{stdname_max_len}}'")
+        stdname_strs.append(f"'{const}'")
 
         #Extract input (IC) names list:
         ic_names = ic_name_dict[const]
@@ -537,7 +614,11 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     vartype = f"character(len={stdname_max_len}), public, protected"
     varname = "phys_var_stdnames(phys_var_num)"
     if stdname_strs:
-        outfile.write(f"{vartype} :: {varname} = (/ &", 1)
+        # Use a typed array constructor instead of padding each name out to
+        # <stdname_max_len>: a padded name does not fit on one line, and the
+        # trailing blanks are lost when the line is broken into continuations.
+        outfile.write(f"{vartype} :: {varname} = " +                          \
+                      f"[character(len={stdname_max_len}) :: &", 1)
     else:
         outfile.write(f"{vartype} :: {varname}", 1)
     # end if
@@ -546,7 +627,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     suffix = ", &"
     for index, stdname_str in enumerate(stdname_strs):
         if index == num_input_vars-1:
-            suffix = " /)"
+            suffix = "]"
         # end if
         outfile.write(f"{stdname_str}{suffix}", 2)
     # end for
@@ -558,14 +639,14 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     num_cvars = len(_EXCLUDED_STDNAMES)
     vartype = f"character(len={cname_max_len}), public, protected"
     varname = "phys_const_stdnames(phys_const_num)"
-    outfile.write(f"{vartype} :: {varname} = (/ &", 1)
+    outfile.write(f"{vartype} :: {varname} = [ &", 1)
     suffix = ", &"
     for index, stdname_str in enumerate(sorted(_EXCLUDED_STDNAMES)):
         spc = ' '*(cname_max_len - len(stdname_str))
         if index == num_cvars - 1:
-            suffix = " /)"
+            suffix = "]"
         # end if
-        outfile.write(f'"{stdname_str}{spc}"{suffix}', 2)
+        outfile.write(f"'{stdname_str}{spc}'{suffix}", 2)
     # end for
 
     #Write starting declaration of IC field input names array:
@@ -573,7 +654,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     vartype = f"character(len={ic_max_len}), public, protected"
     varname = f"input_var_names({max_ic_num}, phys_var_num)"
     if ic_name_strs:
-        outfile.write(f"{vartype} :: {varname} = reshape((/ &", 1)
+        outfile.write(f"{vartype} :: {varname} = reshape([ &", 1)
     else:
         outfile.write(f"{vartype} :: {varname}", 1)
     # end if
@@ -582,7 +663,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     suffix = ", &"
     for index, ic_name_str in enumerate(ic_name_strs):
         if index == num_input_vars-1:
-            suffix = f" /), (/{max_ic_num}, phys_var_num/))"
+            suffix = f"], [{max_ic_num}, phys_var_num])"
         # end if
         outfile.write(f"{ic_name_str}{suffix}", 2)
     # end for
@@ -592,7 +673,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     outfile.comment("Array indicating whether or not variable is protected:", 1)
     declare_str = "logical, public, protected :: protected_vars(phys_var_num)"
     if host_vars:
-        declare_str += "= (/ &"
+        declare_str += "= [ &"
     # end if
     outfile.write(declare_str, 1)
 
@@ -602,7 +683,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     for var_num, hvar in enumerate(host_vars):
         # If at the end of the list, then update suffix:
         if var_num == num_input_vars-1:
-            arr_suffix = ' /)'
+            arr_suffix = ']'
         # end if
         #Set array values:
         if hvar.get_prop_value('protected'):
@@ -618,7 +699,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     for var_num, var_name in enumerate(registry_constituents):
         # If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
-            arr_suffix = ' /)'
+            arr_suffix = ']'
         # end if
         #Set array values:
         log_arr_str = '.false.' + arr_suffix
@@ -633,7 +714,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     outfile.comment("Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):", 1)
     declare_str = "integer, public, protected :: initialized_vars(phys_var_num)"
     if host_vars:
-        declare_str += "= (/ &"
+        declare_str += "= [ &"
     # end if
     outfile.write(declare_str, 1)
 
@@ -643,7 +724,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     for var_num, hvar in enumerate(host_vars):
         #If at the end of the list, then update suffix:
         if var_num == num_input_vars-1:
-            arr_suffix = ' /)'
+            arr_suffix = ']'
         # end if
         #Set array values:
         if hvar.get_prop_value('protected'):
@@ -658,7 +739,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     for var_num, varname in enumerate(registry_constituents):
         #If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
-            arr_suffix = ' /)'
+            arr_suffix = ']'
         # end if
         #Set array values:
         log_arr_str = 'UNINITIALIZED' + arr_suffix
@@ -879,7 +960,7 @@ def get_dimension_info(hvar):
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
-                               vars_init_value):
+                               vars_init_value, set_before_use):
 
     """
     Write the "physics_read_data" subroutine, which
@@ -1084,8 +1165,20 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Loop over required variables:
     outfile.comment("Loop over all required variables and read from file if uninitialized:", 3)
-    outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
+    outfile.write("suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
+
+    # Skip variables the suite sets before it reads them:
+    if set_before_use:
+        outfile.comment("Skip variables the suite sets (intent out) before " + \
+                        "any of its schemes reads them, as they need no " +    \
+                        "initial condition:", 4)
+        outfile.write("if (suite_sets_before_use(suite_names(suite_idx), " +   \
+                      "ccpp_required_data(req_idx))) then", 4)
+        outfile.write("cycle suite_required_vars", 5)
+        outfile.write("end if", 4)
+        outfile.blank_line()
+    # end if
 
     # Call input name search function:
     outfile.comment("Find IC file input name array index for required variable:", 4)
@@ -1154,14 +1247,14 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # End select case and required variables loop:
     outfile.write("end select !special indices", 5)
     outfile.blank_line()
-    outfile.write("end do !Suite-required variables", 3)
+    outfile.write("end do suite_required_vars", 3)
     outfile.blank_line()
 
     # Generate endrun statement for missing variables:
     outfile.comment("End simulation if there are missing input variables " +  \
                     "that are required:", 3)
     outfile.write("if (len_trim(missing_required_vars) > 0) then", 3)
-    outfile.write('call endrun("Required variables missing from registered list of input variables: "//&', 4)
+    outfile.write("call endrun('Required variables missing from registered list of input variables: '//&", 4)
     outfile.write("trim(missing_required_vars))", 5)
     outfile.write("end if", 3)
     outfile.blank_line()
@@ -1170,7 +1263,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("End simulation if there are protected input " +          \
                     "variables that are not initialized:", 3)
     outfile.write("if (len_trim(protected_non_init_vars) > 0) then", 3)
-    outfile.write('call endrun("Required, protected input variables are not initialized: "//&', 4)
+    outfile.write("call endrun('Required, protected input variables are not initialized: '//&", 4)
     outfile.write("trim(protected_non_init_vars))", 5)
     outfile.write("end if", 3)
     outfile.blank_line()
@@ -1203,12 +1296,12 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Find array index to extract correct input names", 3)
     outfile.comment("(case-insensitive: see find_input_name_idx):", 3)
     outfile.write("const_input_idx = -1", 3)
-    outfile.write("do n=1, phys_var_num", 3)
+    outfile.write("stdname_search: do n=1, phys_var_num", 3)
     outfile.write("if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then", 4)
     outfile.write("const_input_idx = n", 5)
-    outfile.write("exit", 5)
+    outfile.write("exit stdname_search", 5)
     outfile.write("end if", 4)
-    outfile.write("end do", 3)
+    outfile.write("end do stdname_search", 3)
     outfile.write("if(const_input_idx > 0) then", 3)
     outfile.comment("Don't read the variable in if it's already initialized", 4)
     outfile.write("if (is_initialized(std_name)) then", 4)
@@ -1446,7 +1539,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     # Loop over required variables:
     outfile.comment("Loop over all required variables as specified by CCPP suite:",
                     3)
-    outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
+    outfile.write("suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
 
     # Call input name search function:
@@ -1497,7 +1590,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     # End select case and required variables loop:
     outfile.write("end select !special indices", 4)
     outfile.blank_line()
-    outfile.write("end do !Suite-required variables", 3)
+    outfile.write("end do suite_required_vars", 3)
     outfile.blank_line()
 
     # Deallocate ccpp_required_data array:
@@ -1519,12 +1612,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Find array index to extract correct input names", 3)
     outfile.comment("(case-insensitive: see find_input_name_idx):", 3)
     outfile.write("const_input_idx = -1", 3)
-    outfile.write("do n=1, phys_var_num", 3)
+    outfile.write("stdname_search: do n=1, phys_var_num", 3)
     outfile.write("if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then", 4)
     outfile.write("const_input_idx = n", 5)
-    outfile.write("exit", 5)
+    outfile.write("exit stdname_search", 5)
     outfile.write("end if", 4)
-    outfile.write("end do", 3)
+    outfile.write("end do stdname_search", 3)
     outfile.write("if(const_input_idx > 0) then", 3)
     outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value, is_first, diff_found)", 4)
     outfile.write("if (diff_found) then", 4)
@@ -1579,6 +1672,58 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # End subroutine:
     outfile.write("end subroutine physics_check_data", 1)
+
+    # ----------------------------
+
+#####
+
+def write_set_before_use_function(outfile, set_before_use):
+
+    """
+    Write the "suite_sets_before_use" function, which
+    returns .true. if a suite sets a variable (intent out)
+    before any of its schemes reads it, so that
+    "physics_read_data" can skip reading that variable.
+    <set_before_use> is the (non-empty) dictionary returned by
+    "gather_set_before_use_vars".
+    """
+
+    # Add function header:
+    outfile.write("pure logical function suite_sets_before_use(suite_name, std_name) result(sets_before_use)", 1)
+    outfile.blank_line()
+    outfile.comment("True if suite <suite_name> sets <std_name> (intent out) " + \
+                    "before any of its schemes reads it, in the phases that " + \
+                    "run after", 2)
+    outfile.comment("physics_read_data (timestep_initial, run, timestep_final), " + \
+                    "so the variable needs no initial condition:", 2)
+    outfile.blank_line()
+
+    # Write dummy variable declarations:
+    outfile.comment("Dummy arguments", 2)
+    outfile.write("character(len=*), intent(in) :: suite_name", 2)
+    outfile.write("character(len=*), intent(in) :: std_name", 2)
+    outfile.blank_line()
+
+    # Write per-suite standard name lists:
+    outfile.write("sets_before_use = .false.", 2)
+    outfile.write("select case (trim(suite_name))", 2)
+    for suite_name, stdnames in set_before_use.items():
+        outfile.write(f"case ('{suite_name}')", 3)
+        outfile.write("select case (trim(std_name))", 4)
+        for index, stdname in enumerate(stdnames):
+            prefix = "case (" if index == 0 else ""
+            suffix = ")" if index == len(stdnames)-1 else ", &"
+            outfile.write(f"{prefix}'{stdname}'{suffix}", 5,
+                          continue_line=(index > 0))
+        # end for
+        outfile.write("sets_before_use = .true.", 6)
+        outfile.write("end select", 4)
+    # end for
+    outfile.write("end select", 2)
+    outfile.blank_line()
+
+    # End function:
+    outfile.write("end function suite_sets_before_use", 1)
 
     # ----------------------------
 
