@@ -454,7 +454,7 @@ class RegistryTest(unittest.TestCase):
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
         flen = len(files)
-        amsg = f"Test failure: Found {flen} files, expected 2"
+        amsg = f"Test failure: Found {flen} files, expected 4"
         self.assertEqual(flen, 4, msg=amsg)
 
         # Make sure each output file was created
