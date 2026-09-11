@@ -39,16 +39,16 @@ module tracer_data
   public :: findplb
 
   type input3d
-    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
+    real(r8), allocatable                  :: data(:, :) ! ncol, lev
   end type input3d
 
   type input2d
-    real(r8), dimension(:),    allocatable :: data ! ncol
+    real(r8), allocatable                  :: data(:) ! ncol
   end type input2d
 
   type trfld
-    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
-    type(input3d), dimension(4)            :: input
+    real(r8), allocatable                  :: data(:, :) ! ncol, lev
+    type(input3d)                          :: input(4)
     character(len=32)                      :: srcnam
     character(len=32)                      :: fldnam
     character(len=32)                      :: units
@@ -59,7 +59,7 @@ module tracer_data
   end type trfld
 
   type trfile
-    type(input2d), dimension(4)            :: ps_in
+    type(input2d)                          :: ps_in(4)
     character(len=shr_kind_cl)             :: pathname = ' '
     character(len=shr_kind_cl)             :: curr_filename = ' '
     character(len=shr_kind_cl)             :: next_filename = ' '
@@ -74,8 +74,8 @@ module tracer_data
     real(r8)                               :: datatimep = -unset_real     ! time of nxt. values read in
     real(r8)                               :: datatimes(4)
     integer                                :: interp_recs
-    real(r8), dimension(:), allocatable    :: curr_data_times
-    real(r8), dimension(:), allocatable    :: next_data_times
+    real(r8), allocatable                  :: curr_data_times(:)
+    real(r8), allocatable                  :: next_data_times(:)
     real(r8)                               :: offset_time
     integer                                :: cyc_ndx_beg
     integer                                :: cyc_ndx_end
@@ -89,20 +89,20 @@ module tracer_data
     integer                                :: nilev = 0
     integer                                :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
     integer                                :: ps_order(3)  ! LATDIM | LONDIM | TIMDIM
-    real(r8), dimension(:),    allocatable :: lons
-    real(r8), dimension(:),    allocatable :: lats
-    real(r8), dimension(:),    allocatable :: levs
-    real(r8), dimension(:),    allocatable :: ilevs
-    real(r8), dimension(:),    allocatable :: hyam
-    real(r8), dimension(:),    allocatable :: hybm
-    real(r8), dimension(:),    allocatable :: hyai
-    real(r8), dimension(:),    allocatable :: hybi
-    real(r8), dimension(:, :), allocatable :: weight_x, weight_y
-    integer,  dimension(:)   , allocatable :: count_x, count_y
-    integer,  dimension(:, :), allocatable :: index_x, index_y
-    real(r8), dimension(:, :), allocatable :: weight0_x, weight0_y
-    integer,  dimension(:)   , allocatable :: count0_x, count0_y
-    integer,  dimension(:, :), allocatable :: index0_x, index0_y
+    real(r8), allocatable                  :: lons(:)
+    real(r8), allocatable                  :: lats(:)
+    real(r8), allocatable                  :: levs(:)
+    real(r8), allocatable                  :: ilevs(:)
+    real(r8), allocatable                  :: hyam(:)
+    real(r8), allocatable                  :: hybm(:)
+    real(r8), allocatable                  :: hyai(:)
+    real(r8), allocatable                  :: hybi(:)
+    real(r8), allocatable                  :: weight_x(:, :), weight_y(:, :)
+    integer,  allocatable                  :: count_x(:), count_y(:)
+    integer,  allocatable                  :: index_x(:, :), index_y(:, :)
+    real(r8), allocatable                  :: weight0_x(:, :), weight0_y(:, :)
+    integer,  allocatable                  :: count0_x(:), count0_y(:)
+    integer,  allocatable                  :: index0_x(:, :), index0_y(:, :)
     logical                                :: dist
 
     real(r8)                               :: p0
@@ -174,7 +174,7 @@ contains
     character(len=*), intent(in)            :: filename
     character(len=*), intent(in)            :: filelist
     character(len=*), intent(in)            :: datapath
-    type(trfld),      dimension(:), pointer :: flds
+    type(trfld),      pointer               :: flds(:)
     type(trfile),     intent(inout)         :: file
     integer,          intent(in)            :: data_cycle_yr
     integer,          intent(in)            :: data_fixed_ymd
@@ -1142,7 +1142,7 @@ contains
     integer :: astat
     integer :: cyc_tsize
 
-    real(r8), allocatable, dimension(:) :: all_data_times
+    real(r8), allocatable :: all_data_times(:)
 
     character(len=shr_kind_cm) :: errmsg
     character(len=*), parameter :: subname = 'find_times'
@@ -1937,7 +1937,7 @@ contains
     integer,           intent(out)                :: dsize
 
     integer,  optional, intent(out)               :: dimid
-    real(r8), optional, allocatable, dimension(:) :: data
+    real(r8), optional, allocatable               :: data(:)
 
     integer :: vid, ierr, id
     integer :: err_handling
@@ -1993,7 +1993,7 @@ contains
     character(len=512) :: errmsg
     character(len=*), parameter :: subname = 'set_cycle_indices'
 
-    integer, allocatable, dimension(:) :: dates
+    integer, allocatable :: dates(:)
     integer :: timesize, i, errflg, year, ierr
     type(var_desc_t) :: dateid
     call get_dimension(fileid, 'time', timesize)
@@ -2052,7 +2052,7 @@ contains
     character(len=shr_kind_cl) :: filen, filepath
     integer :: year, month, day, i, timesize
     integer :: dateid, secid
-    integer, allocatable, dimension(:) :: dates, datesecs
+    integer, allocatable :: dates(:), datesecs(:)
     integer :: ierr
     logical :: need_first_ndx
     integer :: err_handling
@@ -2151,12 +2151,12 @@ contains
     use shr_kind_mod,   only: shr_kind_cm
 
     character(len=*), intent(in) :: specifier(:)
-    type(trfld), pointer, dimension(:) :: fields
+    type(trfld), pointer :: fields(:)
 
     integer :: fld_cnt, astat
     integer :: i, j
     character(len=shr_kind_cl) :: str1, str2
-    character(len=32), allocatable, dimension(:) :: fld_name, src_name
+    character(len=32), allocatable :: fld_name(:), src_name(:)
     integer :: nflds
 
     character(len=shr_kind_cm)  :: errmsg
