@@ -6,7 +6,7 @@ module modal_aerosol_state_mod
   use aerosol_mmr_host, only: rad_cnst_get_aer_mmr, rad_cnst_get_mode_num, aero_host_binding_t
   use aerosol_mmr_host, only: get_mode_dry_diameter, get_mode_wet_diameter, get_mode_aer_water
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
-  use physconst,  only: rhoh2o, pi, rair
+  use physconst,  only: rhoh2o, pi
   use cam_abortutils, only: endrun
 
   implicit none
@@ -846,7 +846,7 @@ contains
   ! aerosol surface area density
   !------------------------------------------------------------------------
   subroutine surf_area_dens(self, aero_props, types_list, ncol, nlev, beglev, endlev, &
-       relhum, pmid, temp, pi, sad, reff, sfc, dm_aer)
+       relhum, pmid, temp, pi, rair, sad, reff, sfc, dm_aer)
     use aerosol_spec_utils, only : spec_type_in_list
 
     class(modal_aerosol_state), intent(in) :: self
@@ -860,6 +860,7 @@ contains
     real(r8), intent(in)  :: pmid(:,:)   ! mid-level pressure (Pa)
     real(r8), intent(in)  :: temp(:,:)   ! temperature (K)
     real(r8), intent(in)  :: pi          ! pi mathematical constant
+    real(r8), intent(in)  :: rair        ! dry air gas constant (J/kg/K)
 
     real(r8), intent(out) :: sad(:,:)    ! surface area density (cm2/cm3)
     real(r8), intent(out) :: reff(:,:)   ! effective radius (units cm)

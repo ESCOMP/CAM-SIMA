@@ -7,7 +7,6 @@ module bulk_aerosol_state_mod
 
   use aerosol_state_mod,      only: aerosol_state, ptr2d_t
   use aerosol_properties_mod, only: aerosol_properties
-  use physconst,              only: rair
 
   implicit none
 
@@ -541,7 +540,7 @@ contains
   ! aerosol surface area density
   !------------------------------------------------------------------------
   subroutine surf_area_dens(self, aero_props, types_list, ncol, nlev, beglev, endlev, &
-       relhum, pmid, temp, pi, sad, reff, sfc, dm_aer)
+       relhum, pmid, temp, pi, rair, sad, reff, sfc, dm_aer)
     use aerosol_spec_utils, only : spec_type_in_list
 
     class(bulk_aerosol_state), intent(in) :: self
@@ -555,6 +554,7 @@ contains
     real(r8), intent(in)  :: pmid(:,:)   ! mid-level pressure (Pa)
     real(r8), intent(in)  :: temp(:,:)   ! temperature (K)
     real(r8), intent(in)  :: pi          ! pi mathematical constant
+    real(r8), intent(in)  :: rair        ! dry air gas constant (J/kg/K)
 
     real(r8), intent(out) :: sad(:,:)    ! surface area density (cm2/cm3)
     real(r8), intent(out) :: reff(:,:)   ! effective radius (units cm)
