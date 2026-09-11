@@ -676,7 +676,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call shr_vmath_log(phys_state%pintdry(1:pcols,1), &
                       phys_state%lnpintdry(1:pcols,1), pcols)
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
+   ! pintdry recurrence is loop-carried in k, do not parallelize:
    do k = 1, nlev
       do i = 1, pcols
          ! Calculate dry pressure variables for rest of column:
@@ -724,7 +724,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       phys_state%pint(i,1) = phys_state%pintdry(i,1)
    end do
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
+   ! pint recurrence is loop-carried in k and ps accumulates over k,
+   ! do not parallelize:
    do k = 1, nlev
       do i=1, pcols
          ! Calculate wet (total) pressure variables for rest of column:

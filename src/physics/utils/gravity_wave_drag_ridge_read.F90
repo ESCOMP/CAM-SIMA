@@ -132,7 +132,9 @@ contains
 
     ! Local variables
     type(file_desc_t), pointer    :: fh_topo
-    type(file_desc_t), pointer    :: fh_rdggm
+    ! fh_rdggm is a locally-owned file handle (unlike fh_topo, which is
+    ! borrowed from cam_initfiles), so it is not a pointer.
+    type(file_desc_t)             :: fh_rdggm
     integer                       :: errflg
     character(len=512)            :: errmsg
     character(len=*), parameter   :: subname = 'gravity_wave_drag_ridge_read_file'
@@ -144,7 +146,6 @@ contains
     errflg = 0
 
     nullify(fh_topo)
-    nullify(fh_rdggm)
 
     has_gbxar_from_topo = .false.
     call mark_as_initialized('number_of_ridges_in_ridge_gravity_wave_drag')
@@ -301,6 +302,9 @@ contains
         ! Convert from m2 to km2
         rdg_gbxarg = rdg_gbxarg * (rearth/1000._kind_phys) * (rearth/1000._kind_phys)
       else
+        ! rdg_gbxar was already read from the topo file and converted to
+        ! km2 above; copy it so the gamma grid box area is not left zero.
+        rdg_gbxarg(:) = rdg_gbxar(:)
         if(masterproc) then
           write(iulog,*) trim(subname) // ': Using GBXAR from topo file, skipping gamma file GBXAR'
         end if
@@ -347,8 +351,6 @@ contains
       end if
 
       call cam_pio_closefile(fh_rdggm)
-      deallocate(fh_rdggm)
-      nullify(fh_rdggm)
 
       ! Mark variables as initialized so they are not read from ic file.
       call mark_as_initialized('grid_box_area_for_gamma_ridge_gravity_wave_drag')

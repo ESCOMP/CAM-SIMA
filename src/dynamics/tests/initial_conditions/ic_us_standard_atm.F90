@@ -134,6 +134,7 @@ subroutine us_std_atm_set_ic(latvals, lonvals, zint, U, V, T, PS, PHIS_IN, &
    end if
 
    if (present(T)) then
+      nlev = size(T, 2)
       allocate(pmid(nlev), stat=iret)
       call check_allocate(iret, subname, 'pmid(nlev)', &
                           file=__FILE__, line=__LINE__)
@@ -229,11 +230,11 @@ subroutine us_std_atm_set_ic(latvals, lonvals, zint, U, V, T, PS, PHIS_IN, &
       const_props => cam_model_const_properties()
 
       do m = 1, ncnst
-         if (m_cnst(m) == m_cnst_ix_q) then
+         if (m == m_cnst_ix_q) then
             ! No water vapor in profile
             do k = 1, nlev
                where(mask_use)
-                  Q(:,k,m_cnst(m)) = 0.0_r8
+                  Q(:,k,m) = 0.0_r8
                end where
             end do
             if(masterproc .and. verbose_use) then

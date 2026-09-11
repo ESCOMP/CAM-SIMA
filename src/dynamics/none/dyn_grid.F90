@@ -383,14 +383,23 @@ contains
             call endrun(errormsg)
          end if
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
-            allocate(local_areas(num_lats), stat=iret, errmsg=errormsg)
-            call check_allocate(iret, subname, 'local_areas(num_lats)', &
+            ! Read the global area / weight variable and keep only this
+            ! task's latitudes, mirroring the latitude read above, so that
+            ! local_areas is indexed by the task-local latitude index.
+            start(1) = ((col_start - 1) / num_lons) + 1
+            kount(1) = ((col_end - 1) / num_lons) + 1 - start(1) + 1
+            allocate(local_areas(kount(1)), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_areas(kount)', &
                                 file=__FILE__, line=__LINE__, errmsg=errormsg)
-            start(1) = 1
-            kount(1) = num_lats
-            iret = pio_get_var(fh_ini, vardesc, start, kount, local_areas)
+            allocate(temp_arr(num_lats), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'temp_arr(num_lats)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            iret = pio_get_var(fh_ini, vardesc, [1], [num_lats], temp_arr)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read '//trim(var_name))
+            lindex = start(1) + kount(1) - 1
+            local_areas(1:kount(1)) = temp_arr(start(1):lindex)
+            deallocate(temp_arr)
          else if (dimlens(1) == num_global_columns) then
             allocate(local_areas(num_local_columns), stat=iret, errmsg=errormsg)
             call check_allocate(iret, subname, 'local_areas(num_local_columns)', &
@@ -473,7 +482,7 @@ contains
       do lindex = 1, num_local_columns
          if (grid_is_latlon) then
             lat_index = ((global_col_offset + lindex - 1) / num_lons) + 1 - lat1
-            lon_index = MOD(lindex - 1, num_lons) + 1
+            lon_index = MOD(global_col_offset + lindex - 1, num_lons) + 1
          else
             lat_index = lindex
             lon_index = lindex
