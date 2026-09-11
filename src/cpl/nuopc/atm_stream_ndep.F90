@@ -211,6 +211,7 @@ contains
     character(len=CS) :: ndepunits! ndep units
     !-----------------------------------------------------------------------
 
+    ndepunits = ''
     call cam_pio_openfile( File, trim(stream_fldFileName_ndep), PIO_NOWRITE)
     call pio_seterrorhandling(File, PIO_BCAST_ERROR, err_handling)
     ierr = pio_inq_varid(File, stream_varlist_ndep(1), vardesc)
@@ -219,6 +220,10 @@ contains
             trim(stream_fldFileName_ndep)//errMsg(sourcefile, __LINE__))
     else
        ierr = PIO_get_att(File, vardesc, "units", ndepunits)
+       if (ierr /= PIO_NOERR) then
+          call endrun(' ERROR reading units of variable: '//trim(stream_varlist_ndep(1))//' in file: '// &
+               trim(stream_fldFileName_ndep)//errMsg(sourcefile, __LINE__))
+       end if
     end if
     call pio_seterrorhandling(File, err_handling)
     call cam_pio_closefile(File)

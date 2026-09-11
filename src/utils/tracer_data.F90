@@ -2101,6 +2101,11 @@ contains
     ierr = pio_get_var(piofile, dateid, dates)
     need_first_ndx = .true.
 
+    ! Initialize so the cycle-year-not-found check below tests a defined
+    ! value when the requested year is absent from the file
+    if (present(cyc_ndx_beg)) cyc_ndx_beg = -1
+    if (present(cyc_ndx_end)) cyc_ndx_end = -1
+
     do i = 1, timesize
       year = dates(i)/10000
       month = mod(dates(i), 10000)/100
