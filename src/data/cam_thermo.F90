@@ -23,7 +23,6 @@ module cam_thermo
 
    implicit none
    private
-   save
 
    ! subroutines to compute thermodynamic quantities
    !
@@ -208,8 +207,8 @@ CONTAINS
       !------------------------------------------------------------------------
       !  Initialize constituent dependent properties
       !------------------------------------------------------------------------
-      kmvis(:pcols,  :pver) = shr_infnan_qnan
-      kmcnd(:pcols,  :pver) = shr_infnan_qnan
+      kmvis(:pcols,  :pverp) = shr_infnan_qnan
+      kmcnd(:pcols,  :pverp) = shr_infnan_qnan
 
    end subroutine cam_thermo_init
 
@@ -245,10 +244,10 @@ CONTAINS
 
       if (present(to_dry_factor)) then
         if (SIZE(to_dry_factor, 1) /= ncol) then
-          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,1)/))//' but should be '//stringify((/ncol/)))
+          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify([SIZE(to_dry_factor,1)])//' but should be '//stringify([ncol]))
         end if
         if (SIZE(to_dry_factor, 2) /= pver) then
-          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,2)/))//' but should be '//stringify((/pver/)))
+          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify([SIZE(to_dry_factor,2)])//' but should be '//stringify([pver]))
         end if
       end if
 
@@ -289,10 +288,10 @@ CONTAINS
 
       if (present(to_dry_factor)) then
         if (SIZE(to_dry_factor, 1) /= ncol) then
-          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,1)/))//' but should be '//stringify((/ncol/)))
+          call endrun(subname//'DIM 1 of to_dry_factor is '//stringify([SIZE(to_dry_factor,1)])//' but should be '//stringify([ncol]))
         end if
         if (SIZE(to_dry_factor, 2) /= pver) then
-          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify((/SIZE(to_dry_factor,2)/))//' but should be '//stringify((/pver/)))
+          call endrun(subname//'DIM 2 of to_dry_factor is '//stringify([SIZE(to_dry_factor,2)])//' but should be '//stringify([pver]))
         end if
       end if
 
@@ -571,7 +570,7 @@ CONTAINS
       real(kind_phys), optional, intent(in)  :: dp_dry(:, :)
       ! sum_species: sum species
       real(kind_phys),           intent(out) :: sum_species(:, :)
-      ! factor: to moist factor 
+      ! factor: to moist factor
       real(kind_phys), optional, intent(out) :: factor(:, :)
       ! Local variables
       real(kind_phys) :: factor_loc(SIZE(tracer, 1), SIZE(tracer, 2))
@@ -851,7 +850,7 @@ CONTAINS
               dp_dry(:, jdx, :), ptop, p00, inv_exner, exner(:, jdx, :))
         end if
      end do
-     
+
    end subroutine get_exner_2hd
 
    !===========================================================================
@@ -910,7 +909,6 @@ CONTAINS
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2))     :: pmid_local, t_v_local, dp_local, R_dry
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2) + 1) :: pint
      character(len=*), parameter                               :: subname = 'get_gz_from_dp_dry_ptop_temp_1hd: '
-     
 
      call get_pmid_from_dp(tracer, mixing_ratio, active_species_idx, &
                               dp_dry, ptop, pmid_local, pint=pint, dp=dp_local)
@@ -1026,7 +1024,7 @@ CONTAINS
      real(kind_phys), dimension(SIZE(tracer, 1), SIZE(tracer, 2)) :: gz, theta_v
      real(kind_phys), dimension(SIZE(tracer, 1))                  :: pt1, pt2, phis
      integer :: kdx, kdxm1
-     real(kind_phys), parameter:: ustar2 = 1.E-4_kind_phys
+     real(kind_phys), parameter   :: ustar2 = 1.E-4_kind_phys
 
      phis = 0.0_kind_phys
      call get_gz(tracer, mixing_ratio, active_species_idx, dp_dry, ptop, temp, phis, gz, pmid=pmid, dp=dp)
@@ -1038,7 +1036,7 @@ CONTAINS
        pt1(:) = theta_v(:, kdxm1)
        pt2(:) = theta_v(:, kdx)
        Richardson_number(:, kdx) = (gz(:, kdxm1) - gz(:, kdx)) * (pt1 - pt2) / ( 0.5_kind_phys*(pt1 + pt2) *        &
-            ((v(:, 1, kdxm1) - v(:, 1, kdx)) ** 2 + (v(:, 2, kdxm1) - v(:, 2, kdx)) ** 2 + ustar2) )
+            ((v(:, 1, kdxm1) - v(:, 1, kdx)) ** 2 + (v(:, 2, kdxm1) - v(:, 2, kdx)) ** 2 + ustar2))
      end do
    end subroutine get_Richardson_number_1hd
 
@@ -1105,6 +1103,7 @@ CONTAINS
    subroutine get_kappa_dry_1hd(tracer, active_species_idx, kappa_dry, fact)
      use air_composition,  only: dry_air_species_num, get_R_dry, get_cp_dry
      use physconst,        only: rair, cpair
+     use shr_kind_mod,     only: shr_kind_cl
 
      real(kind_phys), intent(in)  :: tracer(:,:,:)              !tracer array
      integer,         intent(in)  :: active_species_idx(:)      !index of thermodynamic active tracers
@@ -1114,20 +1113,20 @@ CONTAINS
      real(kind_phys), allocatable, dimension(:,:) :: cp_dry,R_dry
      integer                     :: ierr
      character(len=*), parameter :: subname = "get_kappa_dry_1hd"
-     character(len=*), parameter :: errstr = subname//": failed to allocate "
+     character(len=shr_kind_cl)  :: errmsg
+
+     errmsg = ''
      !
      ! dry air not species dependent
      if (dry_air_species_num==0) then
        kappa_dry = rair / cpair
      else
-       allocate(R_dry(SIZE(kappa_dry, 1), SIZE(kappa_dry, 2)), stat=ierr)
-       if (ierr /= 0) then
-         call endrun(errstr//"R_dry")
-       end if
-       allocate(cp_dry(SIZE(kappa_dry, 1), SIZE(kappa_dry, 2)), stat=ierr)
-       if (ierr /= 0) then
-         call endrun(errstr//"cp_dry")
-       end if
+       allocate(R_dry(SIZE(kappa_dry, 1), SIZE(kappa_dry, 2)), stat=ierr, errmsg=errmsg)
+       call check_allocate(ierr, subname, 'R_dry', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
+       allocate(cp_dry(SIZE(kappa_dry, 1), SIZE(kappa_dry, 2)), stat=ierr, errmsg=errmsg)
+       call check_allocate(ierr, subname, 'cp_dry', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
        call get_cp_dry(tracer, active_species_idx, cp_dry, fact=fact)
        call get_R_dry( tracer, active_species_idx, R_dry,  fact=fact)
        kappa_dry = R_dry / cp_dry
@@ -1207,6 +1206,7 @@ CONTAINS
    subroutine get_rho_dry_1hd(tracer, temp, ptop, dp_dry, tracer_mass, rho_dry, rhoi_dry, &
               active_species_idx_dycore)
      use air_composition, only: get_R_dry
+     use shr_kind_mod,    only: shr_kind_cl
      ! args
      real(kind_phys), intent(in)           :: tracer(:,:,:)      ! Tracer array
      real(kind_phys), intent(in)           :: temp(:,:)          ! Temperature
@@ -1229,7 +1229,9 @@ CONTAINS
      integer,  dimension(thermodynamic_active_species_num)         :: idx_local
      integer                     :: ierr
      character(len=*), parameter :: subname = "get_rho_dry_1hd"
-     character(len=*), parameter :: errstr = subname//": failed to allocate "
+     character(len=shr_kind_cl)  :: errmsg
+
+     errmsg = ''
 
      if (present(active_species_idx_dycore)) then
        idx_local = active_species_idx_dycore
@@ -1241,10 +1243,9 @@ CONTAINS
      !
      call get_pmid_from_dp(dp_dry, ptop, pmid, pint=pint)
      if (present(rhoi_dry)) then
-       allocate(R_dry(SIZE(tracer, 1), SIZE(tracer, 2) + 1), stat=ierr)
-       if (ierr /= 0) then
-         call endrun(errstr//"R_dry")
-       end if
+       allocate(R_dry(SIZE(tracer, 1), SIZE(tracer, 2) + 1), stat=ierr, errmsg=errmsg)
+       call check_allocate(ierr, subname, 'R_dry', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
        if (tracer_mass) then
          call get_R_dry(tracer, idx_local, R_dry, fact=1.0_kind_phys / dp_dry)
        else
@@ -1263,10 +1264,9 @@ CONTAINS
        deallocate(R_dry)
      end if
      if (present(rho_dry)) then
-       allocate(R_dry(SIZE(tracer, 1), size(rho_dry, 2)), stat=ierr)
-       if (ierr /= 0) then
-         call endrun(errstr//"R_dry")
-       end if
+       allocate(R_dry(SIZE(tracer, 1), size(rho_dry, 2)), stat=ierr, errmsg=errmsg)
+       call check_allocate(ierr, subname, 'R_dry', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
        if (tracer_mass) then
          call get_R_dry(tracer, idx_local, R_dry, fact=1.0_kind_phys / dp_dry)
        else
@@ -1345,9 +1345,9 @@ CONTAINS
      !
      ! local vars
      !
-     integer        :: idx, kdx, icnst, ispecies
-     real(kind_phys):: mbarvi, mm, residual             ! Mean mass at mid level
-     real(kind_phys):: cnst_vis, cnst_cnd, temp_local
+     integer         :: idx, kdx, icnst, ispecies
+     real(kind_phys) :: mbarvi, mm, residual             ! Mean mass at mid level
+     real(kind_phys) :: cnst_vis, cnst_cnd, temp_local
      real(kind_phys), dimension(SIZE(tracer,1), SIZE(sponge_factor, 1)) :: factor, mbarv
      integer,         dimension(thermodynamic_active_species_num)       :: idx_local
      character(len=*), parameter :: subname = 'get_molecular_diff_coef_1hd: '
@@ -1393,7 +1393,7 @@ CONTAINS
          factor = fact(:,:)
        else
          factor = 1.0_kind_phys
-       endif
+       end if
        if (present(mbarv_in)) then
          mbarv = mbarv_in
        else
@@ -1427,7 +1427,7 @@ CONTAINS
              mbarvi = 0.5_kind_phys * (mbarv(idx, kdx - 1) + mbarv(idx, kdx))
              kmvis(idx, kdx) = kmvis(idx, kdx) * mbarvi * temp_local ** kv_temp_exp
              kmcnd(idx, kdx) = kmcnd(idx, kdx) * mbarvi * temp_local ** kc_temp_exp
-           enddo
+           end do
          end do
          do idx = 1, SIZE(tracer, 1)
            kmvis(idx, 1) = 1.5_kind_phys * kmvis(idx, 2) - .5_kind_phys * kmvis(idx, 3)
@@ -1608,6 +1608,7 @@ CONTAINS
       use air_composition, only: wv_idx
       use air_composition, only: dry_air_species_num
       use physconst,       only: rga, latvap, latice
+      use shr_kind_mod,    only: shr_kind_cl
 
       ! Dummy arguments
       ! tracer: tracer mixing ratio
@@ -1668,19 +1669,19 @@ CONTAINS
       integer,          allocatable :: species_liq_idx(:)
       integer,          allocatable :: species_ice_idx(:)
       character(len=*), parameter   :: subname = 'get_hydrostatic_energy'
+      character(len=shr_kind_cl)    :: errmsg
 
-      allocate(species_idx(thermodynamic_active_species_num), stat=ierr)
-      if ( ierr /= 0 ) then
-         call endrun(subname//': allocation error for species_idx array')
-      end if
-      allocate(species_liq_idx(thermodynamic_active_species_liq_num), stat=ierr)
-      if ( ierr /= 0 ) then
-         call endrun(subname//': allocation error for species_liq_idx array')
-      end if
-      allocate(species_ice_idx(thermodynamic_active_species_ice_num), stat=ierr)
-      if ( ierr /= 0 ) then
-         call endrun(subname//': allocation error for species_ice_idx array')
-      end if
+      errmsg = ''
+
+      allocate(species_idx(thermodynamic_active_species_num), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'species_idx(thermodynamic_active_species_num)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(species_liq_idx(thermodynamic_active_species_liq_num), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'species_liq_idx(thermodynamic_active_species_liq_num)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      allocate(species_ice_idx(thermodynamic_active_species_ice_num), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'species_ice_idx(thermodynamic_active_species_ice_num)', &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       if (present(dycore_idx))then
          if (dycore_idx) then
