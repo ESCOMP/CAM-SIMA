@@ -148,7 +148,7 @@ CONTAINS
 
       use physconst,    only: pi
       use spmd_utils,   only: masterproc, masterprocid, mpicom
-      use mpi,          only: mpi_real8, mpi_sum, mpi_reduce
+      use mpi,          only: mpi_real8, mpi_sum
       use physics_grid, only: get_wght_p
       !
       ! Arguments
