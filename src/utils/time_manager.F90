@@ -23,7 +23,6 @@ module time_manager
 
    implicit none
    private
-   save
 
 ! Public methods
 
@@ -222,7 +221,7 @@ end subroutine initialize_clock
 
 !==============================================================================
 
-function TimeSetymd( ymd, tod, desc )
+function TimeSetymd( ymd, tod, desc ) result(time_out)
 !
 ! Set the time by an integer as YYYYMMDD and integer seconds in the day
 !
@@ -230,7 +229,7 @@ function TimeSetymd( ymd, tod, desc )
    integer, intent(in) :: tod            ! Time of day in seconds
    character(len=*), intent(in) :: desc  ! Description of time to set
 
-   type(ESMF_Time) :: TimeSetymd    ! Return value
+   type(ESMF_Time) :: time_out      ! Return value
 
    character(len=*), parameter :: sub = 'TimeSetymd'
    integer :: yr, mon, day          ! Year, month, day as integers
@@ -247,7 +246,7 @@ function TimeSetymd( ymd, tod, desc )
    yr  = ymd / 10000
    mon = (ymd - yr*10000) / 100
    day =  ymd - yr*10000 - mon*100
-   call ESMF_TimeSet( TimeSetymd, yy=yr, mm=mon, dd=day, s=tod, &
+   call ESMF_TimeSet( time_out, yy=yr, mm=mon, dd=day, s=tod, &
                       calendar=tm_cal, rc=rc)
    call chkrc(rc, sub//': error return from ESMF_TimeSet: setting '//trim(desc))
 end function TimeSetymd
@@ -258,8 +257,6 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
 !
 ! Set the time as a float given year, month, day, sec
 !
-  implicit none
-
   real(r8),intent(out):: time
   integer, intent(in) :: year
   integer, intent(in) :: month
@@ -279,7 +276,7 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
   ! is logged as an ESMF error, which opens the PET log files for the whole run.
   !
   useday = day
-  if ( ( month .eq. 2 ) .and. ( day .eq. 29 ) .and. timemgr_is_caltype(shr_cal_noleap) ) then
+  if ( ( month == 2 ) .and. ( day == 29 ) .and. timemgr_is_caltype(shr_cal_noleap) ) then
      useday = 28
   end if
   call ESMF_TimeSet( date, yy=year, mm=month, dd=useday, s=sec, calendar=tm_cal, rc=rc)
@@ -301,8 +298,6 @@ subroutine set_date_from_time_float( time, year, month, day, sec )
 !
 ! Set year, month, day, sec given the time as a float
 !
-  implicit none
-
   real(r8),intent(in)  :: time
   integer, intent(out) :: year
   integer, intent(out) :: month
@@ -330,7 +325,7 @@ endsubroutine set_date_from_time_float
 
 !=========================================================================================
 
-integer function TimeGetymd( date, tod )
+integer function TimeGetymd( date, tod ) result(ymd_out)
 !
 ! Get the date and time of day in ymd from ESMF Time.
 !
@@ -344,7 +339,7 @@ integer function TimeGetymd( date, tod )
 
   call ESMF_TimeGet( date, yy=yr, mm=mon, dd=day, rc=rc)
   call chkrc(rc, sub//': error return from ESMF_TimeGet')
-  TimeGetymd = yr*10000 + mon*100 + day
+  ymd_out = yr*10000 + mon*100 + day
   if ( present( tod ) )then
      call ESMF_TimeGet( date, yy=yr, mm=mon, dd=day, s=tod, rc=rc)
      call chkrc(rc, sub//': error return from ESMF_TimeGet')
@@ -359,8 +354,6 @@ end function TimeGetymd
 !==============================================================================
 
 subroutine timemgr_set_date_time( new_ymd, new_tod )
-
-   implicit none
 
    integer,          intent(IN) :: new_ymd  ! date (YYYYMMDD)
    integer,          intent(IN) :: new_tod  ! time of day (sec)
@@ -555,7 +548,7 @@ subroutine advance_timestep()
 end subroutine advance_timestep
 !=========================================================================================
 
-integer function get_step_size()
+integer function get_step_size() result(step_size_seconds)
 
 ! Return the step size in seconds.
 
@@ -567,13 +560,13 @@ integer function get_step_size()
 
    call ESMF_ClockGet(tm_clock, timeStep=step_size, rc=rc)
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
-   call ESMF_TimeIntervalGet(step_size, s=get_step_size, rc=rc)
+   call ESMF_TimeIntervalGet(step_size, s=step_size_seconds, rc=rc)
    call chkrc(rc, sub//': error return from ESMF_ClockTimeIntervalGet')
 
 end function get_step_size
 !=========================================================================================
 
-integer function get_nstep()
+integer function get_nstep() result(nstep)
 
 ! Return the timestep number.
 
@@ -585,7 +578,7 @@ integer function get_nstep()
 
    call ESMF_ClockGet(tm_clock, advanceCount=step_no, rc=rc)
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
-   get_nstep = int(step_no)
+   nstep = int(step_no)
 
 end function get_nstep
 !=========================================================================================
@@ -872,7 +865,7 @@ subroutine get_run_duration(days, seconds)
 end subroutine get_run_duration
 !=========================================================================================
 
-function get_curr_calday(offset)
+function get_curr_calday(offset) result(calday)
 
 ! Return calendar day at end of current timestep with optional offset.
 ! Calendar day 1.0 = 0Z on Jan 1.
@@ -882,7 +875,7 @@ function get_curr_calday(offset)
                                             ! Positive for future times, negative
                                             ! for previous times.
 ! Return value
-   real(r8) :: get_curr_calday
+   real(r8) :: calday
 
 ! Local variables
    character(len=*), parameter :: sub = 'get_curr_calday'
@@ -919,7 +912,7 @@ function get_curr_calday(offset)
 !!!!  call ESMF_TimePrint( date, "string" )
    end if
 
-   call ESMF_TimeGet( date, dayOfYear_r8=get_curr_calday, rc=rc )
+   call ESMF_TimeGet( date, dayOfYear_r8=calday, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_TimeGet')
 
 !
@@ -931,13 +924,13 @@ function get_curr_calday(offset)
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
-   if (( get_curr_calday > 366.0_r8 ) .and. ( get_curr_calday <= 367.0_r8 ) &
+   if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
-      get_curr_calday = get_curr_calday - 1.0_r8
+      calday = calday - 1.0_r8
    endif
 
-   if ( (get_curr_calday < 1.0_r8) .or. (get_curr_calday > 366.0_r8) )then
-      write(iulog,*) 'atm '//sub//' calday = ', get_curr_calday
+   if ( (calday < 1.0_r8) .or. (calday > 366.0_r8) )then
+      write(iulog,*) 'atm '//sub//' calday = ', calday
       if ( present(offset) ) write(iulog,*) 'offset = ', offset
       call endrun( sub//': error get_curr_calday out of bounds' )
    end if
@@ -945,7 +938,7 @@ function get_curr_calday(offset)
 end function get_curr_calday
 !=========================================================================================
 
-function get_calday(ymd, tod)
+function get_calday(ymd, tod) result(calday)
 
 ! Return calendar day corresponding to specified time instant.
 ! Calendar day 1.0 = 0Z on Jan 1.
@@ -956,7 +949,7 @@ function get_calday(ymd, tod)
       tod     ! time of day (seconds past 0Z)
 
 ! Return value
-   real(r8) :: get_calday
+   real(r8) :: calday
 
 ! Local variables
    character(len=*), parameter :: sub = 'get_calday'
@@ -965,7 +958,7 @@ function get_calday(ymd, tod)
 !-----------------------------------------------------------------------------------------
 
    date = TimeSetymd( ymd, tod, "get_calday" )
-   call ESMF_TimeGet( date, dayOfYear_r8=get_calday, rc=rc )
+   call ESMF_TimeGet( date, dayOfYear_r8=calday, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_TimeGet')
 
 !
@@ -977,20 +970,20 @@ function get_calday(ymd, tod)
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
-   if (( get_calday > 366.0_r8 ) .and. ( get_calday <= 367.0_r8 ) &
+   if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
-      get_calday = get_calday - 1.0_r8
+      calday = calday - 1.0_r8
    endif
 
-   if ( (get_calday < 1.0_r8) .or. (get_calday > 366.0_r8) )then
-      write(iulog,*) 'atm '//sub//' calday = ', get_calday
+   if ( (calday < 1.0_r8) .or. (calday > 366.0_r8) )then
+      write(iulog,*) 'atm '//sub//' calday = ', calday
       call endrun( sub//': error calday out of range' )
    end if
 
 end function get_calday
 !==============================================================================
 
-character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
+character(len=SHR_KIND_CS) function timemgr_get_calendar_cf() result(cal_cf)
 
 ! Return cf standard for calendar type
 
@@ -1001,9 +994,9 @@ character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
 
    caltmp = to_upper(trim(calendar) )
    if ( trim(caltmp) == trim(shr_cal_noleap) ) then
-      timemgr_get_calendar_cf = 'noleap'
+      cal_cf = 'noleap'
    else if ( trim(caltmp) == trim(shr_cal_gregorian) ) then
-      timemgr_get_calendar_cf = 'gregorian'
+      cal_cf = 'gregorian'
    else
       write(iulog,*)sub,': unrecognized calendar specified: ',trim(calendar)
       call endrun(sub//': unrecognized calendar specified: '//trim(calendar))
@@ -1012,28 +1005,28 @@ character(len=SHR_KIND_CS) function timemgr_get_calendar_cf()
 end function timemgr_get_calendar_cf
 !==============================================================================
 
-function timemgr_is_caltype( cal_in )
+function timemgr_is_caltype( cal_in ) result(is_caltype)
 
 ! Return true if incoming calendar type string matches actual calendar type in use
 
    character(len=*), intent(in) :: cal_in
 
 ! Return value
-   logical :: timemgr_is_caltype
+   logical :: is_caltype
 
 !-----------------------------------------------------------------------------------------
 
-   timemgr_is_caltype = ( to_upper(trim(calendar)) == to_upper(trim(cal_in)) )
+   is_caltype = ( to_upper(trim(calendar)) == to_upper(trim(cal_in)) )
 
 end function timemgr_is_caltype
 !=========================================================================================
 
-function is_end_curr_day()
+function is_end_curr_day() result(end_curr_day)
 
 ! Return true if current timestep is last timestep in current day.
 
 ! Return value
-   logical :: is_end_curr_day
+   logical :: end_curr_day
 
 ! Local variables
    integer ::&
@@ -1044,12 +1037,12 @@ function is_end_curr_day()
 !-----------------------------------------------------------------------------------------
 
    call get_curr_date(yr, mon, day, tod)
-   is_end_curr_day = (tod == 0)
+   end_curr_day = (tod == 0)
 
 end function is_end_curr_day
 !=========================================================================================
 
-logical function is_end_curr_month()
+logical function is_end_curr_month() result(end_curr_month)
 
 ! Return true if current timestep is last timestep in current month.
 
@@ -1062,12 +1055,12 @@ logical function is_end_curr_month()
 !-----------------------------------------------------------------------------------------
 
    call get_curr_date(yr, mon, day, tod)
-   is_end_curr_month = (day == 1  .and.  tod == 0)
+   end_curr_month = (day == 1  .and.  tod == 0)
 
 end function is_end_curr_month
 !=========================================================================================
 
-logical function is_first_step()
+logical function is_first_step() result(first_step)
 
 ! Return true on first step of initial run only.
 
@@ -1081,23 +1074,23 @@ logical function is_first_step()
    call ESMF_ClockGet( tm_clock, advanceCount=step_no, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
    nstep = int(step_no)
-   is_first_step = (nstep == 0)
+   first_step = (nstep == 0)
 
 end function is_first_step
 !=========================================================================================
 
-logical function is_first_restart_step()
+logical function is_first_restart_step() result(first_restart_step)
 
 ! Return true on first step of restart run only.
 
 !-----------------------------------------------------------------------------------------
 
-   is_first_restart_step = tm_first_restart_step
+   first_restart_step = tm_first_restart_step
 
 end function is_first_restart_step
 !=========================================================================================
 
-logical function is_last_step()
+logical function is_last_step() result(last_step)
 
 ! Return true on last timestep.
 
@@ -1113,21 +1106,21 @@ logical function is_last_step()
                        currTime=curr_date, TimeStep=time_step, rc=rc )
    call chkrc(rc, sub//': error return from ESMF_ClockGet')
    if ( curr_date+time_step > stop_date ) then
-      is_last_step = .true.
+      last_step = .true.
    else
-      is_last_step = .false.
+      last_step = .false.
    end if
 
 end function is_last_step
 !=========================================================================================
 
-logical function is_perpetual()
+logical function is_perpetual() result(perpetual)
 
 ! Return true on last timestep.
 
 !-----------------------------------------------------------------------------------------
 
-   is_perpetual = tm_perp_calendar
+   perpetual = tm_perp_calendar
 
 end function is_perpetual
 
