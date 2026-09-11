@@ -57,6 +57,11 @@
     <lname>2000_CAM40_CLM60%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV</lname>
   </compset>
 
+  <compset>
+    <alias>FHIST_C4</alias>
+    <lname>HIST_CAM40_CLM60%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV</lname>
+  </compset>
+
   <!-- Aquaplanet compsets -->
 
   <compset>

@@ -227,6 +227,17 @@
     </options>
   </test>
 
+  <!-- radiation convective cloud water path test -->
+  <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_cloud_water_derecho">
+    <machines>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Test for convective cloud water path for radiation</option>
+    </options>
+  </test>
+
   <!-- tracer_data chemistry and aerosols input utility test -->
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_trcdata_bam_derecho">
     <machines>
@@ -328,6 +339,21 @@
       <option name="wallclock">00:30:00</option>
       <option name="comment">
         CAM4 test with SE-CSLAM dycore at ne3 (ultra-low) resolution with constant year 2000 forcings in debug mode
+      </option>
+    </options>
+  </test>
+
+  <test compset="FHIST_C4" grid="ne3pg3_ne3pg3_mt233" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+      <option name="comment">
+        CAM4 AMIP-style test with SE-CSLAM dycore at ne3 (ultra-low) resolution with transient historical
+        forcings (time-varying GHG, ozone, aerosol, volcanic, and solar datasets; time-varying SSTs)
+        in debug mode
       </option>
     </options>
   </test>
