@@ -207,7 +207,8 @@ subroutine test_stringify_floating_point_array()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-10000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+    r32arr(:) = [-10000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 10000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Each value should have a fixed width of 13. Only negative values should have signs.
@@ -240,7 +241,8 @@ subroutine test_stringify_floating_point_scientific_notation()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-100000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 100000.0]
+    r32arr(:) = [-100000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 100000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Scientific notation should be enabled if there is any value with a magnitude >= 1.0E+5.
@@ -274,7 +276,8 @@ subroutine test_stringify_floating_point_extreme_values()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-huge(r32arr), -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, huge(r32arr)]
+    r32arr(:) = [-huge(r32arr), -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, huge(r32arr)]
     r64arr(:) = real(r32arr, real64)
     r64arr(1) = -9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
     r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
@@ -820,4 +823,189 @@ subroutine test_increment_string_positive_overflow()
 
     @assertEqual(-2, result)
 end subroutine test_increment_string_positive_overflow
+
+@test
+subroutine test_glob_match_exact()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_bc_a1'))
+    @assertFalse(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_bc_a2'))
+end subroutine test_glob_match_exact
+
+@test
+subroutine test_glob_match_trailing_star()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_*'))
+    @assertFalse(core_glob_match('other_var', 'aerochem_vmr_*'))
+end subroutine test_glob_match_trailing_star
+
+@test
+subroutine test_glob_match_star_matches_empty()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_', 'aerochem_vmr_*'))
+    @assertTrue(core_glob_match('ab', 'a*b'))
+end subroutine test_glob_match_star_matches_empty
+
+@test
+subroutine test_glob_match_leading_star()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_so4_c1', '*_c1'))
+    @assertFalse(core_glob_match('aerochem_vmr_so4_a1', '*_c1'))
+end subroutine test_glob_match_leading_star
+
+@test
+subroutine test_glob_match_middle_star_backtracks()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    ! The star must be able to extend past an early partial match of the tail
+    @assertTrue(core_glob_match('a_x_y_b', 'a_*_b'))
+    @assertTrue(core_glob_match('mam_del_h2so4_gasprod', 'mam_*_gasprod'))
+    @assertFalse(core_glob_match('mam_del_h2so4_aeruptk', 'mam_*_gasprod'))
+end subroutine test_glob_match_middle_star_backtracks
+
+@test
+subroutine test_glob_match_multiple_stars()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('xAAyBBz', 'x*y*z'))
+    @assertTrue(core_glob_match('xyz', 'x*y*z'))
+    @assertFalse(core_glob_match('xAAzBBy', 'x*y*z'))
+end subroutine test_glob_match_multiple_stars
+
+@test
+subroutine test_glob_match_star_only_and_empty()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('anything_at_all', '*'))
+    @assertTrue(core_glob_match('', '*'))
+    @assertTrue(core_glob_match('', ''))
+    @assertFalse(core_glob_match('a', ''))
+end subroutine test_glob_match_star_only_and_empty
+
+@test
+subroutine test_glob_match_question_mark_is_literal()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    ! Only '*' is a wildcard; '?' matches itself
+    @assertTrue(core_glob_match('what?', 'what?'))
+    @assertFalse(core_glob_match('whatx', 'what?'))
+end subroutine test_glob_match_question_mark_is_literal
+
+@test
+subroutine test_glob_match_trailing_blanks_insignificant()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    character(len=32) :: padded_string, padded_pattern
+
+    padded_string  = 'aerochem_vmr_bc_a1'
+    padded_pattern = 'aerochem_vmr_*'
+
+    @assertTrue(core_glob_match(padded_string, padded_pattern))
+end subroutine test_glob_match_trailing_blanks_insignificant
+
+@test
+subroutine test_glob_list_excluded_simple()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(1)
+
+    patterns(1) = 'aerochem_vmr_*'
+
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('other_var', patterns))
+end subroutine test_glob_list_excluded_simple
+
+@test
+subroutine test_glob_list_excluded_keep_verb_first_match_wins()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(2)
+
+    ! gitignore-style: keep the verdict rows, exclude the rest of the family
+    patterns(1) = '!aerochem_vmr_post*'
+    patterns(2) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('unrelated_var', patterns))
+end subroutine test_glob_list_excluded_keep_verb_first_match_wins
+
+@test
+subroutine test_glob_list_excluded_order_matters()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(2)
+
+    ! With the broad exclude first, the keep-verb is never reached
+    patterns(1) = 'aerochem_vmr_*'
+    patterns(2) = '!aerochem_vmr_post*'
+
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+end subroutine test_glob_list_excluded_order_matters
+
+@test
+subroutine test_glob_list_excluded_blank_entries_skipped()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(4)
+
+    ! Fixed-size namelist arrays arrive mostly blank
+    patterns(1) = ''
+    patterns(2) = '!aerochem_vmr_post*'
+    patterns(3) = ''
+    patterns(4) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postnewnuc_so4_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_so4_a1', patterns))
+end subroutine test_glob_list_excluded_blank_entries_skipped
+
+@test
+subroutine test_glob_list_excluded_empty_list()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(0)
+
+    @assertFalse(core_glob_list_excluded('any_var', patterns))
+end subroutine test_glob_list_excluded_empty_list
+
+@test
+subroutine test_glob_list_excluded_multiple_keep_verbs()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(3)
+
+    ! Keep the verdict rows AND the cloud-borne (_c) rows, exclude the rest
+    ! of the family; names outside the family are compared as usual
+    patterns(1) = '!aerochem_vmr_post*'
+    patterns(2) = '!aerochem_vmr_*_c*'
+    patterns(3) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postnewnuc_so4_a1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_num_c1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_so4_c2', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_so4_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_ncl_a3', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_H2SO4', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_SOAG', patterns))
+    @assertFalse(core_glob_list_excluded('mam_del_h2so4_gasprod', patterns))
+end subroutine test_glob_list_excluded_multiple_keep_verbs
 end module test_string_core_utils

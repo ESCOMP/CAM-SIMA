@@ -12,6 +12,8 @@ module string_core_utils
     public :: increment_string           ! Increment a string whose ending characters are digits.
     public :: last_non_digit             ! Get position of last non-digit in the input string.
     public :: get_last_significant_char  ! Get position of last significant (non-blank, non-null) character in string.
+    public :: core_glob_match            ! Match a string against a '*'-wildcard glob pattern.
+    public :: core_glob_list_excluded    ! First-match-wins exclusion decision over an ordered glob pattern list ('!' keeps).
 
     interface tokenize
         module procedure tokenize_into_first_last
@@ -20,16 +22,16 @@ module string_core_utils
 
 contains
 
-    character(len=10) pure function core_to_str(n)
+    character(len=10) pure function core_to_str(n) result(str)
         ! return default integer as a left justified string
 
         integer, intent(in) :: n
     
-        write(core_to_str,'(i0)') n
+        write(str,'(i0)') n
     
     end function core_to_str
 
-    character(len=10) pure function core_int_date_to_yyyymmdd (date)
+    character(len=10) pure function core_int_date_to_yyyymmdd (date) result(date_str)
         ! Undefined behavior if date <= 0
 
         ! Input arguments
@@ -44,12 +46,12 @@ contains
         month = (date - year*10000) / 100
         day   = date - year*10000 - month*100
 
-        write(core_int_date_to_yyyymmdd, '(i4.4,A,i2.2,A,i2.2)') &
-                                           year,'-',month,'-',day
+        write(date_str, '(i4.4,A,i2.2,A,i2.2)') &
+                          year,'-',month,'-',day
 
     end function core_int_date_to_yyyymmdd
 
-    character(len=8) pure function core_int_seconds_to_hhmmss (seconds)
+    character(len=8) pure function core_int_seconds_to_hhmmss (seconds) result(time_str)
         ! Undefined behavior if seconds outside [0, 86400]
 
         ! Input arguments
@@ -64,8 +66,8 @@ contains
         minutes = (seconds - hours*3600) / 60
         secs    = (seconds - hours*3600 - minutes*60)
 
-        write(core_int_seconds_to_hhmmss,'(i2.2,A,i2.2,A,i2.2)') &
-                                        hours,':',minutes,':',secs
+        write(time_str,'(i2.2,A,i2.2,A,i2.2)') &
+                      hours,':',minutes,':',secs
 
     end function core_int_seconds_to_hhmmss
 
@@ -116,12 +118,12 @@ contains
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
     !> If `separator` is not supplied, it defaults to ", " (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
-    pure function stringify(value, separator)
+    pure function stringify(value, separator) result(str)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
 
         class(*), intent(in) :: value(:)
         character(*), optional, intent(in) :: separator
-        character(:), allocatable :: stringify
+        character(:), allocatable :: str
 
         integer, parameter :: sizelimit = 1024
 
@@ -138,7 +140,7 @@ contains
         n = min(size(value), sizelimit)
 
         if (n == 0) then
-            stringify = ''
+            str = ''
 
             return
         end if
@@ -220,12 +222,12 @@ contains
 
                 write(buffer, format) value
             class default
-                stringify = ''
+                str = ''
 
                 return
         end select
 
-        stringify = trim(buffer)
+        str = trim(buffer)
     end function stringify
 
     !> Parse a string into tokens. Each character in `set` is a token delimiter.
@@ -305,7 +307,7 @@ contains
     !  0 success
     ! -1 error: no trailing digits in string
     ! -2 error: incremented integer is out of range
-    integer function increment_string(s, inc)
+    integer function increment_string(s, inc) result(status)
         integer,          intent(in)    :: inc ! value to increment string (may be negative)
         character(len=*), intent(inout) :: s   ! string with trailing digits
 
@@ -323,7 +325,7 @@ contains
         ndigit = lstr - lnd
 
         if(ndigit == 0) then
-            increment_string = -1
+            status = -1
             return
         end if
 
@@ -339,7 +341,7 @@ contains
         ! Increment the integer
         ival = ival + inc
         if( ival < 0 .or. ival > 10**ndigit-1 ) then
-            increment_string = -2
+            status = -2
             return
         end if
 
@@ -351,7 +353,7 @@ contains
             pow    = pow - 1
         end do
 
-        increment_string = 0
+        status = 0
 
     end function increment_string
 
@@ -359,25 +361,25 @@ contains
     ! Return values:
     !     > 0  => position of last non-digit
     !     = 0  => token is all digits (or empty)
-    integer pure function last_non_digit(s)
+    integer pure function last_non_digit(s) result(pos)
         character(len=*), intent(in) :: s
         integer :: n, nn, digit
 
         n = get_last_significant_char(s)
         if(n == 0) then     ! empty string
-            last_non_digit = 0
+            pos = 0
             return
         end if
 
         do nn = n,1,-1
             digit = ICHAR(s(nn:nn)) - ICHAR('0')
             if( digit < 0 .or. digit > 9 ) then
-                last_non_digit = nn
+                pos = nn
             return
             end if
         end do
 
-        last_non_digit = 0    ! all characters are digits
+        pos = 0    ! all characters are digits
 
     end function last_non_digit
 
@@ -386,13 +388,13 @@ contains
     !   Return values:
     !       > 0  => position of last significant character
     !       = 0  => no significant characters in string
-    integer pure function get_last_significant_char(cs)
+    integer pure function get_last_significant_char(cs) result(pos)
         character(len=*), intent(in) :: cs       !  Input character string
         integer :: l, n
 
         l = LEN(cs)
         if( l == 0 ) then
-            get_last_significant_char = 0
+            pos = 0
             return
         end if
 
@@ -401,8 +403,97 @@ contains
                 exit
             end if
         end do
-        get_last_significant_char = n
+        pos = n
 
     end function get_last_significant_char
+
+    !> Match `string` against a glob `pattern` in which `*` matches any run of
+    !> characters, including an empty one; every other character, including `?`,
+    !> matches only itself. Trailing blanks in both arguments are not significant
+    !> (leading and embedded blanks are). An empty pattern matches only an empty
+    !> string. (2026-07-02)
+    pure logical function core_glob_match(string, pattern) result(is_match)
+        character(len=*), intent(in) :: string
+        character(len=*), intent(in) :: pattern
+
+        integer :: ls, lp   ! significant lengths of string/pattern
+        integer :: s, p     ! current positions in string/pattern
+        integer :: star_p   ! position of the most recent '*' in pattern (0 = none seen)
+        integer :: star_s   ! string position currently tried as that star's first unmatched character
+
+        ls = len_trim(string)
+        lp = len_trim(pattern)
+
+        s = 1
+        p = 1
+        star_p = 0
+        star_s = 0
+
+        do while (s <= ls)
+            if (p <= lp) then
+                if (pattern(p:p) == '*') then
+                    ! Record the star and first try matching it to nothing
+                    star_p = p
+                    star_s = s
+                    p = p + 1
+                    cycle
+                else if (pattern(p:p) == string(s:s)) then
+                    p = p + 1
+                    s = s + 1
+                    cycle
+                end if
+            end if
+            ! Mismatch: backtrack to the most recent star and extend its match
+            ! by one character; with no star to extend, the match fails.
+            if (star_p > 0) then
+                star_s = star_s + 1
+                s = star_s
+                p = star_p + 1
+            else
+                is_match = .false.
+                return
+            end if
+        end do
+
+        ! String fully consumed; the pattern matches if only stars remain
+        do while (p <= lp)
+            if (pattern(p:p) /= '*') exit
+            p = p + 1
+        end do
+        is_match = (p > lp)
+
+    end function core_glob_match
+
+    !> Decide whether `name` is excluded by an ordered list of glob `patterns`
+    !> (see `core_glob_match`). Patterns are evaluated in order and the FIRST
+    !> pattern whose glob matches decides: a pattern with a leading `!` keeps
+    !> the name (not excluded), any other pattern excludes it. A name matching
+    !> no pattern is not excluded; blank patterns are skipped, so fixed-size
+    !> namelist arrays can be passed directly. This enables gitignore-style
+    !> lists such as ['!aero_post*', 'aero_*'], which excludes the `aero_`
+    !> names except those beginning with `aero_post`. (2026-07-02)
+    pure logical function core_glob_list_excluded(name, patterns) result(excluded)
+        character(len=*), intent(in) :: name
+        character(len=*), intent(in) :: patterns(:)
+
+        integer :: i
+
+        excluded = .false.
+        do i = 1, size(patterns)
+            if (len_trim(patterns(i)) == 0) cycle
+            if (patterns(i)(1:1) == '!') then
+                if (core_glob_match(name, patterns(i)(2:))) then
+                    ! Keep-verb: a match means the name stays compared
+                    return
+                end if
+            else
+                if (core_glob_match(name, patterns(i))) then
+                    excluded = .true.
+                    return
+                end if
+            end if
+        end do
+
+    end function core_glob_list_excluded
 
 end module string_core_utils

@@ -56,6 +56,13 @@ inout-with-space = false
 [check.line-too-long]
 ignore-comments = false
 
+[check.per-file-ignores]
+# pFUnit generates a suite driver that calls every `@test` procedure by name,
+# so a test module has to export all of them.
+'*.pf' = [
+    'C132' # Module has default `public` accessibility
+]
+
 [check.portability]
 allow-cray-file-units = false
 
