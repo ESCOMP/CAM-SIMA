@@ -966,7 +966,9 @@ class AtmInParamGen(ParamGen):
         """
         Append a new AtmInParamGen object
         to this one, ensuring that there are
-        no duplicate namelist groups or variables.
+        no duplicate namelist variables.
+        Multiple XML files may contribute variables
+        to the same namelist group.
         ----------
         atm_pg_obj -> An AtmInParamGen object
 
@@ -974,46 +976,24 @@ class AtmInParamGen(ParamGen):
         #Loop over all XML files associated with input atm_pg object:
         for input_file in atm_pg_obj.__nml_def_groups:
 
-            #Extract the group and variable sets from input PG object:
-            input_groups = atm_pg_obj.__nml_def_groups[input_file]
-            input_vars   = atm_pg_obj.__nml_def_vars[input_file]
-
-            #Check that there are no matching namelist groups:
-            #------------------------------------------------
+            #Extract the variable set from input PG object:
+            input_vars = atm_pg_obj.__nml_def_vars[input_file]
 
             #Initialize error message string:
             emsg = ""
-
-            #Loop over all namelist files and namelist group sets:
-            for nml_file, nml_groups in self.__nml_def_groups.items():
-
-                #Determine if any namelist groups are the same
-                #between the two objects:
-                same_groups = nml_groups.intersection(input_groups)
-
-                #If so, then add to error message (as all namelist groups must be unique):
-                if same_groups:
-                    emsg += f"Cannot append:\n'{input_file}'\n"
-                    emsg += " The following namelist groups conflict with those in"
-                    emsg += f"\n'{nml_file} :'\n"
-                    emsg += ", ".join(same_groups)
-                #End if
-            #End for
-
-            #------------------------------------------------
 
             #Check that there are no matching namelist variables:
             #------------------------------------------------
             for nml_file, nml_vars in self.__nml_def_vars.items():
 
-                #Determine if any namelist groups are the same
+                #Determine if any namelist variables are the same
                 #between the two objects:
                 same_vars = nml_vars.intersection(input_vars)
 
                 #If so, then add to error message (as all namelist variable ids must be unique):
                 if same_vars:
                     emsg += f"Cannot append:\n'{input_file}'\n"
-                    emsg += " The following namelist variablesconflict with those in"
+                    emsg += " The following namelist variables conflict with those in"
                     emsg += f"\n'{nml_file} :'\n"
                     emsg += ", ".join(same_vars)
                 #End if
@@ -1026,7 +1006,7 @@ class AtmInParamGen(ParamGen):
         #error(s) here:
         if emsg:
             raise AtmInParamGenError(emsg)
-        #Endd if
+        #End if
 
         #Add input PG object dictionaries to this object's dicts:
         self.__nml_def_groups.update(atm_pg_obj.__nml_def_groups)
