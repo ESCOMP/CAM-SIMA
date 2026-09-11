@@ -213,6 +213,7 @@ subroutine test_surf_area_dens()
     use aerosol_mmr_host, only: aero_host_binding
     use modal_aerosol_properties_mod, only: modal_aerosol_properties
     use radiative_aerosol, only: cleanup_mock_rad_aer
+    use physconst, only: rair
     use modal_test_helpers, only: setup_2mode_mock, sigmag_accum
     use physics_types, only: dgncur_awet
 
@@ -264,12 +265,12 @@ subroutine test_surf_area_dens()
     ! only sulfate counts toward the surface area; bc still contributes to
     ! the mode mass used for the number weighting
     call state%surf_area_dens(props, [character(len=32) :: 'sulfate'], &
-         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, sad, reff, &
+         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, rair, sad, reff, &
          sfc=sfc, dm_aer=dm_aer)
 
     ! Expected mode 1 surface area of a lognormal distribution with the wet
     ! diameter as geometric mean, mass-weighted by the in-list fraction.
-    rho_air = pmid_val/(temp_val*287.04_r8)
+    rho_air = pmid_val/(temp_val*rair)
     alogsig = log(sigmag_accum)
     wght = mmr_so4/(mmr_so4 + mmr_bc)
     sad_expected = 1.e-2_r8*wght*num_a1*rho_air*pi*diam1**2*exp(2._r8*alogsig**2)
@@ -301,6 +302,7 @@ subroutine test_surf_area_dens_mode_gating()
     use modal_aerosol_state_mod, only: modal_aerosol_state
     use aerosol_mmr_host, only: aero_host_binding
     use modal_aerosol_properties_mod, only: modal_aerosol_properties
+    use physconst, only: rair
     use radiative_aerosol, only: setup_mock_modal_rad_aer, cleanup_mock_rad_aer
     use physics_types, only: dgncur_awet
 
@@ -387,10 +389,10 @@ subroutine test_surf_area_dens_mode_gating()
 
     call state%surf_area_dens(props, &
          [character(len=32) :: 'sulfate', 'black-c'], &
-         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, sad, reff, sfc=sfc)
+         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, rair, sad, reff, sfc=sfc)
 
     ! only mode 2 contributes, with the full mode mass in-list
-    rho_air = pmid_val/(temp_val*287.04_r8)
+    rho_air = pmid_val/(temp_val*rair)
     alogsig = log(sigmag2)
     sad_expected = 1.e-2_r8*num_a2*rho_air*pi*diam2**2*exp(2._r8*alogsig**2)
 
