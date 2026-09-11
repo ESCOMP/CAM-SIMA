@@ -22,16 +22,16 @@ module string_core_utils
 
 contains
 
-    character(len=10) pure function core_to_str(n)
+    character(len=10) pure function core_to_str(n) result(str)
         ! return default integer as a left justified string
 
         integer, intent(in) :: n
     
-        write(core_to_str,'(i0)') n
+        write(str,'(i0)') n
     
     end function core_to_str
 
-    character(len=10) pure function core_int_date_to_yyyymmdd (date)
+    character(len=10) pure function core_int_date_to_yyyymmdd (date) result(date_str)
         ! Undefined behavior if date <= 0
 
         ! Input arguments
@@ -46,12 +46,12 @@ contains
         month = (date - year*10000) / 100
         day   = date - year*10000 - month*100
 
-        write(core_int_date_to_yyyymmdd, '(i4.4,A,i2.2,A,i2.2)') &
-                                           year,'-',month,'-',day
+        write(date_str, '(i4.4,A,i2.2,A,i2.2)') &
+                          year,'-',month,'-',day
 
     end function core_int_date_to_yyyymmdd
 
-    character(len=8) pure function core_int_seconds_to_hhmmss (seconds)
+    character(len=8) pure function core_int_seconds_to_hhmmss (seconds) result(time_str)
         ! Undefined behavior if seconds outside [0, 86400]
 
         ! Input arguments
@@ -66,8 +66,8 @@ contains
         minutes = (seconds - hours*3600) / 60
         secs    = (seconds - hours*3600 - minutes*60)
 
-        write(core_int_seconds_to_hhmmss,'(i2.2,A,i2.2,A,i2.2)') &
-                                        hours,':',minutes,':',secs
+        write(time_str,'(i2.2,A,i2.2,A,i2.2)') &
+                      hours,':',minutes,':',secs
 
     end function core_int_seconds_to_hhmmss
 
@@ -118,12 +118,12 @@ contains
     !> If `value` contains zero element or is of unsupported data types, an empty character string is produced.
     !> If `separator` is not supplied, it defaults to ", " (i.e., a comma and a space).
     !> (KCW, 2024-02-04)
-    pure function stringify(value, separator)
+    pure function stringify(value, separator) result(str)
         use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
 
         class(*), intent(in) :: value(:)
         character(*), optional, intent(in) :: separator
-        character(:), allocatable :: stringify
+        character(:), allocatable :: str
 
         integer, parameter :: sizelimit = 1024
 
@@ -140,7 +140,7 @@ contains
         n = min(size(value), sizelimit)
 
         if (n == 0) then
-            stringify = ''
+            str = ''
 
             return
         end if
@@ -222,12 +222,12 @@ contains
 
                 write(buffer, format) value
             class default
-                stringify = ''
+                str = ''
 
                 return
         end select
 
-        stringify = trim(buffer)
+        str = trim(buffer)
     end function stringify
 
     !> Parse a string into tokens. Each character in `set` is a token delimiter.
@@ -307,7 +307,7 @@ contains
     !  0 success
     ! -1 error: no trailing digits in string
     ! -2 error: incremented integer is out of range
-    integer function increment_string(s, inc)
+    integer function increment_string(s, inc) result(status)
         integer,          intent(in)    :: inc ! value to increment string (may be negative)
         character(len=*), intent(inout) :: s   ! string with trailing digits
 
@@ -325,7 +325,7 @@ contains
         ndigit = lstr - lnd
 
         if(ndigit == 0) then
-            increment_string = -1
+            status = -1
             return
         end if
 
@@ -341,7 +341,7 @@ contains
         ! Increment the integer
         ival = ival + inc
         if( ival < 0 .or. ival > 10**ndigit-1 ) then
-            increment_string = -2
+            status = -2
             return
         end if
 
@@ -353,7 +353,7 @@ contains
             pow    = pow - 1
         end do
 
-        increment_string = 0
+        status = 0
 
     end function increment_string
 
@@ -361,25 +361,25 @@ contains
     ! Return values:
     !     > 0  => position of last non-digit
     !     = 0  => token is all digits (or empty)
-    integer pure function last_non_digit(s)
+    integer pure function last_non_digit(s) result(pos)
         character(len=*), intent(in) :: s
         integer :: n, nn, digit
 
         n = get_last_significant_char(s)
         if(n == 0) then     ! empty string
-            last_non_digit = 0
+            pos = 0
             return
         end if
 
         do nn = n,1,-1
             digit = ICHAR(s(nn:nn)) - ICHAR('0')
             if( digit < 0 .or. digit > 9 ) then
-                last_non_digit = nn
+                pos = nn
             return
             end if
         end do
 
-        last_non_digit = 0    ! all characters are digits
+        pos = 0    ! all characters are digits
 
     end function last_non_digit
 
@@ -388,13 +388,13 @@ contains
     !   Return values:
     !       > 0  => position of last significant character
     !       = 0  => no significant characters in string
-    integer pure function get_last_significant_char(cs)
+    integer pure function get_last_significant_char(cs) result(pos)
         character(len=*), intent(in) :: cs       !  Input character string
         integer :: l, n
 
         l = LEN(cs)
         if( l == 0 ) then
-            get_last_significant_char = 0
+            pos = 0
             return
         end if
 
@@ -403,7 +403,7 @@ contains
                 exit
             end if
         end do
-        get_last_significant_char = n
+        pos = n
 
     end function get_last_significant_char
 

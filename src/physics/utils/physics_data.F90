@@ -56,9 +56,9 @@ module physics_data
    ! lowercased): the case of a row's label is an artifact of how its
    ! constituent was registered (capgen lowercases derived standard names)
    ! and the framework treats names differing only in case as the same.
-   character(len=verbose_name_len), allocatable, save :: check_exclude_patterns(:)
-   integer, save :: num_excluded_entries = 0
-   character(len=verbose_name_len), save :: excluded_stdnames(max_verbose_entries)
+   character(len=verbose_name_len), allocatable :: check_exclude_patterns(:)
+   integer :: num_excluded_entries = 0
+   character(len=verbose_name_len) :: excluded_stdnames(max_verbose_entries)
 
 !==============================================================================
 contains
@@ -1427,6 +1427,7 @@ contains
 
       !Local variables:
       integer :: i, num_patterns, ierr
+      character(len=256) :: errmsg
       character(len=*), parameter :: subname = 'set_check_field_exclusions'
 
       num_patterns = 0
@@ -1439,8 +1440,8 @@ contains
       if (allocated(check_exclude_patterns)) then
          deallocate(check_exclude_patterns)
       end if
-      allocate(check_exclude_patterns(num_patterns), stat=ierr)
-      call check_allocate(ierr, subname, 'check_exclude_patterns')
+      allocate(check_exclude_patterns(num_patterns), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'check_exclude_patterns', errmsg=errmsg)
 
       num_patterns = 0
       do i = 1, size(patterns)
@@ -1452,7 +1453,7 @@ contains
 
    end subroutine set_check_field_exclusions
 
-   logical function check_field_excluded(stdname)
+   logical function check_field_excluded(stdname) result(excluded)
       !
       ! Decide whether a check row is excluded from comparison by the
       ! ncdata_check_exclude patterns; excluded rows are buffered and later
@@ -1467,7 +1468,7 @@ contains
       !Dummy variables:
       character(len=*), intent(in) :: stdname
 
-      check_field_excluded = .false.
+      excluded = .false.
       if (.not. allocated(check_exclude_patterns)) then
          return
       end if
@@ -1475,11 +1476,10 @@ contains
          return
       end if
 
-      check_field_excluded = core_glob_list_excluded(                         &
+      excluded = core_glob_list_excluded(                                     &
          to_lower(trim(stdname)), check_exclude_patterns)
 
-      if (check_field_excluded .and.                                          &
-          (num_excluded_entries < max_verbose_entries)) then
+      if (excluded .and. (num_excluded_entries < max_verbose_entries)) then
          num_excluded_entries = num_excluded_entries + 1
          excluded_stdnames(num_excluded_entries) = stdname
       end if

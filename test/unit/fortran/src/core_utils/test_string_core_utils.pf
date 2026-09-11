@@ -207,7 +207,8 @@ subroutine test_stringify_floating_point_array()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-10000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+    r32arr(:) = [-10000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 10000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Each value should have a fixed width of 13. Only negative values should have signs.
@@ -240,7 +241,8 @@ subroutine test_stringify_floating_point_scientific_notation()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-100000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 100000.0]
+    r32arr(:) = [-100000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 100000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Scientific notation should be enabled if there is any value with a magnitude >= 1.0E+5.
@@ -274,7 +276,8 @@ subroutine test_stringify_floating_point_extreme_values()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-huge(r32arr), -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, huge(r32arr)]
+    r32arr(:) = [-huge(r32arr), -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, huge(r32arr)]
     r64arr(:) = real(r32arr, real64)
     r64arr(1) = -9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
     r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
