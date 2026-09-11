@@ -697,7 +697,7 @@ CONTAINS
       class(hist_file_t), intent(inout) :: this
       integer, intent(in) :: day
       integer, intent(in) :: sec
-      integer, parameter :: seconds_per_day = 86400._r8
+      real(r8), parameter :: seconds_per_day = 86400._r8
 
       this%beg_time = day + (sec/seconds_per_day)
 
@@ -1861,6 +1861,12 @@ CONTAINS
            masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_interp_type, flen, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
+      call MPI_Bcast(hist_interp_out, 1, MPI_LOGICAL, masterprocid,           &
+           mpicom, ierr)
+      call MPI_Bcast(hist_interp_nlat, 1, MPI_INTEGER, masterprocid,          &
+           mpicom, ierr)
+      call MPI_Bcast(hist_interp_nlon, 1, MPI_INTEGER, masterprocid,          &
+           mpicom, ierr)
       call MPI_Bcast(hist_filename_spec, CL, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
       ! Configure the history file

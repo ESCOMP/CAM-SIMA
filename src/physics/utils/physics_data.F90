@@ -788,8 +788,9 @@ contains
             local_count        = 0
 
             do col = 1, size(buffer)
-               ! First, check if there are NaNs anywhere in the state
-               if (shr_infnan_isnan(current_value(col))) then
+               ! First, check if there are NaNs anywhere in the state or snapshot
+               if (shr_infnan_isnan(current_value(col)) .or.                     &
+                   shr_infnan_isnan(buffer(col))) then
                   nan_count = nan_count + 1
 
                   if (.not. has_nan) then ! First NaN found for this variable
@@ -1008,8 +1009,9 @@ contains
 
             do lev = 1, num_levs
                do col = 1, size(buffer(:,lev))
-                  ! First, check if there are NaNs anywhere in the state
-                  if (shr_infnan_isnan(current_value(col, lev))) then
+                  ! First, check if there are NaNs anywhere in the state or snapshot
+                  if (shr_infnan_isnan(current_value(col, lev)) .or.             &
+                      shr_infnan_isnan(buffer(col, lev))) then
                      nan_count = nan_count + 1
 
                      if (.not. has_nan) then ! First NaN found for this variable

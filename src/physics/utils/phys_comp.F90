@@ -179,6 +179,8 @@ CONTAINS
       use cam_thermo,                only: cam_thermo_init
       use cam_thermo_formula,        only: cam_thermo_formula_init
       use physics_types,             only: allocate_physics_types_fields
+      use physics_types,             only: dtime_phys
+      use time_manager,              only: get_step_size
       use cam_ccpp_cap,              only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,              only: cam_constituents_array
       use cam_ccpp_cap,              only: cam_model_const_properties
@@ -199,6 +201,12 @@ CONTAINS
 
       !Allocate CAM-SIMA registry variables:
       call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
+
+      !allocate_physics_types_fields resets dtime_phys (timestep_for_physics,
+      !no registry initial value) to NaN; seed it with the true step size so
+      !CCPP init phases (e.g., rrtmgp_inputs_setup with use_rad_dt_cosz) see
+      !a valid timestep. stepon_timestep_init updates it every timestep.
+      dtime_phys = real(get_step_size(), kind_phys)
 
       !Run CCPP "init" phase:
       call cam_ccpp_physics_initialize(phys_suite_name)
