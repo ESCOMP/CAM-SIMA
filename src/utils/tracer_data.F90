@@ -1029,7 +1029,7 @@ contains
         filepath = trim(filenames_list)
       end if
 
-      open (newunit=unitnumber, file=filepath, action='read', iostat=ios, iomsg=errmsg, status="OLD")
+      open (newunit=unitnumber, file=filepath, action='read', iostat=ios, iomsg=errmsg, status='OLD')
       if (ios /= 0) then
         call endrun('not able to open file: '//trim(filepath)//'; error = '// trim(errmsg))
       end if
@@ -1145,7 +1145,7 @@ contains
     real(r8), allocatable, dimension(:) :: all_data_times
 
     character(len=shr_kind_cm) :: errmsg
-    character(len=*), parameter :: subname = "find_times"
+    character(len=*), parameter :: subname = 'find_times'
 
     curr_tsize = size(file%curr_data_times)
     next_tsize = 0
@@ -1444,7 +1444,7 @@ contains
     real(r8) :: file_lats(file%nlat)
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_2d_trc"
+    character(len=*), parameter :: subname = 'read_2d_trc'
 
     nullify (wrk2d_in)
     allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
@@ -1543,10 +1543,10 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
 
     type(file_desc_t), intent(in) :: fid
-    type(var_desc_t), intent(in) :: vid
-    integer, intent(in) :: strt(:), cnt(:)
-    integer, intent(in) :: order(2)
-    real(r8), intent(out):: loc_arr(:, :)
+    type(var_desc_t),  intent(in) :: vid
+    integer,           intent(in) :: strt(:), cnt(:)
+    integer,           intent(in) :: order(2)
+    real(r8), intent(out) :: loc_arr(:, :)
     type(trfile), intent(in) :: file
 
     type(interp_type) :: lat_wgts
@@ -1555,7 +1555,7 @@ contains
     real(r8), pointer :: wrk2d_in(:, :)
     integer :: k, ierr
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_za_trc"
+    character(len=*), parameter :: subname = 'read_za_trc'
 
     nullify (wrk2d_in)
     allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
@@ -1685,7 +1685,7 @@ contains
     type(interp_type) :: lon_wgts, lat_wgts
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_3d_trc"
+    character(len=*), parameter :: subname = 'read_3d_trc'
 
     loc_arr(:, :) = 0._r8
     nullify (wrk3d_in)
@@ -1991,7 +1991,7 @@ contains
     integer,           intent(in)     :: cyc_yr
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "set_cycle_indices"
+    character(len=*), parameter :: subname = 'set_cycle_indices'
 
     integer, allocatable, dimension(:) :: dates
     integer :: timesize, i, errflg, year, ierr
@@ -2058,7 +2058,7 @@ contains
     integer :: err_handling
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "open_trc_datafile"
+    character(len=*), parameter :: subname = 'open_trc_datafile'
 
     if (len_trim(path) == 0) then
       filepath = trim(fname)

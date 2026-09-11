@@ -26,7 +26,7 @@ module time_manager
 
 ! Public methods
 
-public ::&
+public :: &
    timemgr_init,             &! time manager initialization
    advance_timestep,         &! increment the clocks current time
    get_step_size,            &! return step size in seconds
@@ -89,17 +89,17 @@ subroutine timemgr_init( &
 
    ! Arguments
    integer,          intent(in) :: dtime_in       ! Coupling period (sec)
-   character(len=*), intent(IN) :: calendar_in    ! Calendar type
-   integer,          intent(IN) :: start_ymd      ! Start date (YYYYMMDD)
-   integer,          intent(IN) :: start_tod      ! Start time of day (sec)
-   integer,          intent(IN) :: ref_ymd        ! Reference date (YYYYMMDD)
-   integer,          intent(IN) :: ref_tod        ! Reference time of day (sec)
-   integer,          intent(IN) :: stop_ymd       ! Stop date (YYYYMMDD)
-   integer,          intent(IN) :: stop_tod       ! Stop time of day (sec)
-   integer,          intent(IN) :: curr_ymd       ! current date (YYYYMMDD)
-   integer,          intent(IN) :: curr_tod       ! current time of day (sec)
-   logical,          intent(IN) :: perpetual_run  ! If in perpetual mode or not
-   integer,          intent(IN) :: perpetual_ymd  ! Perpetual date (YYYYMMDD)
+   character(len=*), intent(in) :: calendar_in    ! Calendar type
+   integer,          intent(in) :: start_ymd      ! Start date (YYYYMMDD)
+   integer,          intent(in) :: start_tod      ! Start time of day (sec)
+   integer,          intent(in) :: ref_ymd        ! Reference date (YYYYMMDD)
+   integer,          intent(in) :: ref_tod        ! Reference time of day (sec)
+   integer,          intent(in) :: stop_ymd       ! Stop date (YYYYMMDD)
+   integer,          intent(in) :: stop_tod       ! Stop time of day (sec)
+   integer,          intent(in) :: curr_ymd       ! current date (YYYYMMDD)
+   integer,          intent(in) :: curr_tod       ! current time of day (sec)
+   logical,          intent(in) :: perpetual_run  ! If in perpetual mode or not
+   integer,          intent(in) :: perpetual_ymd  ! Perpetual date (YYYYMMDD)
    logical,          intent(in) :: initial_run    ! true => initial (or startup) run
 
    ! Local variables
@@ -257,11 +257,11 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
 !
 ! Set the time as a float given year, month, day, sec
 !
-  real(r8),intent(out):: time
-  integer, intent(in) :: year
-  integer, intent(in) :: month
-  integer, intent(in) :: day
-  integer, intent(in) :: sec
+  real(r8),intent(out) :: time
+  integer, intent(in)  :: year
+  integer, intent(in)  :: month
+  integer, intent(in)  :: day
+  integer, intent(in)  :: sec
 
   integer :: rc                    ! return code
   character(len=*), parameter :: sub = 'set_time_float_from_date'
@@ -290,7 +290,7 @@ subroutine set_time_float_from_date( time, year, month, day, sec )
   call ESMF_TimeIntervalGet( diff, d_r8=time, rc=rc)
   call chkrc(rc, sub//': error return from ESMF_TimeIntervalGet for set_time_float_from_date')
 
-endsubroutine set_time_float_from_date
+end subroutine set_time_float_from_date
 
 !=========================================================================================
 
@@ -321,7 +321,7 @@ subroutine set_date_from_time_float( time, year, month, day, sec )
   call ESMF_TimeGet( date, yy=year, mm=month, dd=day, s=sec, rc=rc)
   call chkrc(rc, sub//': error return from ESMF_TimeGet for set_date_from_time_float')
 
-endsubroutine set_date_from_time_float
+end subroutine set_date_from_time_float
 
 !=========================================================================================
 
@@ -355,8 +355,8 @@ end function TimeGetymd
 
 subroutine timemgr_set_date_time( new_ymd, new_tod )
 
-   integer,          intent(IN) :: new_ymd  ! date (YYYYMMDD)
-   integer,          intent(IN) :: new_tod  ! time of day (sec)
+   integer,          intent(in) :: new_ymd  ! date (YYYYMMDD)
+   integer,          intent(in) :: new_tod  ! time of day (sec)
 
    type(ESMF_Time) :: new_time   ! new time obj
    type(ESMF_Time) :: clk_time   ! clock's time obj
@@ -927,7 +927,7 @@ function get_curr_calday(offset) result(calday)
    if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
       calday = calday - 1.0_r8
-   endif
+   end if
 
    if ( (calday < 1.0_r8) .or. (calday > 366.0_r8) )then
       write(iulog,*) 'atm '//sub//' calday = ', calday
@@ -973,7 +973,7 @@ function get_calday(ymd, tod) result(calday)
    if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
       calday = calday - 1.0_r8
-   endif
+   end if
 
    if ( (calday < 1.0_r8) .or. (calday > 366.0_r8) )then
       write(iulog,*) 'atm '//sub//' calday = ', calday
