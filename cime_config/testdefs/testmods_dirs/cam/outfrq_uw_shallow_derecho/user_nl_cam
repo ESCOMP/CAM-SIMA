@@ -1,0 +1,23 @@
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc5_uw_convect_shallow_snapshot_derecho_gnu_before_c20260604.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc5_uw_convect_shallow_snapshot_derecho_gnu_after_c20260604.nc'
+
+debug_output = 1
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+! FHIST_C5 snapshot:
+pver = 30
+
+! snapshot is sourced from the SE dycore:
+uwshcu_rpen = 5.0
+
+! history fields for CAM5 shallow convection:
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1: CMFDT,CMFDQ,CMFDLIQ,CMFDICE,CMFDQR,DQP,ICWMRSH,CMFSL,CMFLQ,FREQSH,CMFMCSH,PRECSH
+hist_add_inst_fields;h1: UWFLXPRC,UWFLXSNW
+hist_add_inst_fields;h1: qtflx_Cu, slflx_Cu, uflx_Cu, vflx_Cu, qtten_Cu, slten_Cu, uten_Cu, vten_Cu, qvten_Cu, qlten_Cu, qiten_Cu, cbmf_Cu, ufrcinvbase_Cu, ufrclcl_Cu, winvbase_Cu, wlcl_Cu, plcl_Cu, pinv_Cu, plfc_Cu, pbup_Cu, ppen_Cu, qtsrc_Cu, thlsrc_Cu, thvlsrc_Cu, emfkbup_Cu, cin_Cu, cinlcl_Cu, cbmflimit_Cu, tkeavg_Cu, zinv_Cu, rcwp_Cu, rlwp_Cu, riwp_Cu, tophgt_Cu, wu_Cu, ufrc_Cu, qtu_Cu, thlu_Cu, thvu_Cu, uu_Cu, vu_Cu, qtu_emf_Cu, thlu_emf_Cu, uu_emf_Cu, vu_emf_Cu, umf_Cu, uemf_Cu, qcu_Cu, qlu_Cu, qiu_Cu, cufrc_Cu, fer_Cu, fdr_Cu, dwten_Cu, diten_Cu, qrten_Cu, qsten_Cu, flxrain_Cu, flxsnow_Cu, ntraprd_Cu, ntsnprd_Cu, excessu_Cu, excess0_Cu, xc_Cu, aquad_Cu, bquad_Cu, cquad_Cu, bogbot_Cu, bogtop_Cu, exit_UWCu_Cu, exit_conden_Cu, exit_klclpver_Cu, exit_klfcpver_Cu, exit_ufrc_Cu, exit_wtw_Cu, exit_drycore_Cu, exit_wu_Cu, exit_cufilter_Cu, exit_kinv1_Cu, exit_rei_Cu, limit_shcu_Cu, limit_negcon_Cu, limit_ufrc_Cu, limit_ppen_Cu, limit_emf_Cu, limit_cinlcl_Cu, limit_cin_Cu, limit_cbmf_Cu, limit_rei_Cu, ind_delcin_Cu
+hist_precision;h1: REAL64
+
