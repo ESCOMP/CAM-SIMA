@@ -46,16 +46,10 @@ module physics_data
    real(r8)                        :: verbose_avg_model(max_verbose_entries)
    real(r8)                        :: verbose_avg_snapshot(max_verbose_entries)
 
-   ! Check-exclusion patterns (the ncdata_check_exclude namelist option,
-   ! stored via set_check_field_exclusions): ordered '*'-glob patterns
-   ! matched against the label each check row is reported under; the first
-   ! matching pattern decides and a leading '!' keeps (still compares) a
-   ! matching row. Excluded rows skip the comparison entirely but are
-   ! buffered here and listed by flush_check_field_verbose, so exclusion
-   ! is never silent. Matching is case-insensitive (patterns are stored
-   ! lowercased): the case of a row's label is an artifact of how its
-   ! constituent was registered (capgen lowercases derived standard names)
-   ! and the framework treats names differing only in case as the same.
+   ! Module-level storage for check-exclusion patterns.  Rows that match
+   ! a given '*'-glob pattern are excluded from check_field, but are
+   ! flushed to the log via flush_check_field_verbose so that an excluded
+   ! check is not fully silent.
    character(len=verbose_name_len), allocatable :: check_exclude_patterns(:)
    integer :: num_excluded_entries = 0
    character(len=verbose_name_len) :: excluded_stdnames(max_verbose_entries)
@@ -773,8 +767,8 @@ contains
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
-      !Skip rows excluded by the ncdata_check_exclude namelist option;
-      !excluded rows are buffered and listed by flush_check_field_verbose:
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
       diff_found = .false.
       if (check_field_excluded(stdname)) return
 
@@ -987,8 +981,8 @@ contains
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
-      !Skip rows excluded by the ncdata_check_exclude namelist option;
-      !excluded rows are buffered and listed by flush_check_field_verbose:
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
       diff_found = .false.
       if (check_field_excluded(stdname)) return
 
@@ -1224,8 +1218,8 @@ contains
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
-      !Skip rows excluded by the ncdata_check_exclude namelist option;
-      !excluded rows are buffered and listed by flush_check_field_verbose:
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
       diff_found = .false.
       if (check_field_excluded(stdname)) return
 
@@ -1441,7 +1435,7 @@ contains
          deallocate(check_exclude_patterns)
       end if
       allocate(check_exclude_patterns(num_patterns), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'check_exclude_patterns', errmsg=errmsg)
+      call check_allocate(ierr, subname, 'check_exclude_patterns(num_patterns)', errmsg=errmsg)
 
       num_patterns = 0
       do i = 1, size(patterns)
@@ -1457,10 +1451,7 @@ contains
       !
       ! Decide whether a check row is excluded from comparison by the
       ! ncdata_check_exclude patterns; excluded rows are buffered and later
-      ! listed by flush_check_field_verbose. Matching is case-insensitive
-      ! (see the check_exclude_patterns declaration). Runs identically on
-      ! all ranks (the patterns arrive via the namelist broadcast), so the
-      ! collective MPI calls inside check_field stay aligned.
+      ! listed by flush_check_field_verbose. Matching is case-insensitive.
       !
       use string_core_utils, only: core_glob_list_excluded
       use string_utils,      only: to_lower
@@ -1587,13 +1578,12 @@ contains
       integer            :: i, slen
       integer, parameter :: indent_level = 50
 
-      !List and reset the rows excluded by ncdata_check_exclude (all ranks
-      !buffer identically; only masterproc prints):
+      !List and reset the rows/variables excluded by ncdata_check_exclude:
       if (masterproc .and. (num_excluded_entries > 0)) then
          write(iulog, *) ''
          write(iulog, '(1x,a,i0,a)')                                          &
             'Excluded from comparison by ncdata_check_exclude (',             &
-            num_excluded_entries, ' rows, no diffs computed):'
+            num_excluded_entries, ' fields, no diffs computed):'
          do i = 1, num_excluded_entries
             write(iulog, '(4x,a)') trim(excluded_stdnames(i))
          end do

@@ -7,7 +7,7 @@ module string_core_utils
     public :: core_int_date_to_yyyymmdd  ! Convert encoded date integer to "yyyy-mm-dd" format
     public :: core_int_seconds_to_hhmmss ! Convert integer seconds past midnight to "hh:mm:ss" format
     public :: split                      ! Parse a string into tokens, one at a time
-    public :: stringify                  ! Convert one or more values of any intrinsic data types to a character string for pretty printing
+    public :: stringify                  ! Convert one or more values of any intrinsic data types to a character string.
     public :: tokenize                   ! Parse a string into tokens
     public :: increment_string           ! Increment a string whose ending characters are digits.
     public :: last_non_digit             ! Get position of last non-digit in the input string.
@@ -26,9 +26,9 @@ contains
         ! return default integer as a left justified string
 
         integer, intent(in) :: n
-    
+
         write(str,'(i0)') n
-    
+
     end function core_to_str
 
     character(len=10) pure function core_int_date_to_yyyymmdd (date) result(date_str)
@@ -340,7 +340,7 @@ contains
 
         ! Increment the integer
         ival = ival + inc
-        if( ival < 0 .or. ival > 10**ndigit-1 ) then
+        if(ival < 0 .or. ival > 10**ndigit-1) then
             status = -2
             return
         end if
@@ -348,8 +348,8 @@ contains
         ! Overwrite trailing digits
         pow = ndigit
         do i = lnd+1,lstr
-            digit  = MOD( ival,10**pow ) / 10**(pow-1)
-            s(i:i) = CHAR( ICHAR('0') + digit )
+            digit  = MOD(ival,10**pow) / 10**(pow-1)
+            s(i:i) = CHAR(ICHAR('0') + digit)
             pow    = pow - 1
         end do
 
@@ -411,7 +411,7 @@ contains
     !> characters, including an empty one; every other character, including `?`,
     !> matches only itself. Trailing blanks in both arguments are not significant
     !> (leading and embedded blanks are). An empty pattern matches only an empty
-    !> string. (2026-07-02)
+    !> string.
     pure logical function core_glob_match(string, pattern) result(is_match)
         character(len=*), intent(in) :: string
         character(len=*), intent(in) :: pattern
@@ -471,7 +471,7 @@ contains
     !> no pattern is not excluded; blank patterns are skipped, so fixed-size
     !> namelist arrays can be passed directly. This enables gitignore-style
     !> lists such as ['!aero_post*', 'aero_*'], which excludes the `aero_`
-    !> names except those beginning with `aero_post`. (2026-07-02)
+    !> names except those beginning with `aero_post`.
     pure logical function core_glob_list_excluded(name, patterns) result(excluded)
         character(len=*), intent(in) :: name
         character(len=*), intent(in) :: patterns(:)

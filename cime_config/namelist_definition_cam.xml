@@ -236,28 +236,23 @@
     <desc>
       Ordered list of glob patterns ('*' matches any run of characters)
       excluding variables from the `{{ hilight }}ncdata_check{{ closehilight }}`
-      comparison, matched against the name each row is reported under in the
-      physics check output (for constituent-dimensioned variables, the
-      per-constituent file variable name). Matching is case-insensitive,
-      since the case of a row's name depends on how its constituent was
-      registered and the CCPP framework treats standard names differing
-      only in case as the same.
+      comparison.  These case-insensitive patterns are matched against
+      the name reported in the physics check output.
 
-      gitignore-style keep is supported:
-      A pattern with a leading '!' keeps (still compares) the name, any other pattern excludes it;
-      names matching no pattern are compared.
+      For constituent-dimensioned variables, the per-constituent
+      file variable name is used.
+
+      A gitignore-style keep is also supported:
+      A pattern with a leading '!' keeps (still compares) the name,
+      any other pattern excludes it; names matching no pattern are compared.
       The first pattern that matches a name decides.
 
       Example: '!aerochem_vmr_post*', 'aerochem_vmr_*' excludes the aerochem_vmr rows except the aerochem_vmr_post* ones.
 
       Excluded rows are listed in the check output and are not silently dropped.
 
-      This is intended to be used in conjunction with ncdata_check_err=.true. in testmods to exclude any expected
-      differences (i.e., where some variables are not to be compared against this snapshot) by design,
-      this would allow for a hard pass/fail test despite such expected differences.
-
-      Such exclusions should be annotated with a reason next to the ncdata_check_exclude
-      clause in the testmod user_nl_cam.
+      This is intended to be used in conjunction with ncdata_check_err=.true.
+      in testmods to exclude any expected differences.
 
       Default: '' (no exclusions)
     </desc>
