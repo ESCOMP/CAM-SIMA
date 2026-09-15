@@ -17,6 +17,12 @@
         fxtag         = v8.4.2
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
+[submodule "scotch"]
+        path          = src/dynamics/mpas/scotch
+        url           = https://gitlab.inria.fr/scotch/scotch.git
+        fxtag         = v7.0.15
+        fxrequired    = AlwaysOptional
+        fxDONOTUSEurl = https://gitlab.inria.fr/scotch/scotch.git
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
 	url           = https://github.com/ESCOMP/atmospheric_physics

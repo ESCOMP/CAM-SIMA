@@ -138,7 +138,7 @@
   <entry id="CAM_LINKED_LIBS">
     <type>char</type>
     <valid_values></valid_values>
-    <default_value> </default_value>
+    <default_value></default_value>
     <values match="last" modifier="additive">
       <!-- Add MPAS if using mpas grid and not using physics testbed -->
       <value compset="^((?!_CAM%PHYSTEST).)*$" grid="a%mpasa[0-9]+">-lmpas</value>
@@ -149,6 +149,33 @@
       CAM-SIMA linked libraries. The libraries are built by
       CAM-SIMA's buildlib script and should be included
       during linking of the model executable.
+    </desc>
+  </entry>
+
+  <entry id="USE_SCOTCH_LIB">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <group>build_component_cam</group>
+    <file>env_build.xml</file>
+    <desc>
+      Whether to use the (PT-)Scotch library to enable the online graph partitioning feature in MPAS dynamical core,
+      eliminating the need to precompute mesh decomposition files (i.e., *.graph.info.part.*) in advance.
+
+      If TRUE and SCOTCH_PATH is not set, the build system will attempt to build the (PT-)Scotch library automatically.
+      If TRUE and SCOTCH_PATH is set, the build system will use the existing (PT-)Scotch library installation directly.
+      If FALSE, the online graph partitioning feature in MPAS dynamical core will be disabled.
+    </desc>
+  </entry>
+
+  <entry id="SCOTCH_PATH">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <group>build_component_cam</group>
+    <file>env_build.xml</file>
+    <desc>
+      Path to the existing (PT-)Scotch library installation.
     </desc>
   </entry>
 
