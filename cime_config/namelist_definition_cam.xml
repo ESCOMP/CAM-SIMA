@@ -248,6 +248,7 @@
       The first pattern that matches a name decides.
 
       Example: '!aerochem_vmr_post*', 'aerochem_vmr_*' excludes the aerochem_vmr rows except the aerochem_vmr_post* ones.
+               'aerochem_vmr_*', '!aerochem_vmr_post*' excludes ALL aerochem_vmr rows, including the aerochem_vmr_post* ones.
 
       Excluded rows are listed in the check output and are not silently dropped.
 
