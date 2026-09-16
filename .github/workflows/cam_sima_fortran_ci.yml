@@ -229,6 +229,8 @@ jobs:
 
       - name: Lint Fortran source code
         run: |
+          set -euo pipefail
+
           # Retrieve the matched paths.
           echo "${{ needs.conditional-check.outputs.matched-paths }}" | base64 -d > matched-paths.txt
 
@@ -243,20 +245,46 @@ jobs:
             # Fortitude will still choke if there are no command line arguments.
             if [ "$#" -gt 0 ]; then
               source venv-fortitude/bin/activate
-              # First run: Annotated output for GitHub Actions.
+
+              # Convert the errors file into a comma-separated list.
+              # Blank lines and comments are ignored.
+              ERROR_CODES="$(
+                sed -Ene 's/^[[:blank:]]*([[:alnum:]]+)[[:blank:]]*(#.*)?$/\1/p' \
+                  "$SOURCE_CODE_PATH/test/fortitude-errors.txt" |
+                paste -sd, - || true
+              )"
+
+              : > "$SOURCE_CODE_PATH/source-code-linting.log"
+
+              echo "=== Fortitude errors ===" | tee -a "$SOURCE_CODE_PATH/source-code-linting.log"
+
+              # First run: report rules that are meant to fail the job if they are triggered.
+              # This pass determines the exit status of the lint job.
+              LINT_STATUS=0
               fortitude \
                 --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
                 check \
+                --select "$ERROR_CODES" \
+                --output-format github \
+                "$@" |
+                  tee -a "$SOURCE_CODE_PATH/source-code-linting.log" |
+                  sed -e "s|file=$SOURCE_CODE_PATH/|file=|g" || LINT_STATUS="${PIPESTATUS[0]}"
+
+              echo "" | tee -a "$SOURCE_CODE_PATH/source-code-linting.log"
+              echo "=== Fortitude warnings ===" | tee -a "$SOURCE_CODE_PATH/source-code-linting.log"
+
+              # Second run: report warning-only rules, but don't fail the job.
+              fortitude \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                check \
+                --ignore "$ERROR_CODES" \
                 --exit-zero \
                 --output-format github \
-                "$@" | sed -e "s|file=$SOURCE_CODE_PATH/|file=|g"
-              # Second run: Output to a log file for uploading.
-              fortitude \
-                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
-                check \
-                --exit-zero \
-                --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
-                "$@"
+                "$@" |
+                  tee -a "$SOURCE_CODE_PATH/source-code-linting.log" |
+                  sed -e "s|file=$SOURCE_CODE_PATH/|file=|g"
+
+              exit "$LINT_STATUS"
             fi
           fi
 

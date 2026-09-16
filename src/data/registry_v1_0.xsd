@@ -76,6 +76,7 @@
       <xs:pattern value="pointer"/>
       <xs:pattern value="target"/>
       <xs:pattern value="allocatable, target"/>
+      <xs:pattern value="target, allocatable"/>
     </xs:restriction>
   </xs:simpleType>
 

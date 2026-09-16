@@ -108,7 +108,7 @@ module atm_comp_nuopc
   integer         , parameter  :: dbug_flag = 0
   integer         , pointer    :: dof(:)              ! global index space decomposition
   character(len=256)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
-  character(*)    ,parameter   :: modName =  "(atm_comp_nuopc)"
+  character(*)    ,parameter   :: modName =  '(atm_comp_nuopc)'
   character(*)    ,parameter   :: u_FILE_u = &
        __FILE__
 
@@ -126,7 +126,7 @@ module atm_comp_nuopc
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
-  real(R8) , parameter         :: grid_tol = 1.e-2_r8 ! tolerance for calculated lat/lon vs read in
+  real(R8) , parameter         :: grid_tol = 1.0e-2_r8 ! tolerance for calculated lat/lon vs read in
 
   type(ESMF_Mesh)  :: model_mesh     ! model_mesh
   type(ESMF_Clock) :: model_clock    ! model_clock
@@ -158,11 +158,11 @@ contains
     ! set entry point for methods that require specific implementation
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-         phaseLabelList=(/"IPDv03p1"/), userRoutine=InitializeAdvertise, rc=rc)
+         phaseLabelList=['IPDv03p1'], userRoutine=InitializeAdvertise, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-         phaseLabelList=(/"IPDv03p3"/), userRoutine=InitializeRealize, rc=rc)
+         phaseLabelList=['IPDv03p3'], userRoutine=InitializeRealize, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! attach specializing method(s)
@@ -189,16 +189,17 @@ contains
 
   !===============================================================================
   subroutine InitializeP0(gcomp, importState, exportState, clock, rc)
-    type(ESMF_GridComp)   :: gcomp
-    type(ESMF_State)      :: importState, exportState
-    type(ESMF_Clock)      :: clock
-    integer, intent(out)  :: rc
+    type(ESMF_GridComp):: gcomp
+    type(ESMF_State)   :: importState
+    type(ESMF_State)   :: exportState
+    type(ESMF_Clock)   :: clock
+    integer,         intent(out) :: rc
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
     ! Switch to IPDv03 by filtering all other phaseMap entries
-    call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=(/"IPDv03p"/), rc=rc)
+    call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, acceptStringList=['IPDv03p'], rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine InitializeP0
@@ -207,10 +208,11 @@ contains
   subroutine InitializeAdvertise(gcomp, importState, exportState, clock, rc)
 
     ! intput/output variables
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
+    type(ESMF_GridComp) :: gcomp
+    type(ESMF_State)    :: importState
+    type(ESMF_State)    :: exportState
+    type(ESMF_Clock)    :: clock
+    integer,         intent(out) :: rc
 
     ! local variables
     type(ESMF_VM)     :: vm
@@ -249,7 +251,7 @@ contains
     ! advertise import/export fields
     !----------------------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldName', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        flds_scalar_name = trim(cvalue)
@@ -257,9 +259,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldName')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldCount', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue, *) flds_scalar_num
@@ -268,9 +270,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldCount')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldIdxGridNX', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) flds_scalar_index_nx
@@ -279,9 +281,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNX')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldIdxGridNY', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) flds_scalar_index_ny
@@ -290,9 +292,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxNextSwCday", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='ScalarFieldIdxNextSwCday', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read(cvalue,*) flds_scalar_index_nextsw_cday
@@ -301,12 +303,12 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxNextSwCday')
-    endif
+    end if
 
     ! read mediator fields namelists
     call read_surface_fields_namelists()
 
-    call NUOPC_CompAttributeGet(gcomp, name="mediator_present", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        read (cvalue,*) mediator_present
@@ -316,7 +318,7 @@ contains
        end if
     else
        call shr_sys_abort(subname//'Need to set attribute mediator_present')
-    endif
+    end if
 
     if (dbug_flag > 5) then
        call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
@@ -330,10 +332,10 @@ contains
     use physics_grid, only : lsize => columns_on_task
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
-    type(ESMF_Clock)     :: clock
+    type(ESMF_GridComp) :: gcomp
+    type(ESMF_State)    :: importState
+    type(ESMF_State)    :: exportState
+    type(ESMF_Clock)    :: clock
     integer, intent(out) :: rc
 
     ! local variables
@@ -378,7 +380,7 @@ contains
     character(len=cl)       :: model_doi_url                     ! DOI for CESM model run
     logical                 :: aqua_planet                       ! Flag to run model in "aqua planet" mode
     logical                 :: brnch_retain_casename             ! true => branch run has same caseid as run being branched from
-    logical                 :: single_column = .false.
+    logical                 :: single_column
     character(len=cl)       :: single_column_lnd_domainfile
     real(r8)                :: scol_lon
     real(r8)                :: scol_lat
@@ -409,6 +411,7 @@ contains
     character(len=*), parameter :: format = "('("//trim(subname)//") :',A)"
     !-------------------------------------------------------------------------------
 
+    single_column = .false.
     rc = ESMF_SUCCESS
     if (dbug_flag > 5) then
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
@@ -430,12 +433,12 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
 
     if(localPeCount == 1) then
-       call NUOPC_CompAttributeGet(gcomp, "nthreads", value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, 'nthreads', value=cvalue, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
        read(cvalue,*) nthrds
     else
        nthrds = localPeCount
-    endif
+    end if
 
 !$  call omp_set_num_threads(nthrds)
 
@@ -470,14 +473,14 @@ contains
     !----------------------
 
     if (masterproc) then
-       write(iulog,format) "CAM atm model initialization"
+       write(iulog,format) 'CAM atm model initialization'
     end if
 
 #if (defined _MEMTRACE)
     if(masterproc) then
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_InitializeRealize:start::',lbnum)
-    endif
+    end if
 #endif
 
     !----------------------
@@ -564,12 +567,12 @@ contains
     branch_run  = .false.
     if (trim(start_type) == trim('startup')) then
        initial_run = .true.
-    else if (trim(start_type) == trim('continue') ) then
+    else if (trim(start_type) == trim('continue')) then
        restart_run = .true.
     else if (trim(start_type) == trim('branch')) then
        branch_run = .true.
     else
-       call shr_sys_abort( subname//' ERROR: unknown start_type' )
+       call shr_sys_abort(subname//' ERROR: unknown start_type')
     end if
 
     ! DART always starts up as an initial run.
@@ -586,31 +589,31 @@ contains
     end if
 
     ! Get properties from clock
-    call ESMF_ClockGet( clock, &
+    call ESMF_ClockGet(clock, &
          currTime=currTime, startTime=startTime, stopTime=stopTime, refTime=RefTime, &
          timeStep=timeStep, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_TimeGet( currTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc )
+    call ESMF_TimeGet(currTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,curr_ymd)
 
-    call ESMF_TimeGet( startTime, yy=yy, mm=mm, dd=dd, s=start_tod, rc=rc )
+    call ESMF_TimeGet(startTime, yy=yy, mm=mm, dd=dd, s=start_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,start_ymd)
 
-    call ESMF_TimeGet( stopTime, yy=yy, mm=mm, dd=dd, s=stop_tod, rc=rc )
+    call ESMF_TimeGet(stopTime, yy=yy, mm=mm, dd=dd, s=stop_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,stop_ymd)
 
-    call ESMF_TimeGet( refTime, yy=yy, mm=mm, dd=dd, s=ref_tod, rc=rc )
+    call ESMF_TimeGet(refTime, yy=yy, mm=mm, dd=dd, s=ref_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,ref_ymd)
 
-    call ESMF_TimeIntervalGet( timeStep, s=dtime, rc=rc )
+    call ESMF_TimeIntervalGet(timeStep, s=dtime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
+    call ESMF_TimeGet(currTime, calkindflag=esmf_caltype, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
@@ -618,7 +621,7 @@ contains
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
        calendar = shr_cal_gregorian
     else
-       call shr_sys_abort( subname//'ERROR:: bad calendar for ESMF' )
+       call shr_sys_abort(subname//'ERROR:: bad calendar for ESMF')
     end if
 
     ! Initialize module orbital values and update orbital
@@ -727,14 +730,14 @@ contains
           if (numOwnedElements /= lsize) then
              write(tempc1,'(i10)') numOwnedElements
              write(tempc2,'(i10)') lsize
-             call ESMF_LogWrite(trim(subname)//": ERROR numOwnedElements "// trim(tempc1) // &
-                  " not equal to local size "// trim(tempc2), ESMF_LOGMSG_INFO, rc=rc)
+             call ESMF_LogWrite(trim(subname)//': ERROR numOwnedElements '// trim(tempc1) // &
+                  ' not equal to local size '// trim(tempc2), ESMF_LOGMSG_INFO, rc=rc)
              rc = ESMF_FAILURE
              return
           end if
-          allocate(ownedElemCoords(spatialDim*numOwnedElements), stat=ierr)
+          allocate(ownedElemCoords(spatialDim*numOwnedElements), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'ownedElemCoords(spatialDim*numOwnedElements)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do n = 1,lsize
@@ -743,8 +746,8 @@ contains
           end do
 
           ! obtain internally generated cam lats and lons
-          lon(:) = 0._r8
-          lat(:) = 0._r8
+          lon(:) = 0.0_r8
+          lat(:) = 0.0_r8
           ! latitudes and longitudes returned in radians
           call get_rlat_all_p(lsize, lat)
           call get_rlon_all_p(lsize, lon)
@@ -756,13 +759,13 @@ contains
           ! error check differences between internally generated lons and those read in
           do n = 1,lsize
              if (abs(lonMesh(n) - lon(n)) > grid_tol .and. .not. &
-                  abs(abs(lonMesh(n) - lon(n))- 360._r8) < grid_tol) then
-                write(6,100)n,lon(n),lonMesh(n), abs(lonMesh(n)-lon(n))
+                  abs(abs(lonMesh(n) - lon(n))- 360.0_r8) < grid_tol) then
+                write(iulog,100)n,lon(n),lonMesh(n), abs(lonMesh(n)-lon(n))
 100             format('ERROR: CAM n, lonmesh(n), lon(n), diff_lon = ',i6,2(f21.13,3x),d21.5)
                 call shr_sys_abort()
              end if
              if (abs(latMesh(n) - lat(n)) > grid_tol) then
-                write(6,100)n,lat(n),latMesh(n), abs(latMesh(n)-lat(n))
+                write(iulog,100)n,lat(n),latMesh(n), abs(latMesh(n)-lat(n))
 101             format('ERROR: CAM n, latmesh(n), lat(n), diff_lat = ',i6,2(f21.13,3x),d21.5)
                 call shr_sys_abort()
              end if
@@ -781,7 +784,7 @@ contains
        model_clock = clock
 
        ! Create cam export array and set the state scalars
-       call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
+       call export_fields(gcomp, model_mesh, model_clock, cam_out, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call State_SetScalar(dble(hdim1_d), flds_scalar_index_nx, exportState, &
@@ -795,7 +798,7 @@ contains
        if (dbug_flag > 1) then
           call State_diagnose(exportState,subname//':ES',rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       endif
+       end if
 
     end if ! end of mediator_present if-block
 
@@ -807,7 +810,7 @@ contains
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_InitializeRealize:end::',lbnum)
        call memmon_reset_addr()
-    endif
+    end if
 #endif
 
     if (dbug_flag > 5) then
@@ -821,7 +824,7 @@ contains
 
     use physics_types, only: nextsw_cday
 
-    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_GridComp) :: gcomp
     integer, intent(out) :: rc
 
     ! local variables
@@ -838,7 +841,7 @@ contains
     integer                            :: atm_cpl_dt    ! driver atm coupling time step
     logical                            :: importDone    ! true => import data is valid
     logical                            :: atCorrectTime ! true => field is at correct time
-    character(CL)                      :: cvalue
+    character(CL)                      :: cvalue, tempc1
     character(len=*),parameter         :: subname=trim(modName)//':(DataInitialize) '
     !-------------------------------------------------------------------------------
 
@@ -854,7 +857,7 @@ contains
     if (masterproc) then
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_DataInitialize:start::',lbnum)
-    endif
+    end if
 #endif
 
     !--------------------------------
@@ -871,7 +874,7 @@ contains
     if (dbug_flag > 1) then
        call log_clock_advance(clock, 'CAM', iulog, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
+    end if
 
     !---------------------------------------------------------------
     if (mediator_present) then
@@ -883,9 +886,9 @@ contains
        call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       allocate(fieldNameList(fieldCount), stat=ierr)
+       allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
        call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=tempc1)
        call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        importDone = .true.
@@ -897,7 +900,7 @@ contains
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (.not. atCorrectTime) then
-             call ESMF_LogWrite("CAM - Initialize-Data-Dependency NOT YET SATISFIED!!!", ESMF_LOGMSG_INFO, rc=rc)
+             call ESMF_LogWrite('CAM - Initialize-Data-Dependency NOT YET SATISFIED!!!', ESMF_LOGMSG_INFO, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              importDone = .false.
@@ -910,21 +913,21 @@ contains
 
        if (.not. importDone) then
           ! Simply return if the import has not been initialized
-          call ESMF_LogWrite("CAM - Initialize-Data-Dependency Returning to mediator without doing tphysbc", &
+          call ESMF_LogWrite('CAM - Initialize-Data-Dependency Returning to mediator without doing tphysbc', &
                ESMF_LOGMSG_INFO, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          RETURN
+          return
        end if
 
        ! *** Import state has been initialized - continue with tphysbc ***
 
-       call ESMF_LogWrite("CAM - Initialize-Data-Dependency doing tphysbc", ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite('CAM - Initialize-Data-Dependency doing tphysbc', ESMF_LOGMSG_INFO, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! get the current step number and coupling interval
-       call ESMF_ClockGet( clock, TimeStep=timeStep, advanceCount=stepno, rc=rc )
+       call ESMF_ClockGet(clock, TimeStep=timeStep, advanceCount=stepno, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeIntervalGet( timeStep, s=atm_cpl_dt, rc=rc )
+       call ESMF_TimeIntervalGet(timeStep, s=atm_cpl_dt, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! For initial run, unpack the import state, run cam radiation/clouds and return
@@ -936,20 +939,20 @@ contains
        ! cam_out state sent to the coupler
 
        if (stepno == 0) then
-          call import_fields( gcomp, cam_in, rc=rc )
+          call import_fields(gcomp, cam_in, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
           call cam_run1 ()
-          call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
+          call export_fields(gcomp, model_mesh, model_clock, cam_out, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
-          call cam_read_srfrest( gcomp, clock, rc=rc )
+          call cam_read_srfrest(gcomp, clock, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call import_fields( gcomp, cam_in, restart_init=.true., rc=rc )
+          call import_fields(gcomp, cam_in, restart_init=.true., rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
           call cam_run1 ()
-          call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
+          call export_fields(gcomp, model_mesh, model_clock, cam_out, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -962,16 +965,16 @@ contains
        if (dbug_flag > 1) then
           call State_diagnose(exportState,subname//':ES',rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       endif
+       end if
 
        ! CAM data is now fully initialized
 
        call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       allocate(fieldNameList(fieldCount), stat=ierr)
+       allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
        call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=tempc1)
        call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -979,17 +982,17 @@ contains
           call ESMF_StateGet(exportState, itemName=fieldNameList(n), field=field, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call NUOPC_SetAttribute(field, name="Updated", value="true", rc=rc)
+          call NUOPC_SetAttribute(field, name='Updated', value='true', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
        deallocate(fieldNameList)
 
        ! check whether all Fields in the exportState are "Updated"
        if (NUOPC_IsUpdated(exportState)) then
-          call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
+          call NUOPC_CompAttributeSet(gcomp, name='InitializeDataComplete', value='true', rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-          call ESMF_LogWrite("CAM - Initialize-Data-Dependency SATISFIED!!!", ESMF_LOGMSG_INFO, rc=rc)
+          call ESMF_LogWrite('CAM - Initialize-Data-Dependency SATISFIED!!!', ESMF_LOGMSG_INFO, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -1000,7 +1003,7 @@ contains
        call cam_timestep_init()
        call cam_run1 ()
 
-       call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
+       call NUOPC_CompAttributeSet(gcomp, name='InitializeDataComplete', value='true', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end if
@@ -1012,7 +1015,7 @@ contains
     if(masterproc) then
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_DataInitialize:end::',lbnum)
-    endif
+    end if
 #endif
 
     if (dbug_flag > 5) then
@@ -1029,8 +1032,8 @@ contains
     ! Run CAM
 
     ! Input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+    type(ESMF_GridComp) :: gcomp
+    integer,               intent(out) :: rc
 
     ! local variables
     type(ESMF_VM)           :: vm
@@ -1065,7 +1068,7 @@ contains
     logical                 :: nlend       ! Flag signaling last time-step
     integer                 :: lbnum
     integer                 :: localPet, localPeCount
-    logical                 :: first_time = .true.
+    logical, save           :: first_time = .true.
     logical                 :: do_ncdata_check  !Flag notifying SIMA if it is OK to perform a snapshot check
     character(len=*),parameter  :: subname=trim(modName)//':(ModelAdvance) '
     !-------------------------------------------------------------------------------
@@ -1081,7 +1084,7 @@ contains
     if(masterproc) then
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_ModelAdvance:start::',lbnum)
-    endif
+    end if
 #endif
 
     !--------------------------------
@@ -1094,13 +1097,13 @@ contains
     if (dbug_flag > 1) then
        call log_clock_advance(clock, 'CAM', iulog, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
+    end if
 
     !--------------------------------
     ! Determine current time
     !--------------------------------
 
-    call ESMF_ClockGet( clock, currTime=currTime)
+    call ESMF_ClockGet(clock, currTime=currTime)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
@@ -1129,7 +1132,7 @@ contains
        call State_diagnose(importState, string=subname//':IS', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call import_fields( gcomp, cam_in, rc=rc)
+       call import_fields(gcomp, cam_in, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf  ('CAM_import')
     end if
@@ -1154,11 +1157,11 @@ contains
        if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           rstwr = .true.
-          call ESMF_AlarmRingerOff( alarm, rc=rc )
+          call ESMF_AlarmRingerOff(alarm, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           rstwr = .false.
-       endif
+       end if
 
        ! Determine if time to stop
 
@@ -1169,7 +1172,7 @@ contains
           nlend = .true.
        else
           nlend = .false.
-       endif
+       end if
 
        ! Run CAM (run2, run3, run4)
        ! This includes the "physics_after_coupler" CCPP physics group.
@@ -1183,7 +1186,7 @@ contains
        call t_stopf  ('CAM_run3')
 
        call t_startf ('CAM_run4')
-       call cam_run4( rstwr, nlend, &
+       call cam_run4(rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
        call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
@@ -1207,7 +1210,7 @@ contains
     if (mediator_present) then
        ! Set export fields
        call t_startf ('CAM_export')
-       call export_fields( gcomp, model_mesh, model_clock, cam_out, rc )
+       call export_fields(gcomp, model_mesh, model_clock, cam_out, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call t_stopf ('CAM_export')
 
@@ -1226,11 +1229,11 @@ contains
              call log_clock_advance(clock, 'CAM', iulog, rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
-       endif
+       end if
 
        ! Write merged surface data restart file if appropriate
        if (rstwr) then
-          call cam_write_srfrest( gcomp, &
+          call cam_write_srfrest(gcomp, &
                yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -1239,7 +1242,7 @@ contains
 
        ! if there is no mediator, then write the clock info to a driver restart file
        if (rstwr) then
-          call cam_write_clockrest( clock, yr_sync, mon_sync, day_sync, tod_sync, rc=rc)
+          call cam_write_clockrest(clock, yr_sync, mon_sync, day_sync, tod_sync, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
@@ -1249,27 +1252,27 @@ contains
     ! Note that the driver clock has not been updated yet - so at this point
     ! CAM is actually 2 coupling intervals (or physics time steps) ahead of the driver clock
     dtime = get_step_size()
-    call get_curr_date( yr, mon, day, tod, offset=-2*dtime )
+    call get_curr_date(yr, mon, day, tod, offset=-2*dtime)
     ymd = yr*10000 + mon*100 + day
     tod = tod
 
-    call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet( currTime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc )
+    call ESMF_TimeGet(currTime, yy=yr_sync, mm=mon_sync, dd=day_sync, s=tod_sync, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yr_sync, mon_sync, day_sync, ymd_sync)
 
-    if ( (ymd /= ymd_sync) .and. (tod /= tod_sync) )then
+    if ((ymd /= ymd_sync) .and. (tod /= tod_sync))then
        write(iulog,*)' cam ymd=',ymd     ,'  cam tod= ',tod
        write(iulog,*)'sync ymd=',ymd_sync,' sync tod= ',tod_sync
-       call shr_sys_abort( subname//': CAM clock is not in sync with master Sync Clock' )
+       call shr_sys_abort(subname//': CAM clock is not in sync with master Sync Clock')
     end if
 
 #if (defined _MEMTRACE)
     if(masterproc) then
        lbnum=1
        call memmon_dump_fort('memmon.out','atm_comp_nuopc_ModelAdvance:end::',lbnum)
-    endif
+    end if
 #endif
 
     !--------------------------------
@@ -1285,8 +1288,8 @@ contains
   subroutine ModelSetRunClock(gcomp, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+    type(ESMF_GridComp) :: gcomp
+    integer,               intent(out) :: rc
 
     ! local variables
     type(ESMF_Clock)         :: mclock, dclock
@@ -1343,14 +1346,14 @@ contains
        !----------------
        ! Restart alarm
        !----------------
-       call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='restart_option', value=restart_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='restart_n', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_n
 
-       call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='restart_ymd', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) restart_ymd
 
@@ -1367,14 +1370,14 @@ contains
        !----------------
        ! Stop alarm
        !----------------
-       call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='stop_option', value=stop_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call NUOPC_CompAttributeGet(gcomp, name="stop_n", value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='stop_n', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_n
 
-       call NUOPC_CompAttributeGet(gcomp, name="stop_ymd", value=cvalue, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name='stop_ymd', value=cvalue, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) stop_ymd
 
@@ -1404,8 +1407,8 @@ contains
 
   !===============================================================================
   subroutine ModelFinalize(gcomp, rc)
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
+    type(ESMF_GridComp) :: gcomp
+    integer,               intent(out) :: rc
 
     ! local variables
     integer :: shrlogunit            ! original log unit
@@ -1437,7 +1440,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Determine if time to write restart
-    call ESMF_ClockGet( clock, currTime=currTime)
+    call ESMF_ClockGet(clock, currTime=currTime)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1448,12 +1451,12 @@ contains
     if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        rstwr = .true.
-       call ESMF_AlarmRingerOff( alarm, rc=rc )
+       call ESMF_AlarmRingerOff(alarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        rstwr = .false.
-    endif
+    end if
 
     ! Determine if time to stop
 
@@ -1466,7 +1469,7 @@ contains
     else
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        nlend = .false.
-    endif
+    end if
 
     call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false., do_history_write=.false.)
     call cam_final()
@@ -1497,33 +1500,33 @@ contains
     ! local variables
     character(len=CL) :: msgstr          ! temporary
     character(len=CL) :: cvalue          ! temporary
-    character(len=*) , parameter :: subname = "(cam_orbital_init)"
+    character(len=*) , parameter :: subname = '(cam_orbital_init)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
     ! Determine orbital attributes from input
-    call NUOPC_CompAttributeGet(gcomp, name="orb_mode", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_mode', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_mode
 
-    call NUOPC_CompAttributeGet(gcomp, name="orb_iyear", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_iyear', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_iyear
 
-    call NUOPC_CompAttributeGet(gcomp, name="orb_iyear_align", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_iyear_align', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_iyear_align
 
-    call NUOPC_CompAttributeGet(gcomp, name="orb_obliq", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_obliq', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_obliq
 
-    call NUOPC_CompAttributeGet(gcomp, name="orb_eccen", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_eccen', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_eccen
 
-    call NUOPC_CompAttributeGet(gcomp, name="orb_mvelp", value=cvalue, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='orb_mvelp', value=cvalue, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) orb_mvelp
 
@@ -1540,8 +1543,8 @@ contains
           end if
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return  ! bail out
-       endif
-    elseif (trim(orb_mode) == trim(orb_variable_year)) then
+       end if
+    else if (trim(orb_mode) == trim(orb_variable_year)) then
        orb_obliq = SHR_ORB_UNDEF_REAL
        orb_eccen = SHR_ORB_UNDEF_REAL
        orb_mvelp = SHR_ORB_UNDEF_REAL
@@ -1553,8 +1556,8 @@ contains
           end if
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return  ! bail out
-       endif
-    elseif (trim(orb_mode) == trim(orb_fixed_parameters)) then
+       end if
+    else if (trim(orb_mode) == trim(orb_fixed_parameters)) then
        !-- force orb_iyear to undef to make sure shr_orb_params works properly
        orb_iyear = SHR_ORB_UNDEF_INT
        orb_iyear_align = SHR_ORB_UNDEF_INT
@@ -1570,13 +1573,13 @@ contains
           end if
           call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
           return  ! bail out
-       endif
+       end if
     else
        write (msgstr, *) subname//' ERROR: invalid orb_mode '//trim(orb_mode)
        call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        rc = ESMF_FAILURE
        return  ! bail out
-    endif
+    end if
 
   end subroutine cam_orbital_init
 
@@ -1603,7 +1606,7 @@ contains
     integer           :: orb_year ! orbital year for current orbital computation
     character(len=CL) :: msgstr   ! temporary
     logical, save     :: logprint = .true.
-    character(len=*) , parameter :: subname = "(cam_orbital_update)"
+    character(len=*) , parameter :: subname = '(cam_orbital_update)'
     !-------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1619,28 +1622,28 @@ contains
     end if
     if(.not. (logprint .and. mastertask)) then
        logprint = .false.
-    endif
+    end if
 
     eccen = orb_eccen
 
     call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, logprint)
     logprint = .false.
-    if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
+    if (eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
          mvelpp == SHR_ORB_UNDEF_REAL .or. lambm0 == SHR_ORB_UNDEF_REAL) then
        write (msgstr, *) subname//' ERROR: orb params incorrect'
        call ESMF_LogSetError(ESMF_RC_NOT_VALID, msg=msgstr, line=__LINE__, file=__FILE__, rcToReturn=rc)
        return  ! bail out
-    endif
+    end if
 
   end subroutine cam_orbital_update
 
   !===============================================================================
-  subroutine cam_read_srfrest( gcomp, clock, rc )
+  subroutine cam_read_srfrest(gcomp, clock, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)             :: gcomp
-    type(ESMF_Clock), intent(inout) :: clock
-    integer         , intent(out)   :: rc
+    type(ESMF_GridComp), intent(inout) :: gcomp
+    type(ESMF_Clock),    intent(inout) :: clock
+    integer,               intent(out) :: rc
 
     ! local variables
     type(ESMF_State)                   :: importState, exportState
@@ -1670,7 +1673,8 @@ contains
     character(len=8)                   :: cvalue
     integer                            :: nloop
     character(len=4)                   :: prefix
-    character(len=*), parameter        :: subname = "cam_read_srfrest"
+    character(len=CL)                  :: tempc1
+    character(len=*), parameter        :: subname = 'cam_read_srfrest'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1682,15 +1686,15 @@ contains
     call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_ClockGet( clock, currTime=currTime, rc=rc )
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_TimeGet( currTime, yy=yr_spec, mm=mon_spec, dd=day_spec, s=sec_spec, rc=rc )
+    call ESMF_TimeGet(currTime, yy=yr_spec, mm=mon_spec, dd=day_spec, s=sec_spec, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    fname_srf_cam = interpret_filename_spec( rsfilename_spec_cam, case=cam_initfiles_get_caseid(), &
-         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
-    pname_srf_cam = trim(cam_initfiles_get_restdir() )//fname_srf_cam
+    fname_srf_cam = interpret_filename_spec(rsfilename_spec_cam, case=cam_initfiles_get_caseid(), &
+         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
+    pname_srf_cam = trim(cam_initfiles_get_restdir())//fname_srf_cam
     call cam_get_file(pname_srf_cam, fname_srf_cam)
 
     ! ------------------------------
@@ -1698,39 +1702,39 @@ contains
     ! ------------------------------
 
     call cam_pio_openfile(File, fname_srf_cam, 0)
-    call pio_initdecomp(pio_subsystem, pio_double, (/ngcols/), dof, iodesc)
+    call pio_initdecomp(pio_subsystem, pio_double, [ngcols], dof, iodesc)
     call pio_seterrorhandling(File, pio_bcast_error)
 
     ! ------------------------------
     ! Read in import and export fields
     ! ------------------------------
 
-    do nloop = 1,2
+    importexport_loop: do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
           call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldnameList(fieldCount), stat=ierr)
+          allocate(fieldnameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(importState, itemNameList=fieldnameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           prefix = 'a2x_' ! export fields
           call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldnameList(fieldCount), stat=ierr)
+          allocate(fieldnameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(exportState, itemNameList=fieldnameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
        ! Loop over fields in import or export state
-       do nf = 1,fieldCount
+       fields: do nf = 1,fieldCount
 
-          if (trim(fieldnameList(nf)) == flds_scalar_name) CYCLE
+          if (trim(fieldnameList(nf)) == flds_scalar_name) cycle fields
 
           ! Determine dimension of field
           if (nloop == 1) then
@@ -1756,7 +1760,7 @@ contains
                    write(iulog,*)'cam_read_srfrest warning: field ',trim(varname),' is not on restart file'
                    write(iulog,*)'for backwards compatibility will set it to 0'
                 end if
-                fldptr(:) = 0._r8
+                fldptr(:) = 0.0_r8
              end if
 
           else if (lrank == 2) then
@@ -1772,9 +1776,9 @@ contains
                 lsize = size(fldptr2d, dim=2)
              end if
 
-             allocate(tmpptr(lsize), stat=ierr)
+             allocate(tmpptr(lsize), stat=ierr, errmsg=tempc1)
              call check_allocate(ierr, subname, 'tmpptr(lsize)', &
-                                 file=__FILE__, line=__LINE__)
+                                 file=__FILE__, line=__LINE__, errmsg=tempc1)
              do n = 1,ungriddedUBound(1)
                 write(cvalue,'(i0)') n
                 varname = trim(prefix)//trim(fieldnameList(nf))//trim(cvalue)
@@ -1787,7 +1791,7 @@ contains
                       write(iulog,*)'cam_read_srfrest warning: field ',trim(varname),' is not on restart file'
                       write(iulog,*)'for backwards compatibility will set it to 0'
                    end if
-                   tmpptr(:) = 0._r8
+                   tmpptr(:) = 0.0_r8
                 end if
                 if (gridToFieldMap(1) == 1) then
                    fldptr2d(:,n) = tmpptr(:)
@@ -1798,9 +1802,9 @@ contains
              deallocate(tmpptr)
 
           end if ! end lrank if block
-       end do
+       end do fields
        deallocate(fieldnameList)
-    end do
+    end do importexport_loop
 
     ! ------------------------------
     ! Close file
@@ -1813,10 +1817,10 @@ contains
   end subroutine cam_read_srfrest
 
   !===========================================================================================
-  subroutine cam_write_srfrest( gcomp, yr_spec, mon_spec, day_spec, sec_spec, rc )
+  subroutine cam_write_srfrest(gcomp, yr_spec, mon_spec, day_spec, sec_spec, rc)
 
     ! Arguments
-    type(ESMF_GridComp)   :: gcomp
+    type(ESMF_GridComp), intent(inout) :: gcomp
     integer , intent(in)  :: yr_spec  ! Simulation year
     integer , intent(in)  :: mon_spec ! Simulation month
     integer , intent(in)  :: day_spec ! Simulation day
@@ -1828,7 +1832,8 @@ contains
     type(ESMF_Field)                   :: lField
     integer                            :: lrank
     integer                            :: rcode        ! return error code
-    integer                            :: dimid(1), nf, n
+    integer                            :: dimid(1)
+    integer                            :: nf, n
     type(file_desc_t)                  :: file
     type(io_desc_t)                    :: iodesc
     integer                            :: fieldCount
@@ -1843,7 +1848,8 @@ contains
     character(len=4)                   :: prefix
     integer                            :: ungriddedUBound(1) ! currently the size must equal 1 for rank 2 fieldds
     integer                            :: gridToFieldMap(1)  ! currently the size must equal 1 for rank 2 fieldds
-    character(len=*), parameter        :: subname = "cam_write_srfrest"
+    character(len=CL)                  :: tempc1
+    character(len=*), parameter        :: subname = 'cam_write_srfrest'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -1859,11 +1865,11 @@ contains
     ! Open surface restart dataset
     ! ----------------------
 
-    fname_srf_cam = interpret_filename_spec( rsfilename_spec_cam, &
-         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
+    fname_srf_cam = interpret_filename_spec(rsfilename_spec_cam, &
+         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
 
     call cam_pio_createfile(File, fname_srf_cam, 0)
-    call pio_initdecomp(pio_subsystem, pio_double, (/ngcols/), dof, iodesc)
+    call pio_initdecomp(pio_subsystem, pio_double, [ngcols], dof, iodesc)
 
     ! ----------------------
     ! Define dimensions
@@ -1876,31 +1882,31 @@ contains
     ! Define import and export variable ids
     ! ----------------------
 
-    do nloop = 1,2
+    importexport_loop: do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
           call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldNameList(fieldCount), stat=ierr)
+          allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           prefix = 'a2x_' ! export fields
           call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldNameList(fieldCount), stat=ierr)
+          allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       do nf = 1,fieldCount
+       fields: do nf = 1,fieldCount
 
-          if (trim(fieldNameList(nf)) == flds_scalar_name) CYCLE
+          if (trim(fieldNameList(nf)) == flds_scalar_name) cycle fields
 
           if (nloop == 1) then
              call ESMF_StateGet(importState, itemName=trim(fieldnameList(nf)), field=lfield, rc=rc)
@@ -1916,7 +1922,7 @@ contains
 
              varname = trim(prefix)//trim(fieldNameList(nf))
              rcode = pio_def_var(File,trim(varname), PIO_DOUBLE, dimid, varid)
-             rcode = pio_put_att(File, varid, "_fillvalue", fillvalue)
+             rcode = pio_put_att(File, varid, '_fillvalue', fillvalue)
 
           else if (lrank == 2) then
 
@@ -1930,14 +1936,14 @@ contains
                 write(cvalue,'(i0)') n
                 varname = trim(prefix)//trim(fieldNameList(nf))//trim(cvalue)
                 rcode = pio_def_var(File,trim(varname), PIO_DOUBLE, dimid, varid)
-                rcode = pio_put_att(File, varid, "_fillvalue", fillvalue)
+                rcode = pio_put_att(File, varid, '_fillvalue', fillvalue)
              end do
 
           end if ! end if-block over rank size
 
-       end do ! end loop over import or export fieldsfields
+       end do fields ! end loop over import or export fieldsfields
        deallocate(fieldNameList)
-    end do
+    end do importexport_loop
 
     ! ----------------------
     ! End definition phase
@@ -1949,31 +1955,31 @@ contains
     ! Write the restart data for the import fields and export fields
     ! ----------------------
 
-    do nloop = 1,2
+    importexport_loop2:do nloop = 1,2
 
        if (nloop == 1) then
           prefix = 'x2a_' ! import fields
           call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldNameList(fieldCount), stat=ierr)
+          allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
           prefix = 'a2x_' ! export fields
           call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          allocate(fieldNameList(fieldCount), stat=ierr)
+          allocate(fieldNameList(fieldCount), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'fieldNameList(fieldCount)', &
-                              file=__FILE__, line=__LINE__)
+                              file=__FILE__, line=__LINE__, errmsg=tempc1)
           call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
 
-       do nf = 1,fieldCount
+       fields_loop: do nf = 1,fieldCount
 
-          if (trim(fieldNameList(nf)) == flds_scalar_name) CYCLE
+          if (trim(fieldNameList(nf)) == flds_scalar_name) cycle fields_loop
 
           if (nloop == 1) then
              call ESMF_StateGet(importState, itemName=trim(fieldnameList(nf)), field=lfield, rc=rc)
@@ -2013,10 +2019,10 @@ contains
              end do
 
           end if
-       end do ! end loop over import or export fields
+       end do fields_loop ! end loop over import or export fields
        deallocate(fieldNameList)
 
-    end do ! end of nloop
+    end do importexport_loop2 ! end of nloop
 
     ! ----------------------
     ! close the file
@@ -2028,7 +2034,7 @@ contains
   end subroutine cam_write_srfrest
 
   !===============================================================================
-  subroutine cam_write_clockrest( clock, yr_spec, mon_spec, day_spec, sec_spec, rc )
+  subroutine cam_write_clockrest(clock, yr_spec, mon_spec, day_spec, sec_spec, rc)
 
     ! When there is no mediator, the driver needs to have restart information to start up
     ! This routine writes this out and the driver reads it back in on a restart run
@@ -2064,35 +2070,35 @@ contains
     rc = ESMF_SUCCESS
 
     ! Get properties from clock
-    call ESMF_ClockGet( clock, startTime=startTime, currTime=currTime, rc=rc)
+    call ESMF_ClockGet(clock, startTime=startTime, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_TimeGet( startTime, yy=yy, mm=mm, dd=dd, s=start_tod, rc=rc )
+    call ESMF_TimeGet(startTime, yy=yy, mm=mm, dd=dd, s=start_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,start_ymd)
 
-    call ESMF_TimeGet( nextTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc )
-   !call ESMF_TimeGet( currTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc )
+    call ESMF_TimeGet(nextTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc)
+   !call ESMF_TimeGet(currTime, yy=yy, mm=mm, dd=dd, s=curr_tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yy,mm,dd,curr_ymd)
 
     ! Open clock info restart dataset
-    restart_file = interpret_filename_spec( '%c.cpl.r.%y-%m-%d-%s.nc', &
-         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
+    restart_file = interpret_filename_spec('%c.cpl.r.%y-%m-%d-%s.nc', &
+         yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
 
     if (masterproc) then
-       write(iulog,*) " In this configuration, there is no mediator"
-       write(iulog,*) " Normally, the mediator restart file provides the restart time info"
-       write(iulog,*) " In this case, CAM will create the rpointer.cpl and cpl restart file"
-       write(iulog,*) " containing this information"
-       write(iulog,*) " writing rpointer file for driver clock info, rpointer.cpl"
-       write(iulog,*) " writing restart clock info for driver= "//trim(restart_file)
-       open(newunit=unitn, file='rpointer.cpl', form='FORMATTED')
+       write(iulog,*) ' In this configuration, there is no mediator'
+       write(iulog,*) ' Normally, the mediator restart file provides the restart time info'
+       write(iulog,*) ' In this case, CAM will create the rpointer.cpl and cpl restart file'
+       write(iulog,*) ' containing this information'
+       write(iulog,*) ' writing rpointer file for driver clock info, rpointer.cpl'
+       write(iulog,*) ' writing restart clock info for driver= '//trim(restart_file)
+       open(newunit=unitn, action='write', file='rpointer.cpl', form='FORMATTED')
        write(unitn,'(a)') trim(restart_file)
        close(unitn)
-    endif
+    end if
 
     call cam_pio_createfile(File, trim(restart_file), 0)
     rcode = pio_def_var(File, 'start_ymd', PIO_INT, varid_start_ymd)
@@ -2112,7 +2118,6 @@ contains
   subroutine cam_set_mesh_for_single_column(scol_lon, scol_lat, mesh, rc)
 
     ! Generate a mesh for single column
-    use netcdf
 
     ! input/output variables
     real(r8)        , intent(in)  :: scol_lon
@@ -2133,15 +2138,15 @@ contains
     ! Use center and come up with arbitrary area delta lon and lat = .1 degree
     maxIndex(1)       = 1                ! number of lons
     maxIndex(2)       = 1                ! number of lats
-    mincornerCoord(1) = scol_lon - .1_r8 ! min lon
-    mincornerCoord(2) = scol_lat - .1_r8 ! min lat
-    maxcornerCoord(1) = scol_lon + .1_r8 ! max lon
-    maxcornerCoord(2) = scol_lat + .1_r8 ! max lat
+    mincornerCoord(1) = scol_lon - 0.1_r8 ! min lon
+    mincornerCoord(2) = scol_lat - 0.1_r8 ! min lat
+    maxcornerCoord(1) = scol_lon + 0.1_r8 ! max lon
+    maxcornerCoord(2) = scol_lat + 0.1_r8 ! max lat
 
     ! create the ESMF grid
     lgrid = ESMF_GridCreateNoPeriDimUfrm (maxindex=maxindex, &
          mincornercoord=mincornercoord, maxcornercoord= maxcornercoord, &
-         staggerloclist=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), rc=rc)
+         staggerloclist=[ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER], rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! create the mesh from the lgrid
@@ -2158,7 +2163,7 @@ contains
     if (ierror /= PIO_NOERR) then
        write (*,'(6a)') 'ERROR ', trim(description)
        call shr_sys_abort()
-    endif
+    end if
   end subroutine cam_pio_checkerr
 
 end module atm_comp_nuopc

@@ -108,7 +108,7 @@ contains
             call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.true., output_vars=.false.)
 
          ! Loop over all required variables and read from file if uninitialized:
-         do req_idx = 1, size(ccpp_required_data, 1)
+         suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)
 
             ! Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx), use_init_variables, constituent_idx)
@@ -159,17 +159,17 @@ contains
                   end select !read variables
                end select !special indices
 
-         end do !Suite-required variables
+         end do suite_required_vars
 
          ! End simulation if there are missing input variables that are required:
          if (len_trim(missing_required_vars) > 0) then
-            call endrun("Required variables missing from registered list of input variables: "//&
+            call endrun('Required variables missing from registered list of input variables: '//&
                trim(missing_required_vars))
          end if
 
          ! End simulation if there are protected input variables that are not initialized:
          if (len_trim(protected_non_init_vars) > 0) then
-            call endrun("Required, protected input variables are not initialized: "//&
+            call endrun('Required, protected input variables are not initialized: '//&
                trim(protected_non_init_vars))
          end if
 
@@ -194,12 +194,12 @@ contains
          ! Find array index to extract correct input names
          ! (case-insensitive: see find_input_name_idx):
          const_input_idx = -1
-         do n=1, phys_var_num
+         stdname_search: do n=1, phys_var_num
             if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then
                const_input_idx = n
-               exit
+               exit stdname_search
             end if
-         end do
+         end do stdname_search
          if(const_input_idx > 0) then
             ! Don't read the variable in if it's already initialized
             if (is_initialized(std_name)) then
@@ -325,7 +325,7 @@ contains
             call ccpp_physics_suite_variables(suite_names(suite_idx), ccpp_required_data, errmsg, errflg, input_vars=.false., output_vars=.true.)
 
          ! Loop over all required variables as specified by CCPP suite:
-         do req_idx = 1, size(ccpp_required_data, 1)
+         suite_required_vars: do req_idx = 1, size(ccpp_required_data, 1)
 
             ! Find IC file input name array index for required variable:
             name_idx = find_input_name_idx(ccpp_required_data(req_idx), .true., constituent_idx)
@@ -361,7 +361,7 @@ contains
                   end if
             end select !special indices
 
-         end do !Suite-required variables
+         end do suite_required_vars
 
          ! Deallocate required variables array for use in next suite:
          deallocate(ccpp_required_data)
@@ -378,12 +378,12 @@ contains
          ! Find array index to extract correct input names
          ! (case-insensitive: see find_input_name_idx):
          const_input_idx = -1
-         do n=1, phys_var_num
+         stdname_search: do n=1, phys_var_num
             if(to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(std_name))) then
                const_input_idx = n
-               exit
+               exit stdname_search
             end if
-         end do
+         end do stdname_search
          if(const_input_idx > 0) then
             call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, &
                 min_difference, min_relative_value, is_first, diff_found)

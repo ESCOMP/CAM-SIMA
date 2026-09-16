@@ -187,7 +187,7 @@ module element_mod
      real(kind=r8) :: fcor(np,np)       ! Coriolis term
 
      type(index_t)          :: idxP
-     type(index_t), pointer :: idxV
+     type(index_t), pointer :: idxV => null()
      integer :: FaceNum
 
      ! force element_t to be a multiple of 8 bytes.
@@ -211,13 +211,14 @@ contains
 !==============================================================================
 
   subroutine PrintElem(arr)
+    use cam_logfile, only: iulog
 
-    real(kind=r8) :: arr(:,:)
+    real(kind=r8), intent(in) :: arr(:,:)
     integer :: i,j
 
       do j=np,1,-1
-         write(6,*) (arr(i,j), i=1,np)
-      enddo
+         write(iulog,*) (arr(i,j), i=1,np)
+      end do
 
   end subroutine PrintElem
 ! ===================== ELEMENT_MOD METHODS ==========================
@@ -257,10 +258,10 @@ contains
     real(r8)             :: y
     integer              :: i,j
 
-    length%x   = 0.50D0*(end%x-start%x)
-    length%y   = 0.50D0*(end%y-start%y)
-    centroid%x = 0.50D0*(end%x+start%x)
-    centroid%y = 0.50D0*(end%y+start%y)
+    length%x   = 0.5D0*(end%x-start%x)
+    length%y   = 0.5D0*(end%y-start%y)
+    centroid%x = 0.5D0*(end%x+start%x)
+    centroid%y = 0.5D0*(end%y+start%y)
     do j=1,SIZE(points)
        y = centroid%y + length%y*points(j)
        do i=1,SIZE(points)
@@ -281,8 +282,8 @@ contains
     real(r8) :: q(size(points))
     integer  :: i,j
 
-    p(:) = (1.0D0-points(:))/2.0D0
-    q(:) = (1.0D0+points(:))/2.0D0
+    p(:) = (1D0-points(:))/2D0
+    q(:) = (1D0+points(:))/2D0
 
     do j=1,SIZE(points)
        do i=1,SIZE(points)
@@ -306,12 +307,12 @@ contains
 
     type(cartesian3D_t)  :: cart(SIZE(points),SIZE(points))
 
-    real(r8) :: p(size(points))
-    real(r8) :: q(size(points)), r
+    real(r8) :: p(size(points)), q(size(points))
+    real(r8) :: r
     integer  :: i,j
 
-    p(:) = (1.0D0-points(:))/2.0D0
-    q(:) = (1.0D0+points(:))/2.0D0
+    p(:) = (1D0-points(:))/2D0
+    q(:) = (1D0+points(:))/2D0
 
     do j=1,SIZE(points)
        do i=1,SIZE(points)
@@ -391,7 +392,7 @@ contains
        do i=1,max_neigh_edges
           elem(j)%desc%loc2buf(i)=i
           elem(j)%desc%globalID(i)=-1
-       enddo
+       end do
 
     end do
   end subroutine allocate_element_desc

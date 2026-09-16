@@ -1,0 +1,19 @@
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_intel_before_c20260820.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196_ne3pg3_qpc7_pumas_snapshot_derecho_intel_after_c20260820.nc'
+ncdata_check_err=.true.
+debug_output=0
+pver=58
+user_defined_cpwv       = 1.846e3
+user_defined_gravit     = 9.79764
+user_defined_mwdry      = 28.96623324623746
+user_defined_mwh2o      = 18.01618112892741
+user_defined_rearth     = 6.37100e6
+user_defined_sday       = 86164.10063718943
+
+min_difference          = 2e-15
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 2
+hist_add_inst_fields;h1: T, Q, U, V, PS
+hist_precision;h1: REAL64
+hist_write_nstep0;h1: .true.

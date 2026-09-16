@@ -51,11 +51,11 @@ contains
     use perf_mod,      only: t_startf, t_stopf
     use mpi,           only: mpi_real8, mpi_success
 
-    type (parallel_t)            :: par
-    integer, intent(in)          :: nthreads
-    integer                      :: ithr ! The OpenMP thread ID
-    type (EdgeBuffer_t)          :: buffer
-    character(len=*),  optional  :: location
+    type (parallel_t),          intent(in) :: par
+    integer,                    intent(in) :: nthreads
+    integer,                    intent(in) :: ithr ! The OpenMP thread ID
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     type (Schedule_t), pointer   :: pSchedule
     type (Cycle_t),    pointer   :: pCycle
@@ -64,7 +64,7 @@ contains
     integer                      :: iptr,source,nlyr
     integer                      :: nSendCycles,nRecvCycles
     integer                      :: errorcode,errorlen
-    character*(80)               :: errorstring
+    character(len=80)            :: errorstring
     character(len=*),  parameter :: subname = 'bndry_exchange_a2a'
     character(len=80)            :: locstring
     logical                      :: ompthreadMissmatch
@@ -80,17 +80,17 @@ contains
 
       call MPI_Ineighbor_Alltoallv(buffer%buf,buffer%scountsFull,buffer%sdisplsFull,Mpi_real8, &
                      buffer%receive,buffer%rcountsFull,buffer%rdisplsFull,Mpi_real8,par%commGraphFull,request,ierr)
-      if(ierr .ne. MPI_SUCCESS) then
+      if(ierr /= MPI_SUCCESS) then
         errorcode=ierr
         call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
         write(iulog,*) subname,': Error after call to MPI_Ineighbor_alltoallv: ',errorstring
-      endif
+      end if
 
       if(present(location)) then
         locstring = TRIM(subname) // ': ' // TRIM(location)
       else
         locstring = TRIM(subname)
-      endif
+      end if
       ! location 1 for copyBuffer
       call copyBuffer(nthreads,ithr,buffer,locstring)
 
@@ -102,10 +102,10 @@ contains
         locstring = TRIM(subname) // ': ' // TRIM(location)
       else
         locstring = TRIM(subname)
-      endif
+      end if
       call copyBuffer(nthreads,ithr,buffer,locstring)
 
-   endif
+   end if
 #else
     call endrun('bndry_exchange_a2a requires MPI-3 feature support')
 #endif
@@ -115,19 +115,19 @@ contains
 
   subroutine copyBuffer(nthreads,ithr,buffer,location)
     use edgetype_mod, only : Edgebuffer_t
-    integer :: nthreads
-    integer :: ithr
-    type (EdgeBuffer_t)          :: buffer
-    character(len=80)            :: location
+    integer,                intent(in)  :: nthreads
+    integer,                intent(in) :: ithr
+    type (EdgeBuffer_t), intent(inout) :: buffer
+    character(len=80),      intent(in) :: location
     logical ::  ompThreadMissmatch
-    integer lenMovePtr, iptr,length,i,j
+    integer :: lenMovePtr, iptr,length,i,j
 
     ompThreadMissmatch = .false.
     lenMovePtr = size(buffer%moveptr)
-    if ( lenMOveptr .ne. nthreads) then
+    if (lenMOveptr /= nthreads) then
       ompthreadMissmatch = .true.
-      write(*,30) TRIM(location), lenMoveptr, nthreads
-    endif
+      write(iulog,30) TRIM(location), lenMoveptr, nthreads
+    end if
 
     if (.not. ompthreadMissmatch) then
       iptr   = buffer%moveptr(ithr+1)
@@ -135,8 +135,8 @@ contains
       if(length>0) then
         do i=0,length-1
            buffer%receive(iptr+i) = buffer%buf(iptr+i)
-        enddo
-      endif
+        end do
+      end if
     else if(ompthreadMissmatch .and. ithr == 0) then
        do j=1,lenMovePtr
           iptr   = buffer%moveptr(j)
@@ -144,10 +144,10 @@ contains
           if(length>0) then
              do i=0,length-1
                 buffer%receive(iptr+i) = buffer%buf(iptr+i)
-             enddo
-          endif
-       enddo
-    endif
+             end do
+          end if
+       end do
+    end if
 30  format(a,'Potential perf issue: ',a,'LenMoveptr,nthreads: ',2(i3))
   end subroutine copyBuffer
 
@@ -160,11 +160,11 @@ contains
     use perf_mod, only : t_startf, t_stopf
     use mpi, only: mpi_real8, mpi_success, mpi_status_size
 
-    type (parallel_t)                 :: par
-    integer, intent(in)               :: nthreads
-    integer                           :: ithr  ! The OpenMP thread ID
-    type (EdgeBuffer_t)               :: buffer
-    character(len=*), optional        :: location
+    type (parallel_t),          intent(in) :: par
+    integer,                    intent(in) :: nthreads
+    integer,                    intent(in) :: ithr  ! The OpenMP thread ID
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     integer                           :: ierr
     integer                           :: errorcode,errorlen
@@ -185,25 +185,25 @@ contains
       ! Start Inter-node communication
       call MPI_Ineighbor_Alltoallv(buffer%buf,buffer%scountsInter,buffer%sdisplsInter,MPI_real8, &
            buffer%receive,buffer%rcountsInter,buffer%rdisplsInter,MPI_real8,par%commGraphInter,requestInter,ierr)
-      if(ierr .ne. MPI_SUCCESS) then
+      if(ierr /= MPI_SUCCESS) then
         errorcode=ierr
         call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
         write(iulog,*) subname,': Error after call to MPI_Ineighbor_alltoallv: ',errorstring
-      endif
+      end if
       ! Start Intra-node communication
       call MPI_Ineighbor_Alltoallv(buffer%buf,buffer%scountsIntra,buffer%sdisplsIntra,MPI_real8, &
            buffer%receive,buffer%rcountsIntra,buffer%rdisplsIntra,MPI_real8,par%commGraphIntra,requestIntra,ierr)
-      if(ierr .ne. MPI_SUCCESS) then
+      if(ierr /= MPI_SUCCESS) then
         errorcode=ierr
         call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
         write(iulog,*) subname,': Error after call to MPI_Ineighbor_alltoallv: ',errorstring
-      endif
+      end if
 
       if(present(location)) then
         locstring = TRIM(subname) // ': ' // TRIM(location)
       else
         locstring = TRIM(subname)
-      endif
+      end if
       ! Finish the Intra-node communication
       call MPI_wait(requestIntra,lstatus,ierr)
 
@@ -220,11 +220,11 @@ contains
         locstring = TRIM(subname) // ': ' // TRIM(location)
       else
         locstring = TRIM(subname)
-      endif
+      end if
       !Copy buffer for ithr!=0
       call copyBuffer(nthreads,ithr,buffer,locstring)
 
-   endif
+   end if
 #else
     call endrun('bndry_exchange_a2ao requires MPI-3 feature support')
 #endif
@@ -240,11 +240,11 @@ contains
     use perf_mod,      only: t_startf, t_stopf
     use mpi,           only: mpi_real8, mpi_success
 
-    type (parallel_t)                 :: par
-    integer, intent(in)               :: nthreads
-    integer                           :: ithr
-    type (EdgeBuffer_t)               :: buffer
-    character(len=*), optional        :: location
+    type (parallel_t),          intent(in) :: par
+    integer,                    intent(in) :: nthreads
+    integer,                    intent(in) :: ithr
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     type (Schedule_t),pointer         :: pSchedule
     type (Cycle_t),pointer            :: pCycle
@@ -253,10 +253,10 @@ contains
     integer                           :: iptr,source,nlyr
     integer                           :: nSendCycles,nRecvCycles
     integer                           :: errorcode,errorlen
-    character*(80)                    :: errorstring
+    character(len=80)                 :: errorstring
     character(len=*), parameter       :: subname = 'bndry_exchange_p2p'
     character(len=80)                 :: locstring
-    logical, parameter :: Debug=.FALSE.
+    logical, parameter :: Debug=.false.
 
     integer                           :: i,j
     logical :: ompthreadMissmatch
@@ -264,7 +264,7 @@ contains
 
     pSchedule => Schedule(1)
     nlyr = buffer%nlyr
-    ompthreadMissmatch = .FALSE.
+    ompthreadMissmatch = .false.
 
     lenMovePtr = size(buffer%moveptr)
 
@@ -285,11 +285,11 @@ contains
        iptr            = buffer%sdisplsFull(icycle) + 1
        if(Debug) write(iulog,*) subname,': MPI_Isend: DEST:',dest,'LENGTH:',length,'TAG: ',tag
        call MPI_Isend(buffer%buf(iptr),length,Mpi_real8,dest,tag,par%comm,buffer%Srequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Isend: ',errorstring
-       endif
+       end if
     end do    ! icycle
 
     !==================================================
@@ -304,17 +304,17 @@ contains
        if(Debug) write(iulog,*) subname,': MPI_Irecv: SRC:',source,'LENGTH:',length,'TAG: ',tag
        call MPI_Irecv(buffer%receive(iptr),length,Mpi_real8, &
             source,tag,par%comm,buffer%Rrequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Irecv: ',errorstring
-       endif
+       end if
     end do    ! icycle
     if(present(location)) then
       locstring = TRIM(subname) // ': ' // TRIM(location)
     else
       locstring = TRIM(subname)
-    endif
+    end if
     call copyBuffer(nthreads,ithr,buffer,locstring)
     if (nSendCycles>0) call MPI_Waitall(nSendCycles,buffer%Srequest,buffer%status,ierr)
     if (nRecvCycles>0) call MPI_Waitall(nRecvCycles,buffer%Rrequest,buffer%status,ierr)
@@ -323,9 +323,9 @@ contains
       locstring = TRIM(subname) // ': ' // TRIM(location)
     else
       locstring = TRIM(subname)
-    endif
+    end if
     call copyBuffer(nthreads,ithr,buffer,locstring)
-  endif
+  end if
 
   end subroutine bndry_exchange_p2p
 
@@ -337,11 +337,11 @@ contains
     use parallel_mod,  only: parallel_t
     use mpi,           only: mpi_real8, mpi_success
 
-    type (parallel_t)                 :: par
-    integer, intent(in)               :: nthreads
-    integer                           :: ithr
-    type (EdgeBuffer_t)               :: buffer
-    character (len=*), optional :: location
+    type (parallel_t),           intent(in) :: par
+    integer,                     intent(in) :: nthreads
+    integer,                     intent(in) :: ithr
+    type (EdgeBuffer_t),      intent(inout) :: buffer
+    character (len=*), optional, intent(in) :: location
 
     type (Schedule_t),pointer         :: pSchedule
     type (Cycle_t),pointer            :: pCycle
@@ -350,16 +350,16 @@ contains
     integer                           :: iptr,source,nlyr
     integer                           :: nSendCycles,nRecvCycles
     integer                           :: errorcode,errorlen
-    character*(80)                    :: errorstring
+    character(len=80)                 :: errorstring
     character(len=*),       parameter :: subname = 'bndry_exchange_p2p_start'
-    logical,                parameter :: Debug=.FALSE.
+    logical,                parameter :: Debug=.false.
 
     integer                           :: i,j, lenMovePtr
     logical :: ompthreadMissmatch
 
     pSchedule => Schedule(1)
     nlyr = buffer%nlyr
-    ompthreadMissmatch = .FALSE.
+    ompthreadMissmatch = .false.
 
     lenMovePtr = size(buffer%moveptr)
 
@@ -379,11 +379,11 @@ contains
        iptr            = buffer%sdisplsFull(icycle) + 1
        if(Debug) write(iulog,*) subname,': MPI_Isend: DEST:',dest,'LENGTH:',length,'TAG: ',tag
        call MPI_Isend(buffer%buf(iptr),length,Mpi_real8,dest,tag,par%comm,buffer%Srequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Isend: ',errorstring
-       endif
+       end if
     end do    ! icycle
 
     !==================================================
@@ -398,13 +398,13 @@ contains
        if(Debug) write(iulog,*) subname,': MPI_Irecv: SRC:',source,'LENGTH:',length,'TAG: ',tag
        call MPI_Irecv(buffer%receive(iptr),length,Mpi_real8, &
             source,tag,par%comm,buffer%Rrequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Irecv: ',errorstring
-       endif
+       end if
     end do    ! icycle
-  endif
+  end if
 
   end subroutine bndry_exchange_p2p_start
 
@@ -416,11 +416,11 @@ contains
     use perf_mod,      only: t_startf, t_stopf
 
 
-    type (parallel_t)            :: par
-    integer, intent(in)          :: nthreads
-    integer                      :: ithr
-    type (EdgeBuffer_t)          :: buffer
-    character(len=*),  optional  :: location
+    type (parallel_t),           intent(in) :: par
+    integer,                     intent(in) :: nthreads
+    integer,                     intent(in) :: ithr
+    type (EdgeBuffer_t),      intent(inout) :: buffer
+    character(len=*),  optional, intent(in) :: location
 
     type (Schedule_t), pointer   :: pSchedule
     type (Cycle_t),    pointer   :: pCycle
@@ -429,7 +429,7 @@ contains
     integer                      :: iptr,source,nlyr
     integer                      :: nSendCycles,nRecvCycles
     integer                      :: errorcode,errorlen
-    character*(80)               :: errorstring
+    character(len=80)            :: errorstring
     character(len=*),  parameter :: subname = 'bndry_exchange_p2p_finish'
     character(len=80)            :: locstring
 
@@ -443,7 +443,7 @@ contains
     locstring = TRIM(subname) // ': ' // TRIM(location)
   else
     locstring = TRIM(subname)
-  endif
+  end if
   call copyBuffer(nthreads,ithr,buffer,locstring)
 
   if(ithr == 0) then
@@ -454,7 +454,7 @@ contains
     if (nSendCycles>0) call MPI_Waitall(nSendCycles,buffer%Srequest,buffer%status,ierr)
     if (nRecvCycles>0) call MPI_Waitall(nRecvCycles,buffer%Rrequest,buffer%status,ierr)
 
-  endif
+  end if
 
   end subroutine bndry_exchange_p2p_finish
 
@@ -465,8 +465,8 @@ contains
     use parallel_mod,  only: parallel_t, status, srequest, rrequest
     use mpi,           only: mpi_integer, mpi_success
 
-    type (parallel_t)            :: par
-    type (LongEdgeBuffer_t)      :: buffer
+    type (parallel_t),          intent(in) :: par
+    type (LongEdgeBuffer_t), intent(inout) :: buffer
 
     type (Schedule_t), pointer   :: pSchedule
     type (Cycle_t),    pointer   :: pCycle
@@ -475,7 +475,7 @@ contains
     integer                      :: iptr,source,nlyr
     integer                      :: nSendCycles,nRecvCycles
     integer                      :: errorcode,errorlen
-    character*(80)               :: errorstring
+    character(len=80)            :: errorstring
     character(len=*),  parameter :: subname = 'long_bndry_exchange_nonth'
 
     integer                      :: i
@@ -485,7 +485,7 @@ contains
        print *,subname,': Warning you are calling a non-thread safe'
        print *,'         routine inside a threaded region....     '
        print *,'                Results are not predictable!!            '
-    endif
+    end if
 
 
     ! Setup the pointer to proper Schedule
@@ -508,11 +508,11 @@ contains
        iptr            = pCycle%ptrP
 
        call MPI_Isend(buffer%buf(1,iptr),length,Mpi_integer,dest,tag,par%comm,Srequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Isend: ',errorstring
-       endif
+       end if
     end do    ! icycle
 
     !==================================================
@@ -527,11 +527,11 @@ contains
 
        call MPI_Irecv(buffer%receive(1,iptr),length,Mpi_integer, &
             source,tag,par%comm,Rrequest(icycle),ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           write(iulog,*) subname,': Error after call to MPI_Irecv: ',errorstring
-       endif
+       end if
     end do    ! icycle
 
 
@@ -547,7 +547,7 @@ contains
        iptr            = pCycle%ptrP
        do i=0,length-1
           buffer%buf(1:nlyr,iptr+i) = buffer%receive(1:nlyr,iptr+i)
-       enddo
+       end do
     end do   ! icycle
 
 #endif
@@ -562,11 +562,9 @@ contains
     use hybrid_mod,   only : hybrid_t
     use edgetype_mod, only : Edgebuffer_t
 
-    implicit none
-
-    type (hybrid_t)             :: hybrid
-    type (EdgeBuffer_t)         :: buffer
-    character(len=*), optional :: location 
+    type (hybrid_t),            intent(in) :: hybrid
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     call bndry_exchange_threaded(hybrid,buffer,location)
  end subroutine ghost_exchange_threaded
@@ -575,19 +573,18 @@ contains
     use hybrid_mod, only : hybrid_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (hybrid_t)             :: hybrid
-    type (EdgeBuffer_t)         :: buffer
-    character(len=*), optional  :: location
+    type (hybrid_t),            intent(in) :: hybrid
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     character(len=*), parameter :: subname = 'bndry_exchange_threaded'
 !VERBOSE
-!    if(present(location)) then 
-!       print *,subname,' ',location 
+!    if(present(location)) then
+!       print *,subname,' ',location
 !    else
 !       print *,subname,' somewhere'
-!    endif
+!    end if
 
     call gbarrier(buffer%gbarrier, hybrid%ithr)
     if(buffer%bndry_type == HME_BNDRY_A2A) then
@@ -596,7 +593,7 @@ contains
        call bndry_exchange_a2ao(hybrid%par,hybrid%nthreads,hybrid%ithr,buffer,location)
     else
        call bndry_exchange_p2p(hybrid%par,hybrid%nthreads,hybrid%ithr,buffer,location)
-    endif
+    end if
     call gbarrier(buffer%gbarrier, hybrid%ithr)
 
  end subroutine bndry_exchange_threaded
@@ -605,11 +602,10 @@ contains
     use hybrid_mod, only : hybrid_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (hybrid_t)             :: hybrid
-    type (EdgeBuffer_t)         :: buffer
-    character(len=*), optional  :: location
+    type (hybrid_t),            intent(in) :: hybrid
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     character(len=*), parameter :: subname = 'bndry_exchange_threaded_start'
 
@@ -622,11 +618,10 @@ contains
     use hybrid_mod, only : hybrid_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (hybrid_t)             :: hybrid
-    type (EdgeBuffer_t)         :: buffer
-    character(len=*), optional  :: location
+    type (hybrid_t),            intent(in) :: hybrid
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     character(len=*), parameter :: subname = 'bndry_exchange_threaded_finish'
 
@@ -638,9 +633,9 @@ contains
  subroutine ghost_exchange_nonthreaded(par,buffer,location)
     use parallel_mod,   only : parallel_t
     use edgetype_mod, only : Edgebuffer_t
-    type (parallel_t)          :: par
-    type (EdgeBUffer_t)        :: buffer
-    character(len=*), optional :: location 
+    type (parallel_t),          intent(in) :: par
+    type (EdgeBUffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
     call bndry_exchange_nonthreaded(par,buffer,location)
  end subroutine ghost_exchange_nonthreaded
 
@@ -648,11 +643,10 @@ contains
     use parallel_mod, only : parallel_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (parallel_t)           :: par
-    type (EdgeBuffer_t)         :: buffer
-    character(len=*), optional  :: location
+    type (parallel_t),          intent(in) :: par
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     integer                     :: ithr
     integer                     :: nthreads
@@ -667,7 +661,7 @@ contains
        call bndry_exchange_a2ao(par,nthreads,ithr,buffer,location)
     else
        call bndry_exchange_p2p(par,nthreads,ithr,buffer,location)
-    endif
+    end if
     !$OMP BARRIER
 
   end subroutine bndry_exchange_nonthreaded
@@ -676,11 +670,10 @@ contains
     use parallel_mod, only : parallel_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (parallel_t)           :: par
-    type (EdgeBuffer_t)         :: buffer
-    character (len=*), optional :: location
+    type (parallel_t),      intent(in) :: par
+    type (EdgeBuffer_t), intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
 
     integer                     :: ithr
     integer                     :: nthreads
@@ -697,13 +690,11 @@ contains
     use parallel_mod, only : parallel_t
     use edgetype_mod, only : Edgebuffer_t
     use perf_mod, only: t_startf, t_stopf, t_adj_detailf
-    implicit none
 
-    type (parallel_t)                 :: par
-    integer                           :: ithr
-    type (EdgeBuffer_t)               :: buffer
-    character (len=*), optional :: location
-    integer :: nthreads
+    type (parallel_t),          intent(in) :: par
+    type (EdgeBuffer_t),     intent(inout) :: buffer
+    character(len=*), optional, intent(in) :: location
+    integer :: nthreads, ithr
 
     character(len=*), parameter :: subname = 'bndry_exchange_nonthreaded_finish'
 
@@ -731,14 +722,14 @@ contains
 
   type (hybrid_t)      , intent(in) :: hybrid
   type (element_t)     , intent(inout), target :: elem(:)
-  integer :: nets,nete
+  integer              , intent(in) :: nets,nete
   type (edgeBuffer_t)    :: ghostbuf_cv
 
   real (kind=r8) :: cin(-1:4,-1:4,1,nets:nete)  !CE: fvm tracer
   real (kind=r8) :: cout(-1:4,-1:4,1,nets:nete)  !CE: fvm tracer
   integer :: i,j,ie,kptr,np1,np2,nc,nc1,nc2,k,nlev
   logical :: fail,fail1,fail2
-  real (kind=r8) :: tol = 0.1_r8
+  real (kind=r8), parameter :: tol = 0.1_r8
   call syncmp(hybrid%par)
 
 
@@ -753,7 +744,7 @@ contains
 
   if (hybrid%nthreads > 1) then
      call endrun('ERROR: compute_ghost_corner_orientation must be called before threaded region')
-  endif
+  end if
   call initghostbuffer(hybrid%par,ghostbuf_cv,elem,nlev,nc,nc,nthreads=1)
 
 
@@ -763,7 +754,7 @@ contains
      cin(nc,nc,1,ie)=  elem(ie)%gdofp(np,np)
      cin(1,nc,1,ie)=   elem(ie)%gdofp(1,np)
      cin(nc,1,1,ie)=  elem(ie)%gdofp(np,1)
-  enddo
+  end do
   cout=0
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -777,7 +768,7 @@ contains
   do ie=nets,nete
      kptr=0
      call ghostunpack(ghostbuf_cv, cout(:,:,:,ie),nlev,kptr,ie)
-  enddo
+  end do
 
 !       nc +--------+
 !        ^ | nw  ne |
@@ -791,59 +782,59 @@ contains
   do ie=nets,nete
      fail1=.false.
      fail2=.false.
-     if ( elem(ie)%desc%putmapP_ghost(swest) /= -1) then
-        if (abs(cout(nc1,1,1,ie)-cout(nc1,0,1,ie)) .gt. tol )  fail1=.true.
-        if (abs(cout(1,nc1,1,ie)-cout(0,nc1,1,ie)).gt.tol) fail2=.true.
-     endif
-     if (fail1 .neqv. fail2 ) call endrun( 'ghost exchange SW orientation failure')
+     if (elem(ie)%desc%putmapP_ghost(swest) /= -1) then
+        if (abs(cout(nc1,1,1,ie)-cout(nc1,0,1,ie)) > tol)  fail1=.true.
+        if (abs(cout(1,nc1,1,ie)-cout(0,nc1,1,ie))>tol) fail2=.true.
+     end if
+     if (fail1 .neqv. fail2) call endrun('ghost exchange SW orientation failure')
      if (fail1) then
         elem(ie)%desc%reverse(swest)=.true.
-     endif
-  enddo
+     end if
+  end do
 ! check SE corner
   do ie=nets,nete
      fail1=.false.
      fail2=.false.
-     if ( elem(ie)%desc%putmapP_ghost(seast) /= -1) then
-        if (abs(cout(nc2,1,1,ie)-cout(nc2,0,1,ie)) .gt. tol )  fail1=.true.
-        if (abs(cout(nc+1,nc1,1,ie)-cout(nc,nc1,1,ie)).gt.tol) fail2=.true.
-     endif
-     if (fail1 .neqv. fail2 ) call endrun('ghost exchange SE orientation failure')
+     if (elem(ie)%desc%putmapP_ghost(seast) /= -1) then
+        if (abs(cout(nc2,1,1,ie)-cout(nc2,0,1,ie)) > tol)  fail1=.true.
+        if (abs(cout(nc+1,nc1,1,ie)-cout(nc,nc1,1,ie))>tol) fail2=.true.
+     end if
+     if (fail1 .neqv. fail2) call endrun('ghost exchange SE orientation failure')
      if (fail1) then
         elem(ie)%desc%reverse(seast)=.true.
-     endif
-  enddo
+     end if
+  end do
 ! check NW corner
   do ie=nets,nete
      fail1=.false.
      fail2=.false.
-     if ( elem(ie)%desc%putmapP_ghost(nwest) /= -1) then
-        if (abs(cout(nc1,nc+1,1,ie)-cout(nc1,nc,1,ie)) .gt. tol )  fail1=.true.
-        if (abs(cout(1,nc2,1,ie)-cout(0,nc2,1,ie)).gt.tol) fail2=.true.
-     endif
-     if (fail1 .neqv. fail2 ) call endrun( 'ghost exchange NW orientation failure')
+     if (elem(ie)%desc%putmapP_ghost(nwest) /= -1) then
+        if (abs(cout(nc1,nc+1,1,ie)-cout(nc1,nc,1,ie)) > tol)  fail1=.true.
+        if (abs(cout(1,nc2,1,ie)-cout(0,nc2,1,ie))>tol) fail2=.true.
+     end if
+     if (fail1 .neqv. fail2) call endrun('ghost exchange NW orientation failure')
      if (fail1) then
         elem(ie)%desc%reverse(nwest)=.true.
-     endif
-  enddo
+     end if
+  end do
 ! check NE corner
   do ie=nets,nete
      fail1=.false.
      fail2=.false.
-     if ( elem(ie)%desc%putmapP_ghost(neast) /= -1) then
-        if (abs(cout(nc2,nc+1,1,ie)-cout(nc2,nc,1,ie)) .gt. tol )  fail1=.true.
-        if (abs(cout(nc+1,nc2,1,ie)-cout(nc,nc2,1,ie)).gt.tol) fail2=.true.
-     endif
-     if (fail1 .neqv. fail2 ) call endrun( 'ghost exchange NE orientation failure')
+     if (elem(ie)%desc%putmapP_ghost(neast) /= -1) then
+        if (abs(cout(nc2,nc+1,1,ie)-cout(nc2,nc,1,ie)) > tol)  fail1=.true.
+        if (abs(cout(nc+1,nc2,1,ie)-cout(nc,nc2,1,ie))>tol) fail2=.true.
+     end if
+     if (fail1 .neqv. fail2) call endrun('ghost exchange NE orientation failure')
      if (fail1) then
         elem(ie)%desc%reverse(neast)=.true.
-     endif
-  enddo
+     end if
+  end do
   call freeghostbuffer(ghostbuf_cv)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  end ghost exchange corner orientation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  end subroutine
+  end subroutine compute_ghost_corner_orientation
   subroutine ghost_exchangeVfull(par,ithr,buffer)
 !
 !   MT 2011:  derived from bndry_exchange, but copies an entire
@@ -857,11 +848,10 @@ contains
     use parallel_mod, only : status, srequest, rrequest, parallel_t
     use mpi,            only: mpi_integer, mpi_success,mpi_real8
 
-    implicit none
-    type (parallel_t)                :: par
-    integer                          :: ithr     ! hybrid%ithr 0 if called outside threaded region
+    type (parallel_t), intent(in)    :: par
+    integer,           intent(in)    :: ithr     ! hybrid%ithr 0 if called outside threaded region
 
-    type (GhostBuffer3D_t)           :: buffer
+    type (GhostBuffer3D_t), intent(inout) :: buffer
 
     type (Schedule_t),pointer        :: pSchedule
     type (Cycle_t),pointer           :: pCycle
@@ -871,7 +861,7 @@ contains
     integer                          :: nSendCycles,nRecvCycles
     integer                          :: errorcode,errorlen
     character(len=*), parameter      :: subname = 'ghost_exchangeVfull'
-    character*(80) errorstring
+    character(len=80) :: errorstring
 
     integer                          :: i,i1,i2
 
@@ -898,11 +888,11 @@ contains
           iptr            = pCycle%ptrP_ghost
 
           call MPI_Isend(buffer%buf(1,1,1,iptr),length,MPI_real8,dest,tag,par%comm,Srequest(icycle),ierr)
-          if(ierr .ne. MPI_SUCCESS) then
+          if(ierr /= MPI_SUCCESS) then
              errorcode=ierr
              call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
              print *,subname,': Error after call to MPI_Isend: ',errorstring
-          endif
+          end if
        end do    ! icycle
 
        !==================================================
@@ -917,11 +907,11 @@ contains
 
           call MPI_Irecv(buffer%receive(1,1,1,iptr),length,MPI_real8, &
                source,tag,par%comm,Rrequest(icycle),ierr)
-          if(ierr .ne. MPI_SUCCESS) then
+          if(ierr /= MPI_SUCCESS) then
              errorcode=ierr
              call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
              print *,subname,': Error after call to MPI_Irecv: ',errorstring
-          endif
+          end if
        end do    ! icycle
 
 
@@ -938,12 +928,12 @@ contains
           iptr            = pCycle%ptrP_ghost
           do i=0,length-1
              buffer%buf(:,:,1:nlyr,iptr+i) = buffer%receive(:,:,1:nlyr,iptr+i)
-          enddo
+          end do
        end do   ! icycle
 
 
 #endif
-    endif  ! if (hybrid%ithr == 0)
+    end if  ! if (hybrid%ithr == 0)
     !$OMP BARRIER
 
   end subroutine ghost_exchangeVfull
