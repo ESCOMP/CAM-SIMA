@@ -2235,7 +2235,7 @@
     </variable>
     <!-- convective_cloud_water + cloud_water_paths inputs for RRTMGP cloud optics -->
     <variable local_name="effi_external_in"
-              standard_name="effective_radius_of_stratiform_cloud_ice_particle"
+              standard_name="effective_radius_of_stratiform_cloud_ice_crystal"
               units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
