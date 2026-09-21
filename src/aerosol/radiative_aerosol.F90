@@ -271,7 +271,7 @@ subroutine rad_aer_get_info_by_bin(list_idx, m_idx, &
 
    ! bin name
    if (present(bin_name)) then
-      bin_name = bins%names(m_idx)
+      bin_name = bins%names(mm)
    end if
 
    ! name of interstitial number mixing ratio

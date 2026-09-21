@@ -178,10 +178,10 @@ CONTAINS
       call MPI_reduce(check, check_sum, 1, mpi_real8, mpi_sum,     &
                        masterprocid, mpicom, ierr)
 
-      ! normalization
-      check_sum = check_sum / pi4
-
+      ! check_sum is only defined on the root of the reduction
       if (masterproc) then
+         ! normalization
+         check_sum = check_sum / pi4
          write(iulog, '(a,i0,2(a,e20.13e2))') 'gmean(', index, ') = ',        &
               check_sum, ', reprosum reported ', repro_sum
       end if

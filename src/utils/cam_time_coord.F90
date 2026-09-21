@@ -26,7 +26,7 @@ module cam_time_coord
       logical               :: fixed = .false.
       integer               :: fixed_ymd = -HUGE(1)
       integer               :: fixed_tod = -HUGE(1)
-      real(r8)              :: dtime ! time shift in interpolation point (days)
+      real(r8)              :: dtime = 0._r8 ! time shift in interpolation point (days)
       character(len=:), allocatable :: filename
    contains
       procedure :: initialize
@@ -361,6 +361,10 @@ CONTAINS
       this%fixed  = obj%fixed
       this%fixed_ymd = obj%fixed_ymd
       this%fixed_tod = obj%fixed_tod
+      this%wghts  = obj%wghts
+      this%indxs  = obj%indxs
+      this%time_interp = obj%time_interp
+      this%dtime  = obj%dtime
 
       allocate (this%times(this%ntimes), stat=ierr)
       call check_allocate(ierr, 'copy', 'this%times', file=__FILE__, line=__LINE__)

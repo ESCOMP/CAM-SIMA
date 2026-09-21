@@ -129,7 +129,7 @@ CONTAINS
                   write_history = .true.
                end if
             case('second')
-               nstep_freq = out_frq_mult / dtime
+               nstep_freq = nint(real(out_frq_mult, r8) / dtime)
                if (mod(nstep, nstep_freq) == 0) then
                   write_history = .true.
                end if
@@ -582,6 +582,10 @@ CONTAINS
          num_levels = 1
       end if
 
+      ! cam_grid_get_array_bounds only fills mapped dimensions; default the
+      ! rest to a degenerate extent of 1 so no undefined values are stored.
+      dimbounds(:,1) = 1
+      dimbounds(:,2) = 1
       call cam_grid_get_array_bounds(grid_decomp, dimbounds)
 
       call cam_grid_dimensions(grid_decomp, grid_dims, rank)

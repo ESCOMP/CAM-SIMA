@@ -173,7 +173,7 @@ contains
       verbose_use = .true.
     end if
 
-    if(masterproc .and. verbose .and. present(PS)) then
+    if(masterproc .and. verbose_use .and. present(PS)) then
       write(iulog,*) subname, ': Model top (in km) is at z= ',ztop/1000.0_r8
     end if
 
@@ -673,7 +673,7 @@ contains
   !-----------------------------------------------------------------------
   !    Stream function perturbation function
   !-----------------------------------------------------------------------
-  real(r8) FUNCTION evaluate_streamfunction(z,lon_local,lat_local)
+  real(r8) FUNCTION evaluate_streamfunction(lon_local,lat_local,z)
 
     real(r8), INTENT(IN)  :: lon_local
     real(r8), INTENT(IN)  :: lat_local

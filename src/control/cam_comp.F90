@@ -174,7 +174,8 @@ contains
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
 
-      dtime_phys = 0.0_r8
+      ! dtime_phys is seeded in phys_init, after the registry allocation
+      ! resets it; mark it here so the IC read does not try to fill it.
       call mark_as_initialized('timestep_for_physics')
 
       is_first_timestep = .true.

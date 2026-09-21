@@ -85,8 +85,10 @@ contains
    
     ! Compute the solar zenith angle [radians]
     do i = 1, size(latitudes)
-      solar_zenith_angle(i) = acos(shr_orb_cosz(calendar_day, latitudes(i), &
-                                                longitudes(i), solar_declination))
+      ! Clamp to [-1,1] so roundoff in the cosine cannot make acos return NaN
+      solar_zenith_angle(i) = acos(max(-1.0_kind_phys, min(1.0_kind_phys, &
+                                   shr_orb_cosz(calendar_day, latitudes(i), &
+                                                longitudes(i), solar_declination))))
     end do
 
     ! Compute the cosine of solar zenith angle for radiation [radians]
