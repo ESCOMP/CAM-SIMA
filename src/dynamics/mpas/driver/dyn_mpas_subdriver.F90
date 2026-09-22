@@ -3446,6 +3446,7 @@ contains
 
         ! Initialized by `dyn_mpas_define_scalar`.
         deallocate(self % constituent_name)
+        deallocate(self % input_alias)
         deallocate(self % index_constituent_to_mpas_scalar)
         deallocate(self % index_mpas_scalar_to_constituent)
         deallocate(self % is_water_species)
