@@ -1,0 +1,25 @@
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_185_ne3pg3_fhist_convective_cloud_water_snapshot_derecho_gnu_before_c20260716.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_185_ne3pg3_fhist_convective_cloud_water_snapshot_derecho_gnu_after_c20260716.nc'
+
+! fhist:
+pver = 32
+
+debug_output = 1
+ncdata_check_err = .true.
+
+conv_water_in_rad = 1
+conv_water_frac_limit = 0.01D0
+
+! Exclude snow/graupel outputs as qsout/qgout are PUMAS outputs
+! with no CAM pbuf so they cannot be passed into the snapshot:
+! the standalone suite can only run with zero snow/graupel so
+! snowy cells:
+!ncdata_check_exclude = 'liquid_plus_snow_stratiform_cloud_area_fraction',
+!    'liquid_plus_graupel_stratiform_cloud_area_fraction',
+!    'in_cloud_snow_water_path', 'stratiform_in_cloud_graupel_water_path'
+
+hist_add_inst_fields;h1: ICLMRCU, ICIMRCU, ICLMRTOT, ICIMRTOT, GCLMRSH, GCLMRDP, GCIMRSH, GCIMRDP, FRESH, FREDP, FRECU, FRETOT
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 3
