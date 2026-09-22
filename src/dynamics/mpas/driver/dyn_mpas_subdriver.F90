@@ -1242,7 +1242,7 @@ contains
             field_3d_real_alias(i) = field_3d_real
             field_3d_real_alias(i) % fieldname = 'scalars_alias'
 
-            allocate(field_3d_real_alias(i) % constituentnames, source=field_3d_real % constituentnames, errmsg=cerr, stat=ierr)
+            allocate(field_3d_real_alias(i) % constituentnames(size(field_3d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
             if (ierr /= 0) then
                 call self % model_error('Failed to allocate field_3d_real_alias % constituentnames' // new_line('') // &
@@ -1250,6 +1250,7 @@ contains
                     subname, __LINE__)
             end if
 
+            field_3d_real_alias(i) % constituentnames(:) = ''
             field_3d_real_alias(i) % constituentnames(1:size(self % input_alias)) = &
                 adjustl(self % input_alias(self % index_mpas_scalar_to_constituent))
 
