@@ -236,6 +236,7 @@ CONTAINS
               unit=this%volume, incomplete_ok=.false.)
 
    end subroutine config_set_restart_filename
+
    ! ========================================================================
 
    subroutine config_set_last_month_written(this, last_month_written)
