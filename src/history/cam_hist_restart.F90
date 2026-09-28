@@ -3,6 +3,7 @@ module cam_hist_restart
    use cam_history_support, only: max_fieldname_len
    use shr_kind_mod,        only: r4 => shr_kind_r4
    use shr_kind_mod,        only: r8 => shr_kind_r8
+   use cam_hist_file,       only: hist_file_t
 
    implicit none
    private
@@ -245,7 +246,7 @@ CONTAINS
       end do
    end subroutine hist_restart_write
 
-   subroutine hist_restart_read(restart_file, hist_configs)
+   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths)
       ! Read history fields from the .r. file
       use pio,            only: file_desc_t, pio_inq_varid, pio_seterrorhandling, pio_get_var
       use pio,            only: PIO_BCAST_ERROR, pio_inq_dimid, PIO_INTERNAL_ERROR, pio_inq_dimlen
@@ -257,7 +258,9 @@ CONTAINS
       use cam_grid_support,    only: max_split_files, max_hcoordname_len
       use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32, REAL64
       type(file_desc_t), intent(inout)  :: restart_file
-      type(hist_file_t), intent(in)  :: hist_configs(:)
+      type(hist_file_t), intent(inout)  :: hist_configs(:)
+      logical, allocatable, intent(out) :: has_rh(:)
+      character(len=max_string_len), allocatable, intent(out) :: restart_file_paths(:)
       ! Local variables
       type(hist_file_t) :: rest_config
       integer :: idx, fld_idx, ierr
@@ -284,12 +287,10 @@ CONTAINS
       character(len=max_chars), allocatable :: units(:,:)
       character(len=max_chars), allocatable :: volume(:)
       character(len=max_hcoordname_len), allocatable :: dim_names(:)
-      character(len=max_string_len), allocatable :: restart_file_paths(:)
       real(r8), allocatable :: beg_time(:)
       real(r8), allocatable :: fill_value(:,:)
       integer :: max_fields
       integer :: num_configs
-      logical, allocatable :: has_rh(:)
       character(len=256) :: errmsg
       character(len=max_fieldname_len), allocatable :: inst_fields(:)
       character(len=max_fieldname_len), allocatable :: avg_fields(:)
@@ -485,7 +486,7 @@ CONTAINS
             if (trim(avg_flag(fld_idx, idx)) == 'avg') then
                avg_fields(avg_fields_idx) = field_list(fld_idx, idx)
                avg_fields_idx = avg_fields_idx + 1
-            else if (trim(avg_flag(fld_idx, idx)) == 'inst') then
+            else if (trim(avg_flag(fld_idx, idx)) == 'lst') then
                inst_fields(inst_fields_idx) = field_list(fld_idx, idx)
                inst_fields_idx = inst_fields_idx + 1
             else if (trim(avg_flag(fld_idx, idx)) == 'min') then
@@ -502,10 +503,24 @@ CONTAINS
                call endrun(errmsg)
             end if
          end do
+
+         ! Make sure no configs have changed from previous run
          call rest_config%configure(volume(idx), rl_kind, max_frames(idx), output_freq(idx), &
              4, '', .false., inst_fields(:inst_fields_idx - 1), avg_fields(:avg_fields_idx - 1), &
              min_fields(:min_fields_idx - 1), max_fields_list(:max_fields_idx - 1), var_fields(:var_fields_idx - 1), .false.)
          call rest_config%check_restart_consistency(hist_configs(idx))
+
+         ! Overwrite current stats from restart file
+         call hist_configs(idx)%overwrite_restart_info(num_frames(idx), current_files(idx,:))
+
+         call rest_config%reset()
+
+         min_fields_idx = 1
+         max_fields_idx = 1
+         avg_fields_idx = 1
+         var_fields_idx = 1
+         inst_fields_idx = 1
+
       end do
 
    end subroutine hist_restart_read

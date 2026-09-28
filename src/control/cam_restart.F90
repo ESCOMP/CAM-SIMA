@@ -125,11 +125,6 @@ CONTAINS
 
     fh_restart => initial_file_get_id()
 
-    ! Get grid info
-!    grid_id = cam_grid_id('physgrid')
-!    call cam_grid_dimensions(physgrid, gdims(1:2), nhdims)
-
-
     call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
 
     call restart_physics_read(fh_restart)
@@ -137,8 +132,6 @@ CONTAINS
     if (restart_run) then
        call history_restart_read(fh_restart)
     end if
-
-    call endrun('peverwhee - past restart history read')
 
   end subroutine cam_read_restart
 !========================================================================================

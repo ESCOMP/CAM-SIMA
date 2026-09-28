@@ -269,6 +269,11 @@ CONTAINS
 ! PEVERWHEE - PHYS AND DYN INIT ORDERING!??
       call phys_init()
 
+      ! if (single_column) then
+      !    call scm_intht()
+      ! end if
+      call history_init_files(model_doi_url, caseid, ctitle)
+
       if (initial_run_in) then
          call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       else
@@ -284,7 +289,6 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-      call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
 

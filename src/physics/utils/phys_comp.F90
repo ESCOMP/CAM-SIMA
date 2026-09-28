@@ -228,7 +228,7 @@ CONTAINS
       is_null_dycore = (cam_runtime_opts%get_dycore() == 'null')
 
       ! Determine if we should read initialized variables from file
-      use_init_variables = (.not. is_first_step()) .and.                      &
+      use_init_variables = (.not. is_first_step()) .or.                      &
          (.not. is_first_restart_step())
 
       ! Read physics data from IC file.  For the null dycore
