@@ -1,4 +1,15 @@
 [ccpp-table-properties]
+  name = cam_in_srd_t
+  type = ddt
+[ccpp-arg-table]
+  name = cam_in_srd_t
+  type = ddt
+[ dstflx ]
+  standard_name = surface_upward_dust_fluxes_from_coupler
+  units = kg m-2 s-1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, dust_size_bin_dimension)
+[ccpp-table-properties]
   name = physics_types_self_ref_dim
   type = module
 [ccpp-arg-table]
@@ -18,6 +29,11 @@
   type = integer
   dimensions = ()
   protected = True
+[ dust_dmt ]
+  standard_name = dust_diameter_by_size_bin
+  units = m
+  type = real | kind = kind_phys
+  dimensions = (dust_size_bin_dimension)
 [ ndust ]
   standard_name = dust_size_bin_dimension
   long_name = Number of dust size bins
@@ -30,3 +46,8 @@
   units = m
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension, vertical_layer_dimension, dust_size_bin_dimension)
+[ cam_in ]
+  standard_name = cam_in_object_self_ref_dim
+  units = None
+  type = cam_in_srd_t
+  dimensions = ()

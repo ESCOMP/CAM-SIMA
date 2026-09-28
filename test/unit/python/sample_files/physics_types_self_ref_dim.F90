@@ -22,16 +22,27 @@ module physics_types_self_ref_dim
   implicit none
   private
 
+!> \section arg_table_cam_in_srd_t  Argument Table
+!! \htmlinclude cam_in_srd_t.html
+  type, public :: cam_in_srd_t
+    ! dstflx: Surface upward dust fluxes from coupler
+    real(kind_phys),         allocatable          :: dstflx(:, :)
+  end type cam_in_srd_t
+
 !> \section arg_table_physics_types_self_ref_dim  Argument Table
 !! \htmlinclude physics_types_self_ref_dim.html
   ! ncol: Number of horizontal columns
-  integer,         public,              protected :: ncol = 0
+  integer,            public,              protected :: ncol = 0
   ! pver: Number of vertical layers
-  integer,         public,              protected :: pver = 0
+  integer,            public,              protected :: pver = 0
+  ! dust_dmt: Dust diameter by size bin
+  real(kind_phys),    public, allocatable          :: dust_dmt(:)
   ! ndust: Number of dust size bins
-  integer,         public, parameter            :: ndust = 4
+  integer,            public, parameter            :: ndust = 4
   ! rndst: Dust radii by size bin
-  real(kind_phys), public, allocatable          :: rndst(:, :, :)
+  real(kind_phys),    public, allocatable          :: rndst(:, :, :)
+  ! cam_in: Cam in object self ref dim
+  type(cam_in_srd_t), public                       :: cam_in
 
 !! public interfaces
   public :: allocate_physics_types_self_ref_dim_fields
@@ -71,6 +82,17 @@ contains
     if (set_init_val) then
       pver = 0
     end if
+    if (allocated(dust_dmt)) then
+      if (reallocate) then
+        deallocate(dust_dmt)
+      else
+        call endrun(subname//": dust_dmt is already allocated, cannot allocate")
+      end if
+    end if
+    allocate(dust_dmt(ndust))
+    if (set_init_val) then
+      dust_dmt = 0.0_kind_phys
+    end if
     if (allocated(rndst)) then
       if (reallocate) then
         deallocate(rndst)
@@ -81,6 +103,17 @@ contains
     allocate(rndst(horizontal_dimension, vertical_layer_dimension, ndust))
     if (set_init_val) then
       rndst = 0.0_kind_phys
+    end if
+    if (allocated(cam_in%dstflx)) then
+      if (reallocate) then
+        deallocate(cam_in%dstflx)
+      else
+        call endrun(subname//": cam_in%dstflx is already allocated, cannot allocate")
+      end if
+    end if
+    allocate(cam_in%dstflx(horizontal_dimension, ndust))
+    if (set_init_val) then
+      cam_in%dstflx = 0.0_kind_phys
     end if
   end subroutine allocate_physics_types_self_ref_dim_fields
 
