@@ -14,7 +14,8 @@ save
 
 public :: &
    init_restart_dynamics,  &
-   write_restart_dynamics
+   write_restart_dynamics, &
+   read_restart_dynamics
 
 !=========================================================================================
 contains
@@ -46,5 +47,20 @@ subroutine write_restart_dynamics(File, dyn_out)
    call mpas_dynamical_core % read_write_stream(File, 'w', 'invariant+restart+input')
 
 end subroutine write_restart_dynamics
+
+!=========================================================================================
+
+subroutine read_restart_dynamics(File, dyn_in)
+
+   ! arguments
+   type(File_desc_t), target :: File
+   type(dyn_import_t), intent(out)  :: dyn_in
+   type(file_desc_t), pointer :: file_ptr
+
+   file_ptr => File
+
+   call mpas_dynamical_core % read_write_stream(File, 'r', 'invariant+restart+input')
+
+end subroutine read_restart_dynamics
 
 end module restart_dynamics
