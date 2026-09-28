@@ -919,6 +919,8 @@ end subroutine read_elem
 !-------------------------------------------------------------------------------
 
 subroutine read_unstruct()
+   use cam_grid_support, only: cam_grid_get_dim_names
+   use edge_mod,       only: edgevpack, edgevunpack, freeedgebuffer
 
    ! local variables
    integer :: grid_id

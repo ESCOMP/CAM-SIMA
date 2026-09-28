@@ -961,15 +961,32 @@ CONTAINS
    subroutine history_restart_read(restart_file)
       use pio,              only: file_desc_t
       use cam_hist_restart, only: hist_restart_read
+      use cam_abortutils,   only: check_allocate
+      use cam_history_support, only: max_string_len
       ! Dummy variables
       type(file_desc_t), intent(inout) :: restart_file
+      character(len=256) :: errmsg
+      integer :: ierr, config_idx
+      logical, allocatable :: has_rh(:)
+      character(len=max_string_len), allocatable :: rh_file_paths(:)
 
       if (max_num_fields == 0) then
         ! Don't do anything if there aren't any history fields
         return
       end if
 
-      call hist_restart_read(restart_file, hist_configs, max_num_fields)
+      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths)
+
+      ! No need to do anything else if there are no .rhX. files!
+      if (.not. any(has_rh)) then
+         return
+      end if
+
+      do config_idx = 1, size(hist_configs)
+         if (has_rh(config_idx)) then
+            call hist_configs(config_idx)%read_rh_file(rh_file_paths(config_idx))
+         end if
+      end do
 
    end subroutine history_restart_read
 
