@@ -1,0 +1,32 @@
+
+! setup history output
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
+
+! general atmospheric state variables (to match 'history_amwg' from CAM)
+hist_add_inst_fields;h1: T, U, V, ZM, OMEGA, PS, PHIS, PMID
+
+! constituent diagnostics
+hist_add_inst_fields;h1: Q, CLDLIQ, CLDICE
+
+! SE dycore variables (to test 'GLL_hist' grid outputs)
+hist_add_inst_fields;h1: FU, FV, FT
+
+! history fields for CAM4 gravity waves (to match 'history_amwg' from CAM):
+hist_add_inst_fields;h1: TAUGWX, TAUGWY
+
+! history fields for CAM4 RK microphysics (to match 'history_amwg' from CAM):
+hist_add_inst_fields;h1: IWC, ICIMR, ICWMR, FICE
+
+! cloud fraction history fields (to match 'history_amwg' from CAM):
+hist_add_inst_fields;h1: CONCLD
+
+! history fields for CAM4 boundary layer scheme (to match 'history_amwg' from CAM):
+hist_add_inst_fields;h1: DTV, PBLH
+
+! history fields for RRTMGP radiation scheme (to match 'history_amwg' from CAM):! shortwave fields
+hist_add_inst_fields;h1: SOLIN, QRS, FSNT, FSNTC, FSNTOA, FSNTOAC, SWCF, FSNS, FSNSC, FSUTOA, FSDS, FSDSC
+hist_add_inst_fields;h1: QRL, FLNT, FLNTC, FLUT, FLUTC, LWCF, FLNS, FLNSC, FLDS
+

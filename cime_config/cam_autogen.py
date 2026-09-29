@@ -293,8 +293,9 @@ def _find_metadata_files(source_dirs, scheme_finder):
                                 bad_xml_sources.append(xml_file)
                             # end if
                             for scheme in schemes:
-                                meta_files[scheme] = (path, source_file,
-                                                      xml_file)
+                                if scheme not in meta_files:
+                                    meta_files[scheme] = (path, source_file,
+                                                          xml_file)
                             # End for
                         else:
                             # Add meta file to list of files
@@ -466,8 +467,11 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
             reg_files_list += reg_file_list
         # End for
 
-        # Save build details in the build cache
-        reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
+        # Save build details in the build cache,
+        # removing any duplicate metadata entries
+        # created by the registry generator:
+        reg_file_paths = list(dict.fromkeys(
+            x.file_path for x in reg_file_list if x.file_path))
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
                                     reg_file_paths, ic_names, registry_constituents, restart_vars, vars_init_value)
     else:

@@ -1,0 +1,21 @@
+[ccpp-table-properties]
+  name = test_list_t
+  type = ddt
+
+[ccpp-arg-table]
+  name = test_list_t
+  type = ddt
+
+[ccpp-table-properties]
+  name = ddt_arg_host_mod
+  type = module
+
+[ccpp-arg-table]
+  name = ddt_arg_host_mod
+  type = module
+[ test_list ]
+  standard_name = test_list_for_ddt_argument
+  units = none
+  type = test_list_t
+  dimensions = (vertical_layer_dimension)
+  allocatable = True

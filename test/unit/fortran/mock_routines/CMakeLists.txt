@@ -1,6 +1,14 @@
-add_library(cam_pio_utils cam_pio_utils.F90)
-target_link_libraries(cam_pio_utils PUBLIC MPI::MPI_Fortran
-                                           PIO::PIO_Fortran
-                                           PIO::PIO_C
-                                           NetCDF::NetCDF_C
-                                           NetCDF::NetCDF_Fortran)
+add_library(cam_pio_utils)
+target_sources(cam_pio_utils
+    PRIVATE
+        cam_pio_utils.F90
+)
+target_include_directories(cam_pio_utils
+    INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+target_link_libraries(cam_pio_utils
+    PRIVATE
+        MPI::MPI_Fortran
+        PIO::PIO_Fortran
+)

@@ -2,7 +2,7 @@ on:
   pull_request:
 jobs:
   fleximod-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     strategy:
       fail-fast: false
       matrix:
@@ -10,7 +10,7 @@ jobs:
         python-version: ["3.8", "3.x"]
     steps:
       - id: checkout-CESM
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - id: run-fleximod
         run: |
           $GITHUB_WORKSPACE/bin/git-fleximod update -o

@@ -302,7 +302,7 @@ class VarBase:
                 else:
                     outfile.write(f'{var_name} = (0.0, 0.0)', indent)
             elif self.var_type.lower() == 'logical':
-                outfile.write('{var_name} = .false.', indent)
+                outfile.write(f'{var_name} = .false.', indent)
             else:
                 emsg = 'Variable "{}" is of type "{}", which is not a supported type\n'
                 emsg += 'for use with "phys_timestep_init_zero".'
@@ -769,7 +769,7 @@ class Variable(VarBase):
         if self.initial_value:
             if self.allocatable == "pointer":
                 init_str = f" => {self.initial_value}"
-            elif not self.allocatable[0:11] == 'allocatable':
+            elif 'allocatable' not in self.allocatable:
                 init_str = f" = {self.initial_value}"
             # end if (no else, do not initialize allocatable fields)
         # end if
@@ -819,7 +819,8 @@ class Variable(VarBase):
             lname = f'{ddt_str}{self.local_name}'
             if self.allocatable == "pointer":
                 all_type = 'associated'
-            elif self.allocatable == "allocatable":
+            elif "allocatable" in self.allocatable:
+                # covers both "allocatable" and "allocatable, target"
                 all_type = 'allocated'
             else:
                 all_type = ''
@@ -1992,5 +1993,5 @@ def main():
 
 ###############################################################################
 if __name__ == "__main__":
-    __RETCODE, _FILES, _IC_NAMES = main()
+    __RETCODE, *_ = main()
     sys.exit(__RETCODE)

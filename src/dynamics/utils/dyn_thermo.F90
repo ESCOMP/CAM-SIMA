@@ -5,7 +5,7 @@ module dyn_thermo
    !the real kind is the same that is used
    !in the dycore.
 
-   use shr_kind_mod,   only: kind_dyn=>shr_kind_r8
+   use shr_kind_mod,   only: kind_dyn=>shr_kind_r8, shr_kind_cl
    use ccpp_kinds,     only: kind_phys
    use cam_abortutils, only: check_allocate
 
@@ -31,7 +31,7 @@ module dyn_thermo
    public :: get_enthalpy
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    !
@@ -65,6 +65,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_cp (dyn)'
 
       !Check if kinds are different:
@@ -79,20 +80,20 @@ CONTAINS
          else
             call get_cp_phys(tracer,inv_cp,cp, &
                              active_species_idx_dycore=active_species_idx_dycore)
-         endif
+         end if
 
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(cp_phys(size(cp,1), size(cp,2), size(cp,3)), stat=iret)
+         allocate(cp_phys(size(cp,1), size(cp,2), size(cp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'cp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
 
          !Set local input variables:
@@ -100,10 +101,10 @@ CONTAINS
 
          !Allocate and set optional variables:
          if (present(dp_dry)) then
-            allocate(factor_phys(size(dp_dry, 1), size(dp_dry, 2), size(dp_dry,3)), stat=iret)
+            allocate(factor_phys(size(dp_dry, 1), size(dp_dry, 2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'factor_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             factor_phys = 1.0_kind_phys/real(dp_dry, kind_phys)
@@ -154,6 +155,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_cp_dry (dyn)'
 
       !Check if kinds are different:
@@ -167,26 +169,26 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
 
-         allocate(cp_dry_phys(size(cp_dry,1), size(cp_dry,2), size(cp_dry,3)), stat=iret)
+         allocate(cp_dry_phys(size(cp_dry,1), size(cp_dry,2), size(cp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'cp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
 
          if (present(fact)) then
-            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret)
+            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'fact_phys', &
-                               file=__FILE__, line=__LINE__)
+                               file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             fact_phys = real(fact, kind_phys)
@@ -235,6 +237,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_kappa_dry (dyn)'
 
       !Check if kinds are different:
@@ -249,24 +252,24 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(kappa_dry_phys(size(kappa_dry,1), size(kappa_dry,2), size(kappa_dry,3)), stat=iret)
+         allocate(kappa_dry_phys(size(kappa_dry,1), size(kappa_dry,2), size(kappa_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'kappa_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
 
          if (present(fact)) then
-            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret)
+            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'fact_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             fact_phys = real(fact, kind_phys)
@@ -318,6 +321,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_ps (dyn)'
 
       !Check if kinds are different:
@@ -330,20 +334,22 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_mass_phys(size(tracer_mass,1), size(tracer_mass,2), size(tracer_mass,3), size(tracer_mass,4)), stat=iret)
+         allocate(tracer_mass_phys(size(tracer_mass,1), size(tracer_mass,2), &
+                                   size(tracer_mass,3), size(tracer_mass,4)), &
+                  stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_mass_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(ps_phys(size(ps,1), size(ps,2)), stat=iret)
+         allocate(ps_phys(size(ps,1), size(ps,2)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'ps_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_mass_phys = real(tracer_mass, kind_phys)
@@ -400,6 +406,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_dp (dyn)'
 
       !Check if kinds are different:
@@ -412,39 +419,39 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_phys(size(dp,1), size(dp,2), size(dp,3)), stat=iret)
+         allocate(dp_phys(size(dp,1), size(dp,2), size(dp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
          dp_dry_phys = real(dp_dry, kind_phys)
 
          if (present(ptop)) then
-            allocate(ptop_phys, stat=iret)
+            allocate(ptop_phys, stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'ptop_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             ptop_phys = real(ptop, kind_phys)
          end if
 
          if (present(ps)) then
-            allocate(ps_phys(size(ps,1),size(ps,2)), stat=iret)
+            allocate(ps_phys(size(ps,1),size(ps,2)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'ps_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
          end if
 
          !Call physics routine using local vriables with matching kinds:
@@ -485,7 +492,8 @@ CONTAINS
 
       !Subroutine (dummy) arguments:
 
-      real(kind_dyn), intent(in)   :: hyai(:), hybi(:), ps0
+      real(kind_dyn), intent(in)   :: hyai(:), hybi(:)
+      real(kind_dyn), intent(in)   :: ps0
       real(kind_dyn), intent(in)   :: phis(:,:)
       real(kind_dyn), intent(out)  :: dp_ref(:,:,:)
       real(kind_dyn), intent(out)  :: ps_ref(:,:)
@@ -501,6 +509,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_dp_ref (dyn)'
 
       !Check if kinds are different:
@@ -513,30 +522,30 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(hyai_phys(size(hyai)), stat=iret)
+         allocate(hyai_phys(size(hyai)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'hyai_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(hybi_phys(size(hybi)), stat=iret)
+         allocate(hybi_phys(size(hybi)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'hybi_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(phis_phys(size(phis,1), size(phis,2)), stat=iret)
+         allocate(phis_phys(size(phis,1), size(phis,2)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'phis_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_ref_phys(size(dp_ref,1), size(dp_ref,2), size(dp_ref,3)), stat=iret)
+         allocate(dp_ref_phys(size(dp_ref,1), size(dp_ref,2), size(dp_ref,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_ref_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(ps_ref_phys(size(ps_ref,1), size(ps_ref,2)), stat=iret)
+         allocate(ps_ref_phys(size(ps_ref,1), size(ps_ref,2)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'ps_ref_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          hyai_phys = real(hyai, kind_phys)
@@ -591,6 +600,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_sum_species (dyn)'
 
       !Check if kinds are different:
@@ -604,24 +614,24 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(sum_species_phys(size(sum_species,1), size(sum_species,2), size(sum_species,3)), stat=iret)
+         allocate(sum_species_phys(size(sum_species,1), size(sum_species,2), size(sum_species,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'sum_species_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
 
          if (present(dp_dry)) then
-            allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+            allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'dp_dry_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             dp_dry_phys = real(dp_dry, kind_phys)
@@ -683,6 +693,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_molecular_diff_coef (dyn)'
 
       !Check if kinds are different:
@@ -700,29 +711,29 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret)
+         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'temp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(sponge_factor_phys(size(sponge_factor,1)), stat=iret)
+         allocate(sponge_factor_phys(size(sponge_factor,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'sponge_factor_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(kmvis_phys(size(kmvis,1), size(kmvis,2), size(kmvis,3)), stat=iret)
+         allocate(kmvis_phys(size(kmvis,1), size(kmvis,2), size(kmvis,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'kmvis_phys', &
-                             file=__FILE__, line=__LINE__)
-         allocate(kmcnd_phys(size(kmcnd,1), size(kmcnd,3), size(kmcnd,3)), stat=iret)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
+         allocate(kmcnd_phys(size(kmcnd,1), size(kmcnd,2), size(kmcnd,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'kmcnd_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          temp_phys          = real(temp, kind_phys)
@@ -730,19 +741,19 @@ CONTAINS
          sponge_factor_phys = real(sponge_factor, kind_phys)
 
          if (present(fact)) then
-            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret)
+            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'fact_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             fact_phys = real(fact, kind_phys)
          end if
          if (present(mbarv_in)) then
-            allocate(mbarv_in_phys(size(mbarv_in,1), size(mbarv_in,2), size(mbarv_in,3)), stat=iret)
+            allocate(mbarv_in_phys(size(mbarv_in,1), size(mbarv_in,2), size(mbarv_in,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'mbarv_in_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             mbarv_in_phys = real(mbarv_in, kind_phys)
@@ -808,6 +819,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_molecular_diff_coef_reference (dyn)'
 
       !Check if kinds are different:
@@ -822,30 +834,30 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(press_phys(size(press,1)), stat=iret)
+         allocate(press_phys(size(press,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'press_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(sponge_factor_phys(size(sponge_factor,1)), stat=iret)
+         allocate(sponge_factor_phys(size(sponge_factor,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'sponge_factor_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(kmvis_ref_phys(size(kmvis_ref,1)), stat=iret)
+         allocate(kmvis_ref_phys(size(kmvis_ref,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'kmvis_ref_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(kmcnd_ref_phys(size(kmcnd_ref,1)), stat=iret)
+         allocate(kmcnd_ref_phys(size(kmcnd_ref,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'kmcnd_ref_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(rho_ref_phys(size(rho_ref,1)), stat=iret)
+         allocate(rho_ref_phys(size(rho_ref,1)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'rho_ref_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tref_phys          = real(tref, kind_phys)
@@ -912,6 +924,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_rho_dry (dyn)'
 
       !Check if kinds are different:
@@ -927,20 +940,20 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret)
+         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'temp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
@@ -949,16 +962,16 @@ CONTAINS
          dp_dry_phys = real(dp_dry, kind_phys)
 
          if (present(rho_dry)) then
-            allocate(rho_dry_phys(size(rho_dry,1), size(rho_dry,2), size(rho_dry,3)), stat=iret)
+            allocate(rho_dry_phys(size(rho_dry,1), size(rho_dry,2), size(rho_dry,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'rho_dry_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
          end if
          if (present(rhoi_dry)) then
-            allocate(rhoi_dry_phys(size(rhoi_dry,1), size(rhoi_dry,2), size(rhoi_dry,3)), stat=iret)
+            allocate(rhoi_dry_phys(size(rhoi_dry,1), size(rhoi_dry,2), size(rhoi_dry,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, &
                                 'rhoi_dry_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          end if
 
@@ -1019,6 +1032,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_gz_given_dp_Tv_Rdry (dyn)'
 
       !Check if kinds are different:
@@ -1032,30 +1046,30 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(dp_phys(size(dp,1), size(dp,2), size(dp,3)), stat=iret)
+         allocate(dp_phys(size(dp,1), size(dp,2), size(dp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(T_v_phys(size(T_v,1), size(T_v,2), size(T_v,3)), stat=iret)
+         allocate(T_v_phys(size(T_v,1), size(T_v,2), size(T_v,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'T_v_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(R_dry_phys(size(R_dry,1), size(R_dry,2), size(R_dry,3)), stat=iret)
+         allocate(R_dry_phys(size(R_dry,1), size(R_dry,2), size(R_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'R_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(phis_phys(size(phis,1), size(phis,2)), stat=iret)
+         allocate(phis_phys(size(phis,1), size(phis,2)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'phis_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(gz_phys(size(gz,1), size(gz,2), size(gz,3)), stat=iret)
+         allocate(gz_phys(size(gz,1), size(gz,2), size(gz,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'gz_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          dp_phys    = real(dp, kind_phys)
@@ -1066,9 +1080,9 @@ CONTAINS
 
          if (present(pmid)) then
             !Allocate variable if optional argument is present:
-            allocate(pmid_phys(size(pmid,1), size(pmid,2), size(pmid,3)), stat=iret)
+            allocate(pmid_phys(size(pmid,1), size(pmid,2), size(pmid,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'pmid_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
          end if
 
          !Call physics routine using local vriables with matching kinds:
@@ -1135,6 +1149,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_virtual_temp (dyn)'
 
       !Check if kinds are different:
@@ -1149,24 +1164,24 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(T_v_phys(size(T_v,1), size(T_v,2), size(T_v,3)), stat=iret)
+         allocate(T_v_phys(size(T_v,1), size(T_v,2), size(T_v,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'T_v_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
 
          if (present(temp)) then
             !Allocate variable if optional argument is present:
-            allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret)
+            allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'temp_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             temp_phys = real(temp, kind_phys)
@@ -1174,9 +1189,9 @@ CONTAINS
 
          if (present(dp_dry)) then
             !Allocate variable if optional argument is present:
-            allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+            allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'dp_dry_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             dp_dry_phys = real(dp_dry, kind_phys)
@@ -1184,9 +1199,9 @@ CONTAINS
 
          if (present(sum_q)) then
             !Allocate variable if optional argument is present:
-            allocate(sum_q_phys(size(sum_q,1), size(sum_q,2), size(sum_q,3)), stat=iret)
+            allocate(sum_q_phys(size(sum_q,1), size(sum_q,2), size(sum_q,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'sum_q_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
          end if
 
          !Call physics routine using local vriables with matching kinds:
@@ -1240,6 +1255,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_R_dry (dyn)'
 
       !Check if kinds are different:
@@ -1253,24 +1269,24 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(R_dry_phys(size(R_dry,1), size(R_dry,2), size(R_dry,3)), stat=iret)
+         allocate(R_dry_phys(size(R_dry,1), size(R_dry,2), size(R_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'R_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
 
          if (present(fact)) then
             !Allocate variable if optional argument is present:
-            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret)
+            allocate(fact_phys(size(fact,1), size(fact,2), size(fact,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'fact_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
 
             !Set optional local variable:
             fact_phys = real(fact, kind_phys)
@@ -1329,6 +1345,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_exner (dyn)'
 
       !Check if kinds are different:
@@ -1342,20 +1359,20 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret)
+         allocate(tracer_phys(size(tracer,1), size(tracer,2), size(tracer,3), size(tracer,4)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(exner_phys(size(exner,1), size(exner,2), size(exner,3)), stat=iret)
+         allocate(exner_phys(size(exner,1), size(exner,2), size(exner,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'exner_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_phys = real(tracer, kind_phys)
@@ -1365,9 +1382,9 @@ CONTAINS
 
          if (present(poverp0)) then
             !Allocate variable if optional argument is present:
-            allocate(poverp0_phys(size(poverp0,1), size(poverp0,2), size(poverp0,3)), stat=iret)
+            allocate(poverp0_phys(size(poverp0,1), size(poverp0,2), size(poverp0,3)), stat=iret, errmsg=errmsg)
             call check_allocate(iret, subname, 'poverp0_phys', &
-                                file=__FILE__, line=__LINE__)
+                                file=__FILE__, line=__LINE__, errmsg=errmsg)
          end if
 
          !Call physics routine using local vriables with matching kinds:
@@ -1427,6 +1444,7 @@ CONTAINS
 
       !check_allocate variables:
       integer :: iret !allocate status integer
+      character(len=shr_kind_cl) :: errmsg !allocate error message
       character(len=*), parameter :: subname = 'get_enthalpy (dyn)'
 
       !Check if kinds are different:
@@ -1440,30 +1458,32 @@ CONTAINS
       else
 
          !Allocate local variables:
-         allocate(tracer_mass_phys(size(tracer_mass,1), size(tracer_mass,2), size(tracer_mass,3), size(tracer_mass,4)), stat=iret)
+         allocate(tracer_mass_phys(size(tracer_mass,1), size(tracer_mass,2), &
+                                   size(tracer_mass,3), size(tracer_mass,4)), &
+                  stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'tracer_mass_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret)
+         allocate(temp_phys(size(temp,1), size(temp,2), size(temp,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'temp_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret)
+         allocate(dp_dry_phys(size(dp_dry,1), size(dp_dry,2), size(dp_dry,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'dp_dry_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-         allocate(enthalpy_phys(size(enthalpy,1), size(enthalpy,2), size(enthalpy,3)), stat=iret)
+         allocate(enthalpy_phys(size(enthalpy,1), size(enthalpy,2), size(enthalpy,3)), stat=iret, errmsg=errmsg)
          call check_allocate(iret, subname, &
                              'enthalpy_phys', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          !Set local variables:
          tracer_mass_phys    = real(tracer_mass, kind_phys)
          temp_phys           = real(temp, kind_phys)
-         dp_dry_phys         = real(dp_dry_phys, kind_phys)
+         dp_dry_phys         = real(dp_dry, kind_phys)
 
          !Call physics routine using local vriables with matching kinds:
          call get_enthalpy_phys(tracer_mass_phys,temp_phys,&

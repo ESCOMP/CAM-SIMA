@@ -1,0 +1,67 @@
+! this snapshot was constructed by:
+! (1) set -chem none in CAM_CONFIG_OPTS in a FHIST_LTso (or any other CAM7 case)
+!     n.b. only CAM7 is supported as its PUMAS accepts tendencies from microp_aero/nucleate_ice
+!          and CAM7 PUMAS is the target for CAM-SIMA CCPPization, not pumas-frozen.
+! (2) isolating the microp_aero section in physpkg.F90 as a snapshot point
+! (3) cld_macmic_num_steps = 1 also has to be set in CAM user_nl_cam when creating the snapshot.
+
+! this is a CAM7 LT nochem snapshot
+pver = 58
+
+debug_output = 1
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196dev_ne3pg3_fhistc_ltso_microp_aero_bam_snapshot_derecho_gnu_before_c20260819.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_196dev_ne3pg3_fhistc_ltso_microp_aero_bam_snapshot_derecho_gnu_after_c20260819.nc'
+
+use_hetfrz_classnuc            = .false.
+
+! nucleate_ice:
+nucleate_ice_incloud           = .false.
+nucleate_ice_strat             = 1.0D0
+nucleate_ice_subgrid           = 1.2D0
+nucleate_ice_subgrid_strat     = 1.2D0
+nucleate_ice_use_troplev       = .true.
+use_preexisting_ice            = .true.
+
+! microp_aero:
+microp_aero_wsub_min           =   0.1D0
+microp_aero_wsub_scale         =   0.9D0
+microp_aero_wsubi_min          =   0.001D0
+microp_aero_wsubi_scale        =   1.5D0
+
+! BAM aerosols:
+rad_aer_climate = 'N:sulf:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/sulfate_rrtmg_c080918.nc', 'N:dust1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/dust1_rrtmg_c080918.nc',
+         'N:dust2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/dust2_rrtmg_c080918.nc', 'N:dust3:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/dust3_rrtmg_c080918.nc',
+         'N:dust4:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/dust4_rrtmg_c080918.nc', 'N:bcar1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/bcpho_rrtmg_c080918.nc',
+         'N:bcar2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/bcphi_rrtmg_c080918.nc', 'N:ocar1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/ocpho_rrtmg_c080918.nc',
+         'N:ocar2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/ocphi_rrtmg_c080918.nc', 'N:sslt1:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt1_rrtmg_c080918.nc',
+         'N:sslt2:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt2_rrtmg_c080918.nc', 'N:sslt3:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt3_rrtmg_c080918.nc',
+         'N:sslt4:/glade/campaign/cesm/cesmdata/inputdata/atm/cam/physprops/seasalt4_rrtmg_c080918.nc'
+
+! diagnostics for microp_aero BAM suite
+hist_output_frequency;h1: 1*nsteps
+hist_write_nstep0;h1: .true.
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
+
+! scale_subgrid_vertical_velocity diagnostics
+hist_add_inst_fields;h1: WSUB,WSUBI
+
+! nucleate_ice diagnostics
+hist_add_inst_fields;h1: NIHFTEN,NIIMMTEN,NIDEPTEN,NIMEYTEN
+hist_add_inst_fields;h1: NIREGM,NISUBGRID,NITROP_PD
+hist_add_inst_fields;h1: FHOM,WICE,WEFF
+hist_add_inst_fields;h1: INnso4TEN,INnbcTEN,INndustTEN,INondustTEN,INhetTEN,INhomTEN
+hist_add_inst_fields;h1: INFrehom,INFreIN
+
+! ndrop_bam diagnostics: CCN at fixed supersaturation levels
+hist_add_inst_fields;h1: CCN1,CCN2,CCN3,CCN4,CCN5,CCN6
+
+! ndrop_bam diagnostics: aerosol number concentration (names from physprops files)
+hist_add_inst_fields;h1: SULFATE_m3,DUST1_m3,DUST2_m3,DUST3_m3,DUST4_m3
+hist_add_inst_fields;h1: BCPHO_m3,BCPHI_m3,OCPHO_m3,OCPHI_m3
+hist_add_inst_fields;h1: SEASALT1_m3,SEASALT2_m3,SEASALT3_m3,SEASALT4_m3

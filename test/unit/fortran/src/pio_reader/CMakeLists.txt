@@ -8,6 +8,3 @@ add_pfunit_ctest(pio_tests
                                 PIO::PIO_C
                                 NetCDF::NetCDF_C
                                 NetCDF::NetCDF_Fortran)
-target_include_directories(pio_tests PRIVATE ${CMAKE_BINARY_DIR}/utils
-                                             ${CMAKE_BINARY_DIR}/ccpp_framework_stub
-                                             ${CMAKE_BINARY_DIR}/src/physics/utils)

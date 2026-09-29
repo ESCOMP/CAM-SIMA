@@ -17,6 +17,11 @@ module runtime_obj
    ! Water vapor constituent standard name
    character(len=*), public, parameter :: wv_stdname = 'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water'
 
+   ! Water vapor constituent long name; matches the default long name the CCPP
+   ! framework derives from wv_stdname, so host-registered and scheme-registered
+   ! water vapor carry identical metadata.
+   character(len=*), public, parameter :: wv_longname = 'Water vapor mixing ratio wrt moist air and condensed water'
+
    ! Public interfaces and data
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str

@@ -17,7 +17,6 @@ module cam_history
 
    implicit none
    private
-   save
 
    character(len=cl) :: model_doi_url = '' ! Model DOI
    character(len=cl) :: caseid = ''        ! case ID
@@ -25,7 +24,7 @@ module cam_history
    character(len=32) :: logname            ! user name
    character(len=32) :: host               ! host name
 
-   ! Functions
+   ! Core functions
    public :: history_readnl         ! Namelist reader for CAM history
    public :: history_write_files    ! Write files out
    public :: history_init_files     ! Initialization
@@ -35,6 +34,9 @@ module cam_history
    public :: history_restart_init   ! Initialize history fields on restart file, if necessary
    public :: history_restart_write  ! Write restart files, if necessary
    public :: history_restart_read   ! Read restart files, if necessary
+
+   ! Helper functions
+   public :: is_history_field_active ! Check if a field is active on any history file
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -453,7 +455,6 @@ CONTAINS
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
             gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio)
-    
    end subroutine history_add_field_1d
 
 !===========================================================================
@@ -621,7 +622,7 @@ CONTAINS
          end do
       end if
 
-      field_ptr => possible_field_list_head      
+      field_ptr => possible_field_list_head
       if (associated(field_ptr)) then
          ! Add to end of field list
          do
@@ -696,7 +697,7 @@ CONTAINS
                call endrun(errmsg)
             end if
          end if
-            
+
       end do
 
    end subroutine history_out_field_1d
@@ -795,7 +796,7 @@ CONTAINS
          !      call endrun(errmsg)
          !   end if
          !end if
-            
+
       end do
 
    end subroutine history_out_field_3d
@@ -830,7 +831,7 @@ CONTAINS
       ! Original version: CCM2
       !
       !-----------------------------------------------------------------------
-      ! 
+      !
       ! Dummy arguments
       logical, intent(in) :: restart_write
       logical, intent(in) :: last_timestep
@@ -1007,5 +1008,42 @@ CONTAINS
         nullify(entry)
      end if
    end function get_entry_by_name
+
+!#######################################################################
+! Helper functions
+!#########################################################################
+
+   logical function is_history_field_active(diagnostic_name) result(is_active)
+     !-----------------------------------------------------------------------
+     !
+     ! Purpose: Check if a field is active on any history file
+     !
+     !-----------------------------------------------------------------------
+     use cam_abortutils, only: endrun
+
+     ! Input variables:
+     character(len=*), intent(in) :: diagnostic_name
+
+     ! Local variables:
+     integer :: file_idx
+     character(len=cl) :: errmsg
+     class(hist_field_info_t), pointer :: field_info
+     character(len=*), parameter :: subname = 'is_history_field_active: '
+
+     is_active = .false.
+     errmsg = ''
+
+     do file_idx = 1, size(hist_configs)
+       ! Check if the named field is on the current file
+       call hist_configs(file_idx)%find_in_field_list(diagnostic_name, field_info, errmsg)
+       if (len_trim(errmsg) /= 0) then
+         call endrun('ERROR: '//subname//errmsg, file=__FILE__, line=__LINE__)
+       end if
+       if (associated(field_info)) then
+         is_active = .true.
+         return
+       end if
+     end do
+   end function is_history_field_active
 
 end module cam_history
