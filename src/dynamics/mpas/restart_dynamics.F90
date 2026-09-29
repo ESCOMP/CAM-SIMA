@@ -5,7 +5,7 @@ module restart_dynamics
 ! restart functionality.  CAM just provides MPAS with the PIO filehandle to the
 ! restart file.
 
-use dyn_comp,           only: dyn_export_t, mpas_dynamical_core
+use dyn_comp,           only: dyn_export_t, dyn_import_t, mpas_dynamical_core
 use pio,                only: file_desc_t
 
 implicit none
@@ -50,11 +50,12 @@ end subroutine write_restart_dynamics
 
 !=========================================================================================
 
-subroutine read_restart_dynamics(File, dyn_in)
+subroutine read_restart_dynamics(File, dyn_in, dyn_out)
 
    ! arguments
    type(File_desc_t), target :: File
-   type(dyn_import_t), intent(out)  :: dyn_in
+   type(dyn_import_t), intent(in) :: dyn_in
+   type(dyn_export_t), intent(in) :: dyn_out
    type(file_desc_t), pointer :: file_ptr
 
    file_ptr => File

@@ -464,7 +464,7 @@ def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, 
     for key, value in required_vars.items():
         if len(value['dims']) == 1 and 'horizontal_dimension' in value['dims'][0]:
             outfile.comment("Handle horizontal-only field", 2)
-            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), timestep, {key}", 2)
+            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), timestep, {key})", 2)
         else:
             # PEVERWHEE - TODO: handle nonstandard dimensions!
             if 'layer' in value['dims'][1]:
