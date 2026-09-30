@@ -44,6 +44,7 @@ gw_rdg_beta_trpd_leewv            = .false.
 
 ! diagnostics for gravity wave drag
 hist_add_inst_fields;h1: EKGW
+hist_add_inst_fields;h1: TILT_MOVMTN, PSTEER_MOVMTN, PLAUNCH_MOVMTN, MMTAUE, MMTAUW, MMTAUS, MMTAUN
 hist_output_frequency;h1: 1*nsteps
 hist_write_nstep0;h1: .true.
 hist_precision;h1: REAL64
