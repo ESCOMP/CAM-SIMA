@@ -1552,8 +1552,8 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
-    <!-- Surface precipitation components summed into the total precipitation rate for moving mountain gravity wave drag.
-         Temporary until all providers are in suite_cam7 (shallow convection is not yet). -->
+
+    <!-- Surface precipitation components -->
     <variable local_name="prec_dp"
               standard_name="lwe_precipitation_rate_at_surface_due_to_deep_convection"
               units="m s-1" type="real" kind="kind_phys"
