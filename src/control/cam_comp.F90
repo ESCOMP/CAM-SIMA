@@ -296,8 +296,6 @@ contains
          call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
       end if
 
-      call phys_init()
-
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
 !!XXgoldyXX: ^ need to import this
