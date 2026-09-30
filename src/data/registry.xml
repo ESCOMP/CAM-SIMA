@@ -202,6 +202,14 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>dlfzm pbuf_DLFZM</ic_file_input_names>
     </variable>
+    <variable local_name="icwmrsh"
+              standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_shallow_convection"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>ICWMRSH pbuf_ICWMRSH</ic_file_input_names>
+    </variable>
     <variable local_name="dlf"
               standard_name="detrainment_of_cloud_liquid_water_wrt_moist_air_and_condensed_water_due_to_all_convection"
               units="kg kg-1 s-1" type="real" kind="kind_phys"
@@ -225,6 +233,22 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RPRDDP</ic_file_input_names>
+    </variable>
+    <variable local_name="dp_frac"
+              standard_name="deep_convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>DP_FRAC pbuf_DP_FRAC</ic_file_input_names>
+    </variable>
+    <variable local_name="sh_frac"
+              standard_name="shallow_convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>SH_FRAC pbuf_SH_FRAC</ic_file_input_names>
     </variable>
     <variable local_name="rliq"
               standard_name="vertically_integrated_cloud_liquid_water_tendency_due_to_all_convection_to_be_applied_later_in_time_loop"
@@ -2208,6 +2232,82 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
+    </variable>
+    <!-- Stratiform effective radii consumed by the slingo/ebertcurry RRTMGP
+         cloud optics. Host homes so suites whose microphysics does not
+         produce them (e.g. the rrtmgp snapshot test suite; rel outside RK)
+         still resolve; RK (cldefr) and PUMAS overwrite them at run time. -->
+    <variable local_name="rel"
+              standard_name="effective_radius_of_stratiform_cloud_liquid_water_droplet"
+              units="um" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>REL pbuf_REL</ic_file_input_names>
+    </variable>
+    <variable local_name="rei"
+              standard_name="effective_radius_of_stratiform_cloud_ice_crystal"
+              units="um" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>REI pbuf_REI</ic_file_input_names>
+    </variable>
+
+    <!-- convective_cloud_water + cloud_water_paths inputs for RRTMGP cloud optics -->
+    <variable local_name="effi_external_in"
+              standard_name="effective_radius_of_stratiform_cloud_ice_particle"
+              units="um" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>REI pbuf_REI</ic_file_input_names>
+    </variable>
+    <variable local_name="concld"
+              standard_name="convective_cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>CONCLD pbuf_CONCLD</ic_file_input_names>
+    </variable>
+    <variable local_name="qsout"
+              standard_name="snow_mixing_ratio_wrt_moist_air_and_condensed_water_of_new_state"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>QSOUT pbuf_QSOUT</ic_file_input_names>
+    </variable>
+    <variable local_name="qgout"
+              standard_name="graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water_of_new_state"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>QGOUT pbuf_QGOUT</ic_file_input_names>
+    </variable>
+    <variable local_name="totg_liq"
+              standard_name="gridbox_total_cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>GB_TOTCLDLIQMR pbuf_GB_TOTCLDLIQMR</ic_file_input_names>
+    </variable>
+    <variable local_name="totg_ice"
+              standard_name="gridbox_total_cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
+      <ic_file_input_names>GB_TOTCLDICEMR pbuf_GB_TOTCLDICEMR</ic_file_input_names>
+    </variable>
+    <variable local_name="one_mom_clouds"
+              standard_name="is_one_moment_cloud_microphysics"
+              units="flag" type="logical">
+      <long_name>flag indicating one-moment (RK) cloud microphysics is active</long_name>
+      <initial_value>.false.</initial_value>
     </variable>
     <variable local_name="qrs"
               standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_shortwave_radiation_adjusted_by_air_pressure_thickness"

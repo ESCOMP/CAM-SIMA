@@ -135,6 +135,23 @@
     </desc>
   </entry>
 
+  <entry id="CAM_SIM_TYPE">
+    <type>char</type>
+    <valid_values></valid_values>
+    <default_value></default_value>
+    <values match="last">
+      <value compset="^HIST_">historical</value>
+    </values>
+    <group>run_component_cam</group>
+    <file>env_run.xml</file>
+    <desc>
+      Simulation type of a transient compset (e.g. historical for HIST compsets),
+      set from the time period at the start of the compset name.
+      Namelist defaults can be filtered by the sim_type XML attribute.
+      A compset that is not transient is empty so no sim_type default applies.
+    </desc>
+  </entry>
+
   <entry id="CAM_LINKED_LIBS">
     <type>char</type>
     <valid_values></valid_values>

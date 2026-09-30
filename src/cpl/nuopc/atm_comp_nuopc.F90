@@ -1129,8 +1129,10 @@ contains
     ! Unpack import state
     if (mediator_present) then
        call t_startf ('CAM_import')
-       call State_diagnose(importState, string=subname//':IS', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (dbug_flag > 1) then
+          call State_diagnose(importState, string=subname//':IS', rc=rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       end if
 
        call import_fields(gcomp, cam_in, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
