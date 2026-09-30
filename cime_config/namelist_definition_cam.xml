@@ -49,10 +49,10 @@
       <!-- Transient historical (HIST) compsets start at 1979-01-01, which never
            matches the ic_ymd guards above (ic_ymd is the full yyyymmdd start date;
            there is no month-day fallback), so select CAM4 (L26) start-up ICs by
-           sim_year instead. -->
-      <value dyn="se" hgrid="ne3np4"  nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L26_c120525.nc</value>
-      <value dyn="se" hgrid="ne16np4" nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne16np4_L26_c171020.nc</value>
-      <value dyn="se" hgrid="ne30np4" nlev="26" sim_year="1850-2015">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne30np4_L26_c171020.nc</value>
+           sim_type instead. -->
+      <value dyn="se" hgrid="ne3np4"  nlev="26" sim_type="historical">${DIN_LOC_ROOT}/atm/cam/inic/se/cami_0000-01-01_ne3np4_L26_c120525.nc</value>
+      <value dyn="se" hgrid="ne16np4" nlev="26" sim_type="historical">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne16np4_L26_c171020.nc</value>
+      <value dyn="se" hgrid="ne30np4" nlev="26" sim_type="historical">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_topo_cam4_ne30np4_L26_c171020.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne5np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne5np4_L26_c170517.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne16np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne16np4_L26_c170417.nc</value>
       <value aquaplanet="1" dyn="se" hgrid="ne30np4" ic_ymd="10101" nlev="26">${DIN_LOC_ROOT}/atm/cam/inic/se/ape_cam4_ne30np4_L26_c170417.nc</value>
@@ -526,7 +526,7 @@
       <!-- Transient (historical) runs additionally have eruptive volcanic
            aerosol from the prescribed_volcanic_aerosol scheme (VOLC_MMR,
            with by-radius optics using VOLC_RAD_GEOM). -->
-      <value phys_suite="cam4" aquaplanet="0" sim_year="1850-2015">
+      <value phys_suite="cam4" aquaplanet="0" sim_type="historical">
         'N:sulf:${DIN_LOC_ROOT}/atm/cam/physprops/sulfate_rrtmg_c080918.nc',
         'N:dust1:${DIN_LOC_ROOT}/atm/cam/physprops/dust1_rrtmg_c080918.nc',
         'N:dust2:${DIN_LOC_ROOT}/atm/cam/physprops/dust2_rrtmg_c080918.nc',
