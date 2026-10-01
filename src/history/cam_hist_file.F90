@@ -114,6 +114,7 @@ module cam_hist_file
       procedure :: get_num_samples => config_get_num_samples
       procedure :: get_last_month_written => config_get_last_month_written
       procedure :: get_last_year_written => config_get_last_year_written
+      procedure :: get_filename_spec => config_get_filename_spec
       ! File info
       procedure :: filename => config_filename
       procedure :: get_filenames => config_get_filenames
@@ -142,12 +143,10 @@ module cam_hist_file
       !--PUBLIC API--
       procedure :: configure    => config_configure
       procedure :: find_in_field_list => config_find_in_field_list
-      procedure :: define_dimensions => config_define_dimensions
       procedure :: define_file => config_define_file
       procedure :: write_time_dependent_variables => config_write_time_dependent_variables
       ! Setters
       procedure :: set_filenames => config_set_filenames
-      procedure :: set_restart_filename => config_set_restart_filename
       procedure :: set_last_month_written => config_set_last_month_written
       procedure :: set_last_year_written => config_set_last_year_written
       procedure :: set_up_fields => config_set_up_fields
