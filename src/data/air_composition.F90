@@ -1074,17 +1074,31 @@ contains
    subroutine air_species_info(name, index, molec_weight, caller)
       use cam_abortutils,   only: endrun
       use cam_logfile,      only: iulog
-      use cam_constituents, only: const_get_index, const_molec_weight
+      use string_utils,     only: to_lower
+      use cam_constituents, only: num_constituents, const_name
+      use cam_constituents, only: const_molec_weight
 
       ! Dummy arguments
       character(len=*),           intent(in)    :: name
       integer,                    intent(out) :: index
       real(kind_phys),            intent(out)   :: molec_weight
       character(len=*), optional, intent(in)    :: caller
-      ! Local parameter
+      ! Local variables
+      integer                     :: const_ind
       character(len=*), parameter :: subname = 'air_species_info: '
 
-      call const_get_index(name, index, abort=.false.)
+      ! Search the constituent properties directly, as this routine is
+      ! called before the CCPP constituents object is locked, which means
+      ! 'const_get_index' (i.e. 'ccpp_constituent_index') cannot be used.
+      ! Constituent standard names are case-insensitive.
+      index = -1
+      do const_ind = 1, num_constituents
+         if (to_lower(trim(const_name(const_ind))) == to_lower(trim(name))) then
+            index = const_ind
+            exit
+         end if
+      end do
+
       if (index < 1) then
          if (present(caller)) then
             write(iulog, *) trim(caller), ": air component not found, '", &

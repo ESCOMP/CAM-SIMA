@@ -81,7 +81,7 @@ contains
     !-----------------------------------------------------------------------
 
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-    use ccpp_const_utils,          only: ccpp_const_get_idx
+    use ccpp_scheme_utils,         only: ccpp_constituent_index
     use cam_logfile,               only: iulog
     use spmd_utils,                only: primary_process => masterproc
 
@@ -111,8 +111,8 @@ contains
     tuvx_species(4) = species_t("O3", 4.0e-6_kind_phys)
     
     do i_species = 1, num_tuvx_constituents
-      call ccpp_const_get_idx(constituents_properties, trim(tuvx_species(i_species)%name), &
-                              tuvx_species(i_species)%constituent_index, errmsg, errcode)
+      call ccpp_constituent_index(trim(tuvx_species(i_species)%name), &
+                                  tuvx_species(i_species)%constituent_index, errcode, errmsg)
       if (errcode /= 0) return
     end do
 

@@ -336,7 +336,8 @@ CONTAINS
 
    subroutine const_get_index(name, cindex, abort, warning, caller)
       ! from to_be_ccppized utility routine
-      use ccpp_const_utils,     only: ccpp_const_get_idx
+      use ccpp_scheme_utils,    only: ccpp_constituent_index
+      use ccpp_constituent_prop_mod, only: int_unassigned
 
       use shr_kind_mod,         only: CX => SHR_KIND_CX
       use cam_abortutils,       only: endrun
@@ -366,14 +367,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_get_index: '
       !-----------------------------------------------------------------------
 
-      call ccpp_const_get_idx(const_props, name, cindex, errmsg, errcode)
+      call ccpp_constituent_index(name, cindex, errcode, errmsg)
 
       if (errcode /= 0) then
          call endrun(subname//"Error "//stringify((/errcode/))//": "//           &
                  trim(errmsg), file=__FILE__, line=__LINE__)
       endif
 
-      if (cindex == -1) then
+      if (cindex == int_unassigned) then
          ! Unrecognized name, set an error return and possibly abort
          cindex = -1
          if (present(abort)) then
