@@ -13,7 +13,7 @@ module cam_history
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
-   use cam_logfile, only: iulog
+   use cam_history_support,  only: max_string_len
 
    implicit none
    private
@@ -34,6 +34,7 @@ module cam_history
    public :: history_restart_init   ! Initialize history fields on restart file, if necessary
    public :: history_restart_write  ! Write restart files, if necessary
    public :: history_restart_read   ! Read restart files, if necessary
+   public :: history_restart_overwrite
 
    ! Helper functions
    public :: is_history_field_active ! Check if a field is active on any history file
@@ -56,6 +57,11 @@ module cam_history
    integer                          :: num_possible_fields
    logical,           allocatable   :: just_written(:)
    integer                          :: max_num_fields
+   ! Restart info
+   integer, allocatable :: num_frames(:)
+   logical, allocatable :: has_rh(:)
+   character(len=max_string_len), allocatable :: current_files(:,:)
+   character(len=max_string_len), allocatable :: rh_file_paths(:)
 
 CONTAINS
 
@@ -962,21 +968,29 @@ CONTAINS
    subroutine history_restart_read(restart_file)
       use pio,              only: file_desc_t
       use cam_hist_restart, only: hist_restart_read
-      use cam_abortutils,   only: check_allocate
-      use cam_history_support, only: max_string_len
       ! Dummy variables
       type(file_desc_t), intent(inout) :: restart_file
-      character(len=256) :: errmsg
-      integer :: ierr, config_idx
-      logical, allocatable :: has_rh(:)
-      character(len=max_string_len), allocatable :: rh_file_paths(:)
+      integer :: ierr
 
       if (max_num_fields == 0) then
         ! Don't do anything if there aren't any history fields
         return
       end if
 
-      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths)
+      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths, num_frames, current_files)
+
+   end subroutine history_restart_read
+
+!#######################################################################
+
+   subroutine history_restart_overwrite()
+      ! Local variables
+      integer :: config_idx
+
+      ! Overwrite hist configs with restart info
+      do config_idx = 1, size(hist_configs)
+         call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:))
+      end do
 
       ! No need to do anything else if there are no .rhX. files!
       if (.not. any(has_rh)) then
@@ -989,7 +1003,7 @@ CONTAINS
          end if
       end do
 
-   end subroutine history_restart_read
+   end subroutine history_restart_overwrite
 
 !#######################################################################
 

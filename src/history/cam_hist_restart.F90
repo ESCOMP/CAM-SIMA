@@ -246,7 +246,7 @@ CONTAINS
       end do
    end subroutine hist_restart_write
 
-   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths)
+   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths, num_frames, current_files)
       ! Read history fields from the .r. file
       use pio,            only: file_desc_t, pio_inq_varid, pio_seterrorhandling, pio_get_var
       use pio,            only: PIO_BCAST_ERROR, pio_inq_dimid, PIO_INTERNAL_ERROR, pio_inq_dimlen
@@ -261,6 +261,8 @@ CONTAINS
       type(hist_file_t), intent(inout)  :: hist_configs(:)
       logical, allocatable, intent(out) :: has_rh(:)
       character(len=max_string_len), allocatable, intent(out) :: restart_file_paths(:)
+      integer, allocatable, intent(out) :: num_frames(:)
+      character(len=max_string_len), allocatable, intent(out) :: current_files(:,:)
       ! Local variables
       type(hist_file_t) :: rest_config
       integer :: idx, fld_idx, ierr
@@ -269,7 +271,6 @@ CONTAINS
       type(var_desc_t) :: vdesc
       integer, allocatable :: has_rh_int(:)
       integer, allocatable :: num_fields(:)
-      integer, allocatable :: num_frames(:)
       integer, allocatable :: max_frames(:)
       integer, allocatable :: ndims(:)
       integer, allocatable :: decomp(:,:)
@@ -279,7 +280,6 @@ CONTAINS
       character(len=max_fieldname_len), allocatable :: field_list(:,:)
       character(len=max_fieldname_len), allocatable :: field_list_config(:)
       character(len=max_chars), allocatable :: output_freq(:)
-      character(len=max_string_len), allocatable :: current_files(:,:)
       character(len=max_chars), allocatable :: hist_precision(:)
       character(len=max_chars), allocatable :: avg_flag(:,:)
       character(len=max_chars), allocatable :: long_name(:,:)

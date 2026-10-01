@@ -89,7 +89,7 @@ contains
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
       use cam_restart,               only: cam_read_restart
-      use cam_history,               only: history_init_files
+      use cam_history,               only: history_init_files, history_restart_overwrite
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
       use cam_instance,              only: inst_suffix
@@ -285,11 +285,6 @@ contains
       ! from the topo file into the physics state
       call topography_statics_read_file()
 
-      ! if (single_column) then
-      !    call scm_intht()
-      ! end if
-      call history_init_files(model_doi_url, caseid, ctitle)
-
       if (initial_run_in) then
          call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       else
@@ -305,6 +300,10 @@ contains
       ! if (single_column) then
       !    call scm_intht()
       ! end if
+      call history_init_files(model_doi_url, caseid, ctitle)
+      if (.not. initial_run_in) then
+         call history_restart_overwrite()
+      end if
 
    end subroutine cam_init
 
