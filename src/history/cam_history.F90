@@ -320,11 +320,8 @@ CONTAINS
 
       ! Set up hist fields on each user-specified file
       do file_idx = 1, size(hist_configs)
-         ! Time at beginning of current averaging interval.
-         call hist_configs(file_idx)%set_beg_time(day, sec)
-
          ! Set up fields and buffers
-         call hist_configs(file_idx)%set_up_fields(possible_field_list)
+         call hist_configs(file_idx)%set_up_fields(possible_field_list, day, sec)
       end do
 
       ! Deallocate the possible field list hash table
