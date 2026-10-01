@@ -67,7 +67,6 @@ module cam_hist_file
       ! History file configuration information
       character(len=vlen),           private :: volume = UNSET_C
       type(file_desc_t),             private :: hist_files(max_split_files) ! PIO file ids
-      type(file_desc_t),             private :: restart_file                ! PIO file id for restart file
       integer,                       private :: rl_kind = OUTPUT_DEF
       integer,                       private :: max_frames = UNSET_I
       integer,                       private :: output_freq_mult = UNSET_I
@@ -79,9 +78,6 @@ module cam_hist_file
       character(len=max_fldlen), allocatable, private :: field_names(:)
       character(len=3), allocatable, private :: accumulate_types(:)
       type(var_desc_t), allocatable, private :: file_varids(:,:)
-      type(var_desc_t), allocatable, private :: restart_file_varids(:,:)
-      type(var_desc_t), allocatable, private :: nacs_varids(:,:)
-      type(var_desc_t), allocatable, private :: varbuff_varids(:,:)
       integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
@@ -92,27 +88,40 @@ module cam_hist_file
       integer,                       private :: last_year_written
       logical,                       private :: files_open = .false.
       type(interp_info_t), pointer,  private :: interp_info => NULL()
-      character(len=CL), allocatable, private :: file_names(:)
-      character(len=CL), allocatable, private :: restart_file_name
-      ! PIO IDs
       type(pio_ids_t),               private :: hist_pio_ids
-      type(pio_ids_t),               private :: restart_pio_ids
+      character(len=CL), allocatable, private :: file_names(:)
 
       ! Field list
       type(hist_field_info_t), allocatable, private :: field_list(:)
       type(hist_hash_table_t),          private :: field_list_hash_table
+
+      ! Restart info
+      character(len=CL), allocatable, private :: restart_file_name
+      type(file_desc_t),             private :: restart_file
+      type(pio_ids_t),               private :: restart_pio_ids
+      type(var_desc_t), allocatable, private :: restart_file_varids(:,:)
+      type(var_desc_t), allocatable, private :: nacs_varids(:,:)
+      type(var_desc_t), allocatable, private :: varbuff_varids(:,:)
+
    contains
-      ! Accessors
-      procedure :: filename => config_filename
+      !--ACCESSORS--
+      ! Config info
       procedure :: get_volume => config_volume
-      procedure :: get_filenames => config_get_filenames
-      procedure :: get_filename_spec => config_get_filename_spec
-      procedure :: get_restart_filename => config_get_restart_filename
-      procedure :: get_last_month_written => config_get_last_month_written
-      procedure :: get_last_year_written => config_get_last_year_written
-      procedure :: precision => config_precision
+      procedure :: output_freq_separate => config_output_freq_separate
+      procedure :: do_write_nstep0 => config_do_write_nstep0
+      procedure :: has_accumulated_fields => config_has_accumulated_fields
       procedure :: max_frame => config_max_frame
       procedure :: get_num_samples => config_get_num_samples
+      procedure :: get_last_month_written => config_get_last_month_written
+      procedure :: get_last_year_written => config_get_last_year_written
+      ! File info
+      procedure :: filename => config_filename
+      procedure :: get_filenames => config_get_filenames
+      procedure :: file_is_setup => config_file_is_setup
+      procedure :: are_files_open => config_files_open
+      ! Accessors for restarts
+      procedure :: get_restart_filename => config_get_restart_filename
+      procedure :: precision => config_precision
       procedure :: get_beg_time => config_get_beg_time
       procedure :: get_field_list => config_get_field_list
       procedure :: get_averaging_flags => config_get_averaging_flags
@@ -127,48 +136,48 @@ module cam_hist_file
       procedure :: get_num_dimensions => config_get_num_dimensions
       procedure :: get_num_fields => config_get_num_fields
       procedure :: output_freq => config_output_freq
-      procedure :: output_freq_separate => config_output_freq_separate
-      procedure :: is_history_file => config_history_file
-      procedure :: is_initial_value_file => config_init_value_file
-      procedure :: is_satellite_file => config_satellite_file
-      procedure :: is_hist_restart_file => config_restart_file
-      procedure :: do_write_nstep0 => config_do_write_nstep0
-      procedure :: file_is_setup => config_file_is_setup
-      procedure :: are_files_open => config_files_open
-      procedure :: has_accumulated_fields => config_has_accumulated_fields
-      ! Actions
-      procedure :: reset        => config_reset
+      !--END ACCESSORS--
+
+      ! ACTIONS
+      !--PUBLIC API--
       procedure :: configure    => config_configure
-      procedure :: set_up_dimensions => config_set_up_dimensions
+      procedure :: find_in_field_list => config_find_in_field_list
       procedure :: define_dimensions => config_define_dimensions
-      procedure :: define_header_info => config_define_header_info
-      procedure :: define_instantaneous_header_info => config_define_instantaneous_header_info
-      procedure :: define_additional_header_info => config_define_additional_header_info
-      procedure :: define_fields => config_define_fields
-      procedure :: define_restart_fields => config_define_restart_fields
-      procedure :: write_invariant_header => config_write_invariant_header
-      procedure :: print_config => config_print_config
-      procedure :: set_beg_time => config_set_beg_time
-      procedure :: set_end_time => config_set_end_time
+      procedure :: define_file => config_define_file
+      procedure :: write_time_dependent_variables => config_write_time_dependent_variables
+      ! Setters
       procedure :: set_filenames => config_set_filenames
       procedure :: set_restart_filename => config_set_restart_filename
       procedure :: set_last_month_written => config_set_last_month_written
       procedure :: set_last_year_written => config_set_last_year_written
       procedure :: set_up_fields => config_set_up_fields
-      procedure :: find_in_field_list => config_find_in_field_list
-      procedure :: define_file => config_define_file
-      procedure :: define_restart_file => config_define_restart_file
-      procedure :: write_time_dependent_variables => config_write_time_dependent_variables
-      procedure :: write_restart_file => config_write_restart_file
-      procedure :: write_field => config_write_field
-      procedure :: write_restart_fields => config_write_restart_fields
-      procedure :: close_files => config_close_files
-      procedure :: close_restart_file => config_close_restart_file
+      ! Restart methods
+      procedure :: overwrite_restart_info => config_overwrite_restart_info
       procedure :: read_rh_file => config_read_rh_file
+      procedure :: define_restart_file => config_define_restart_file
+      procedure :: write_restart_file => config_write_restart_file
+      procedure :: close_restart_file => config_close_restart_file
+      procedure :: check_restart_consistency => config_check_restart_consistency
+      ! Clean-up methods
+      procedure :: close_files => config_close_files
       procedure :: clear_buffers => config_clear_buffers
       procedure :: reset_samples => config_reset_samples
-      procedure :: check_restart_consistency => config_check_restart_consistency
-      procedure :: overwrite_restart_info => config_overwrite_restart_info
+      procedure :: reset => config_reset
+      !--END PUBLIC API--
+
+      ! Private procedures
+      procedure, private :: set_up_dimensions => config_set_up_dimensions
+      procedure, private :: define_dimensions => config_define_dimensions
+      procedure, private :: define_header_info => config_define_header_info
+      procedure, private :: define_instantaneous_header_info => config_define_instantaneous_header_info
+      procedure, private :: define_additional_header_info => config_define_additional_header_info
+      procedure, private :: define_fields => config_define_fields
+      procedure, private :: define_restart_fields => config_define_restart_fields
+      procedure, private :: write_invariant_header => config_write_invariant_header
+      procedure, private :: print_config => config_print_config
+      procedure, private :: set_restart_filename => config_set_restart_filename
+      procedure, private :: write_field => config_write_field
+      procedure, private :: write_restart_fields => config_write_restart_fields
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -1146,32 +1155,7 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_set_beg_time(this, day, sec)
-      ! Dummy arguments
-      class(hist_file_t), intent(inout) :: this
-      integer, intent(in) :: day
-      integer, intent(in) :: sec
-      integer, parameter :: seconds_per_day = 86400._r8
-
-      this%beg_time = day + (sec/seconds_per_day)
-
-   end subroutine config_set_beg_time
-
-   ! ========================================================================
-
-   subroutine config_set_end_time(this, day, sec)
-      ! Dummy arguments
-      class(hist_file_t), intent(inout) :: this
-      integer, intent(in) :: day
-      integer, intent(in) :: sec
-
-      this%end_time = day + (sec/86400._r8)
-
-   end subroutine config_set_end_time
-
-   ! ========================================================================
-
-   subroutine config_set_up_fields(this, possible_field_list)
+   subroutine config_set_up_fields(this, possible_field_list, day, sec)
       use hist_api,            only: hist_new_field, hist_new_buffer
       use hist_hashable,       only: hist_hashable_t
       use cam_grid_support,    only: cam_grid_num_grids
@@ -1185,6 +1169,8 @@ CONTAINS
       ! Dummy arguments
       class(hist_file_t),        intent(inout) :: this
       type(hist_hash_table_t),   intent(in)    :: possible_field_list
+      integer, intent(in) :: day
+      integer, intent(in) :: sec
 
       integer :: idx
       integer :: ierr
@@ -1194,12 +1180,15 @@ CONTAINS
       class(hist_field_info_t), pointer :: field_ptr
       class(hist_hashable_t), pointer :: field_ptr_entry
       character(len=*), parameter :: subname = 'hist:config_set_up_fields: '
+      integer, parameter :: seconds_per_day = 86400._r8
       integer, allocatable :: dimensions(:)
       integer, allocatable :: field_shape(:)
       integer, allocatable :: beg_dim(:)
       integer, allocatable :: end_dim(:)
       character(len=CM)    :: errmsg
       type(hist_log_messages) :: errors
+
+      this%beg_time = day + (sec/seconds_per_day)
 
       allocate(possible_grids(cam_grid_num_grids() + 1), stat=ierr)
       call check_allocate(ierr, subname, 'possible_grids',             &
