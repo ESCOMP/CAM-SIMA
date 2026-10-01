@@ -178,7 +178,7 @@ subroutine write_restart_dynamics(File, dyn_out)
    use element_mod,               only: element_t
    use fvm_control_volume_mod,    only: fvm_struct
    use hycoef,                    only: write_restart_hycoef
-   use time_mod,                  only: TimeLevel_Qdp
+   use se_dyn_time_mod,           only: TimeLevel_Qdp
    use parallel_mod,              only: par
    use dimensions_mod,            only: nc, np, npsq, ne, nelemd, fv_nphys, nlev
    use cam_ccpp_cap,              only: cam_model_const_properties
@@ -567,7 +567,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    use cam_abortutils,   only: endrun
    use dyn_comp,         only: dyn_init
    use runtime_obj,      only: cam_runtime_opts
-   use time_mod,         only: TimeLevel_Qdp
+   use se_dyn_time_mod,  only: TimeLevel_Qdp
    use cam_ccpp_cap,     only: cam_model_const_properties, cam_ccpp_number_constituents
    use cam_abortutils,   only: check_allocate
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
