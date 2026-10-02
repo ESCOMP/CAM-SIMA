@@ -272,8 +272,7 @@
       <option name="comment">Aquaplanet CAM4 test with MPAS dycore at 120 km resolution</option>
     </options>
   </test>
-<<<<<<< HEAD
-  <test compset="QPC4" grid="mpasa480_mpasa480" name="ERS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
+  <test compset="QPC4" grid="mpasa120_mpasa120" name="ERS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -283,9 +282,6 @@
       <option name="comment">Aquaplanet CAM4 restart test with MPAS dycore at 480 km resolution</option>
     </options>
   </test>
-=======
-
->>>>>>> ESCOMP/development
   <test compset="QPC4" grid="mpasa120_mpasa120" name="SMS_D_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>

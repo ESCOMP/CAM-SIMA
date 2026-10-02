@@ -230,6 +230,10 @@ contains
                      file=__FILE__, line=__LINE__)
       end if
 
+      if (initial_run_in) then
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
@@ -239,14 +243,6 @@ contains
       ! initialize ionosphere
       !!XXgoldyXX: Leaving this place. Why before dyn_init?
       !call ionosphere_init()
-
-!      if (initial_run_in) then
-
-!         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-
-!      else
-
-!         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
 
 !!XXgoldyXX: v need to import this
 !         if (BFB_CAM_SCAM_IOP) then
@@ -278,16 +274,13 @@ contains
       ! be run before phys_init
       call rad_aer_init_all()
 
-! PEVERWHEE - PHYS AND DYN INIT ORDERING!??
       call phys_init()
 
       ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
       ! from the topo file into the physics state
       call topography_statics_read_file()
 
-      if (initial_run_in) then
-         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-      else
+      if (.not. initial_run_in) then
          call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
       end if
 
