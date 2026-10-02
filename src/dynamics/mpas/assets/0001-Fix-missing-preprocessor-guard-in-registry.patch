@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kuan-Chih Wang <kuanchihw@ucar.edu>
+Date: Wed, 29 Jul 2026 19:34:44 +0000
+Subject: [PATCH] Fix build error by guarding `sfclayer` package behind
+ `DO_PHYSICS` macro
+
+In the registry, the `sfclayer` package depends on the `config_physics_suite` and
+`config_sfclayer_scheme` namelist options. However, the latter two are guarded behind
+the `DO_PHYSICS` macro while the former is not, leading to a build error when MPAS is
+used as a dynamical core in CAM(-SIMA).
+
+Fix this issue by adding back the missing preprocessor guard to the registry.
+---
+ src/core_atmosphere/Registry.xml | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/core_atmosphere/Registry.xml b/src/core_atmosphere/Registry.xml
+index 59a37869c..06784e2f3 100644
+--- a/src/core_atmosphere/Registry.xml
++++ b/src/core_atmosphere/Registry.xml
+@@ -485,9 +485,11 @@
+                 <package name="les"
+                          description="Variables and options associated with LES models"
+                          active_when="trim(config_les_model) /= 'none'"/>
++#ifdef DO_PHYSICS
+                 <package name="sfclayer"
+                          description="Variables and options associated with surface layer physics"
+-                         active_when="(trim(config_physics_suite) /= 'none' .and. trim(config_sfclayer_scheme) == 'suite') .or.  any(trim(config_sfclayer_scheme) == [ character(len=StrKind) :: 'sf_monin_obukhov', 'sf_monin_obukhov_rev', 'sf_mynn' ])"/>
++                         active_when="(trim(config_physics_suite) /= 'none' .and. trim(config_sfclayer_scheme) == 'suite') .or. any(trim(config_sfclayer_scheme) == [ character(len=StrKind) :: 'sf_monin_obukhov', 'sf_monin_obukhov_rev', 'sf_mynn' ])"/>
++#endif
+         </packages>
+ 
+ 
+-- 
+2.52.0
+

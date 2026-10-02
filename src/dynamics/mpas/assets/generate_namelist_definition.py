@@ -252,7 +252,7 @@ def translate_element_tree(reg_xml_et: ET.ElementTree) -> ET.ElementTree:
                 value_element.text = value_text
 
     # Sort the `entry` elements for result stability except for the comment element at index 0.
-    entry_id_pg_element[1:] = sorted(entry_id_pg_element.iterfind('entry'), key=lambda entry: entry.get('id'))
+    entry_id_pg_element[1:] = sorted(entry_id_pg_element.iterfind('entry'), key=lambda entry: entry.get('id', default=''))
     nml_xml_et = ET.ElementTree(entry_id_pg_element)
 
     return nml_xml_et
