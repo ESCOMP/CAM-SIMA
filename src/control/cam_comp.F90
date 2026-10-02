@@ -197,7 +197,7 @@ contains
       call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
 
       ! Read CAM namelists.
-      filein = "atm_in" // trim(inst_suffix)
+      filein = 'atm_in' // trim(inst_suffix)
       call read_namelist(filein, single_column, scmlat, scmlon)
 
       ! Determine if physics is "simple", which needs to be known by some dycores:
@@ -734,7 +734,7 @@ contains
             end if
          end do
          if (const_idx < 1) then
-            call endrun(subname//"Water vapor constituent ("//trim(wv_stdname)//") not found", &
+            call endrun(subname//'Water vapor constituent ('//trim(wv_stdname)//') not found', &
                  file=__FILE__, line=__LINE__)
          end if
 

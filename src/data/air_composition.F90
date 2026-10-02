@@ -442,25 +442,25 @@ contains
          end select
 
          if (masterproc) then
-            write(iulog, *) "Thermodynamic active species ",                  &
+            write(iulog, *) 'Thermodynamic active species ',                  &
                  TRIM(cnst_stdname)
-            write(iulog, *) "   global index                           : ",   &
+            write(iulog, *) '   global index                           : ',   &
                  icnst-1
-            write(iulog, *) "   thermodynamic_active_species_idx       : ",   &
+            write(iulog, *) '   thermodynamic_active_species_idx       : ',   &
                  thermodynamic_active_species_idx(icnst-1)
-            write(iulog, *) "   cp                                     : ",   &
+            write(iulog, *) '   cp                                     : ',   &
                  thermodynamic_active_species_cp(icnst-1)
-            write(iulog, *) "   cv                                     : ",   &
+            write(iulog, *) '   cv                                     : ',   &
                  thermodynamic_active_species_cv(icnst-1)
             if (has_liq) then
-               write(iulog, *) "   register phase (liquid or ice)         :", &
-                    " liquid"
+               write(iulog, *) '   register phase (liquid or ice)         :', &
+                    ' liquid'
             end if
             if (has_ice) then
-               write(iulog, *) "   register phase (liquid or ice)         :", &
-                    " ice"
+               write(iulog, *) '   register phase (liquid or ice)         :', &
+                    ' ice'
             end if
-            write(iulog, *) "  "
+            write(iulog, *) '  '
          end if
       end do
 
@@ -504,9 +504,9 @@ contains
 
       if (water_species_in_air_num /= 1 + liq_num+ice_num) then
          write(iulog, '(2a,2(i0,a))') subname,                                &
-              "  water_species_in_air_num = ",                                &
-              water_species_in_air_num, ", should be ",              &
-              (1 + liq_num + ice_num), " (1 + liq_num + ice_num)"
+              '  water_species_in_air_num = ',                                &
+              water_species_in_air_num, ', should be ',              &
+              (1 + liq_num + ice_num), ' (1 + liq_num + ice_num)'
          call endrun(subname//': water_species_in_air_num /= 1+liq_num+ice_num')
       end if
       enthalpy_reference_state = 'ice'
@@ -619,11 +619,11 @@ contains
          ! dry air heat capacity is species dependent
          if (present(fact)) then
             if (SIZE(fact, 1) /= SIZE(factor, 1)) then
-               call endrun(subname//"SIZE mismatch in dimension 1 "//         &
+               call endrun(subname//'SIZE mismatch in dimension 1 '//         &
                     to_str(SIZE(fact, 1))//' /= '//to_str(SIZE(factor, 1)))
             end if
             if (SIZE(fact, 2) /= SIZE(factor, 2)) then
-               call endrun(subname//"SIZE mismatch in dimension 2 "//         &
+               call endrun(subname//'SIZE mismatch in dimension 2 '//         &
                     to_str(SIZE(fact, 2))//' /= '//to_str(SIZE(factor, 2)))
             end if
             factor = fact(:,:)
@@ -725,7 +725,7 @@ contains
       if (present(active_species_idx_dycore)) then
          if (SIZE(active_species_idx_dycore) /=                               &
               thermodynamic_active_species_num) then
-            call endrun(subname//"SIZE mismatch "//                           &
+            call endrun(subname//'SIZE mismatch '//                           &
                  to_str(SIZE(active_species_idx_dycore))//' /= '//            &
                  to_str(thermodynamic_active_species_num))
          end if
@@ -943,11 +943,11 @@ contains
 
       if (present(fact)) then
          if (SIZE(fact, 1) /= SIZE(factor, 1)) then
-            call endrun(subname//"SIZE mismatch in dimension 1 "//            &
+            call endrun(subname//'SIZE mismatch in dimension 1 '//            &
                  to_str(SIZE(fact, 1))//' /= '//to_str(SIZE(factor, 1)))
          end if
          if (SIZE(fact, 2) /= SIZE(factor, 2)) then
-            call endrun(subname//"SIZE mismatch in dimension 2 "//            &
+            call endrun(subname//'SIZE mismatch in dimension 2 '//            &
                  to_str(SIZE(fact, 2))//' /= '//to_str(SIZE(factor, 2)))
          end if
          factor = fact(:,:)
