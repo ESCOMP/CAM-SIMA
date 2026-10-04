@@ -404,13 +404,23 @@ CONTAINS
       character(len=512) :: errmsg
       integer :: ierr, idx
 
-      allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
+      if (allocated(this%field_names)) then
+         allocate(field_list(size(this%field_names)), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
+         end if
+         do idx = 1, size(this%field_names)
+            field_list(idx) = this%field_names(idx)
+         end do
+      else
+         allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
+         end if
+         do idx = 1, size(this%field_list)
+            field_list(idx) = this%field_list(idx)%diag_name()
+         end do
       end if
-      do idx = 1, size(this%field_list)
-         field_list(idx) = this%field_list(idx)%diag_name()
-      end do
 
    end function config_get_field_list
 
@@ -426,13 +436,23 @@ CONTAINS
       character(len=512) :: errmsg
       integer :: ierr, idx
 
-      allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
+      if (allocated(this%accumulate_types)) then
+         allocate(avgflags(size(this%accumulate_types)), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
+         end if
+         do idx = 1, size(this%accumulate_types)
+            avgflags(idx) = this%accumulate_types(idx)
+         end do
+      else
+         allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
+         if (ierr /= 0) then
+            call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
+         end if
+         do idx = 1, size(this%field_list)
+            avgflags(idx) = this%field_list(idx)%accumulate_type()
+         end do
       end if
-      do idx = 1, size(this%field_list)
-         avgflags(idx) = this%field_list(idx)%accumulate_type()
-      end do
 
    end function config_get_averaging_flags
 
