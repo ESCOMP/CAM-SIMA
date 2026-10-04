@@ -455,6 +455,12 @@ def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("type(file_desc_t), intent(inout) :: file",   2)
     outfile.blank_line()
     outfile.write("integer :: timestep", 2)
+    outfile.write("integer :: constituent_idx", 2)
+    outfile.write("logical :: advected", 2)
+    outfile.write("character(len=256) :: const_diag_name", 2)
+    outfile.write("character(len=256) :: const_std_name", 2)
+    outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
+    outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
     outfile.blank_line()
 
     outfile.comment("Set timestep to 0; only one frame on the restart file", 2)
@@ -477,6 +483,33 @@ def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, 
             outfile.blank_line()
         # end if
     # end for
+
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
+    # Handle constituent-dimensioned variables (mirrors restart_physics_write)
+    if constituent_dimmed_vars:
+        for key, value in constituent_dimmed_vars.items():
+            outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
+            outfile.write("do constituent_idx = 1, size(const_props)", 2)
+            outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 3)
+            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}_'//trim(const_diag_name)/), timestep, {key}(:,constituent_idx), mark_as_read=.false.)", 3)
+            outfile.write("end do", 2)
+            outfile.blank_line()
+        # end for
+    # end if
+
+    # Handle non-advected constituent variables (mirrors restart_physics_write)
+    outfile.comment("Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
+    outfile.write("field_data_ptr => cam_constituents_array()", 2)
+    outfile.write("do constituent_idx = 1, size(const_props)", 2)
+    outfile.write("call const_props(constituent_idx)%is_advected(advected)", 3)
+    outfile.write("if (.not. advected) then", 3)
+    outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 4)
+    outfile.write("call const_props(constituent_idx)%standard_name(const_std_name)", 4)
+    outfile.write("call read_field(file, trim(const_std_name), (/trim(const_diag_name)/), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 4)
+    outfile.write("end if", 3)
+    outfile.write("end do", 2)
 
     outfile.write("end subroutine restart_physics_read", 1)
 
