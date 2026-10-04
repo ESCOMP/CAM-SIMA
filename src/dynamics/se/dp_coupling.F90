@@ -70,7 +70,6 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    real(r8),  allocatable :: ps_tmp(:,:)         ! temp array to hold ps
    real(r8),  allocatable :: dp3d_tmp(:,:,:)     ! temp array to hold dp3d
-   real(r8),  allocatable :: dp3d_tmp_tmp(:,:)
    real(r8),  allocatable :: phis_tmp(:,:)       ! temp array to hold phis
    real(r8),  allocatable :: T_tmp(:,:,:)        ! temp array to hold T
    real(r8),  allocatable :: uv_tmp(:,:,:,:)     ! temp array to hold u and v
@@ -128,10 +127,6 @@ subroutine d_p_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_out)
 
    allocate(dp3d_tmp(nphys_pts,pver,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'dp3d_tmp(nphys_pts,pver,nelemd)', &
-                       file=__FILE__, line=__LINE__, errmsg=errmsg)
-
-   allocate(dp3d_tmp_tmp(nphys_pts,pver), stat=ierr, errmsg=errmsg)
-   call check_allocate(ierr, subname, 'dp3d_tmp_tmp(nphys_pts,pver)', &
                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    allocate(phis_tmp(nphys_pts,nelemd), stat=ierr, errmsg=errmsg)
@@ -676,7 +671,7 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
    call shr_vmath_log(phys_state%pintdry(1:pcols,1), &
                       phys_state%lnpintdry(1:pcols,1), pcols)
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
+   ! pintdry recurrence is loop-carried in k, do not parallelize:
    do k = 1, nlev
       do i = 1, pcols
          ! Calculate dry pressure variables for rest of column:
@@ -724,7 +719,8 @@ subroutine derived_phys_dry(cam_runtime_opts, phys_state, phys_tend)
       phys_state%pint(i,1) = phys_state%pintdry(i,1)
    end do
 
-   !$omp parallel do num_threads(horz_num_threads) private (k, i)
+   ! pint recurrence is loop-carried in k and ps accumulates over k,
+   ! do not parallelize:
    do k = 1, nlev
       do i=1, pcols
          ! Calculate wet (total) pressure variables for rest of column:

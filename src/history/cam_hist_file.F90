@@ -697,7 +697,7 @@ CONTAINS
       class(hist_file_t), intent(inout) :: this
       integer, intent(in) :: day
       integer, intent(in) :: sec
-      integer, parameter :: seconds_per_day = 86400._r8
+      real(r8), parameter :: seconds_per_day = 86400._r8
 
       this%beg_time = day + (sec/seconds_per_day)
 
@@ -1559,6 +1559,10 @@ CONTAINS
          allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       end if
+      ! Points not touched by hist_field_norm_value (fields with zero
+      ! accumulated samples) must be written as fill, not as uninitialized
+      ! memory; this matches the _FillValue attribute set on the variable.
+      field_data = field%fill_value()
       ! Shape of array
       dimind = field%dimensions()
 
@@ -1857,6 +1861,12 @@ CONTAINS
            masterprocid, mpicom, ierr)
       call MPI_Bcast(hist_interp_type, flen, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
+      call MPI_Bcast(hist_interp_out, 1, MPI_LOGICAL, masterprocid,           &
+           mpicom, ierr)
+      call MPI_Bcast(hist_interp_nlat, 1, MPI_INTEGER, masterprocid,          &
+           mpicom, ierr)
+      call MPI_Bcast(hist_interp_nlon, 1, MPI_INTEGER, masterprocid,          &
+           mpicom, ierr)
       call MPI_Bcast(hist_filename_spec, CL, MPI_CHARACTER,                   &
            masterprocid, mpicom, ierr)
       ! Configure the history file

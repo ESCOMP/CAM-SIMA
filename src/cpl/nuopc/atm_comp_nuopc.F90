@@ -417,6 +417,7 @@ contains
        call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     end if
 
+    call shr_log_getLogUnit(shrlogunit)
     call shr_log_setLogUnit(iulog)
 
     !----------------------------------------------------------------------------
@@ -738,7 +739,7 @@ contains
           allocate(ownedElemCoords(spatialDim*numOwnedElements), stat=ierr, errmsg=tempc1)
           call check_allocate(ierr, subname, 'ownedElemCoords(spatialDim*numOwnedElements)', &
                               file=__FILE__, line=__LINE__, errmsg=tempc1)
-          call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords)
+          call ESMF_MeshGet(model_mesh, ownedElemCoords=ownedElemCoords, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           do n = 1,lsize
              lonMesh(n) = ownedElemCoords(2*n-1)
@@ -916,6 +917,7 @@ contains
           call ESMF_LogWrite('CAM - Initialize-Data-Dependency Returning to mediator without doing tphysbc', &
                ESMF_LOGMSG_INFO, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          call shr_log_setLogUnit (shrlogunit)
           return
        end if
 
@@ -1103,7 +1105,7 @@ contains
     ! Determine current time
     !--------------------------------
 
-    call ESMF_ClockGet(clock, currTime=currTime)
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
@@ -1262,7 +1264,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_cal_ymd2date(yr_sync, mon_sync, day_sync, ymd_sync)
 
-    if ((ymd /= ymd_sync) .and. (tod /= tod_sync))then
+    if ((ymd /= ymd_sync) .or. (tod /= tod_sync))then
        write(iulog,*)' cam ymd=',ymd     ,'  cam tod= ',tod
        write(iulog,*)'sync ymd=',ymd_sync,' sync tod= ',tod_sync
        call shr_sys_abort(subname//': CAM clock is not in sync with master Sync Clock')
@@ -1440,7 +1442,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Determine if time to write restart
-    call ESMF_ClockGet(clock, currTime=currTime)
+    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2002,7 +2004,7 @@ contains
           else if (lrank == 2) then
 
              ! There is an output variable for each element of the undistributed dimension
-             call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
+             call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, gridToFieldMap=gridToFieldMap, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call ESMF_FieldGet(lfield, farrayPtr=fldptr2d, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return

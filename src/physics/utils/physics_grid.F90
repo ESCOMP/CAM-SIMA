@@ -365,7 +365,7 @@ contains
               masterprocid, mpicom, ierr)
          if (masterproc) then
             write(iulog, *) subname, 'Increase in memory highwater = ',       &
-                 mem_end, ' (MB)'
+                 mem_hw_end, ' (MB)'
          end if
       end if
 
