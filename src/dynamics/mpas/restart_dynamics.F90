@@ -51,16 +51,15 @@ end subroutine write_restart_dynamics
 !=========================================================================================
 
 subroutine read_restart_dynamics(File, dyn_in, dyn_out)
+   use dyn_comp, only: dyn_init
+   use runtime_obj, only: cam_runtime_opts
 
    ! arguments
    type(File_desc_t), target :: File
    type(dyn_import_t), intent(in) :: dyn_in
    type(dyn_export_t), intent(in) :: dyn_out
-   type(file_desc_t), pointer :: file_ptr
 
-   file_ptr => File
-
-   call mpas_dynamical_core % read_write_stream(File, 'r', 'invariant+restart+input')
+   call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
 end subroutine read_restart_dynamics
 
