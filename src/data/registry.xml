@@ -370,7 +370,8 @@
     <variable local_name="teout"
               standard_name="vertically_integrated_total_energy_using_dycore_energy_formula_at_end_of_physics_timestep"
               units="J m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="TEOUT">
       <long_name>Total energy using dynamical core formula at the end of physics timestep</long_name>
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0</initial_value>
@@ -1766,7 +1767,8 @@
     <variable local_name="shfrc"
               standard_name="shallow_convective_cloud_area_fraction_from_shallow_convection"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="SH_FRAC">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- only used if use_shfrc is .true. -->
       <initial_value>0.0_kind_phys</initial_value>
@@ -2167,7 +2169,8 @@
     <variable local_name="cldfsnow"
               standard_name="liquid_plus_snow_stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="CLDFSNOW">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>unset_real</initial_value>
       <ic_file_input_names>CLDFSNOW pbuf_CLDFSNOW</ic_file_input_names>
@@ -2175,7 +2178,8 @@
     <variable local_name="cldfgrau"
               standard_name="liquid_plus_graupel_stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="CLDFGRAU">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>unset_real</initial_value>
       <ic_file_input_names>CLDFGRAU pbuf_CLDFGRAU</ic_file_input_names>
@@ -2183,7 +2187,8 @@
     <variable local_name="icgrauwp"
               standard_name="stratiform_in_cloud_graupel_water_path"
               units="kg m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="ICGRAUWP">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>unset_real</initial_value>
       <ic_file_input_names>ICGRAUWP pbuf_ICGRAUWP</ic_file_input_names>
@@ -2191,7 +2196,8 @@
     <variable local_name="degrau"
               standard_name="effective_diameter_of_stratiform_cloud_graupel_particle_for_radiation"
               units="m" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="DEGRAU">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>unset_real</initial_value>
       <ic_file_input_names>DEGRAU pbuf_DEGRAU</ic_file_input_names>
@@ -2199,7 +2205,8 @@
     <variable local_name="lamc"
               standard_name="slope_of_droplet_distribution_for_optics"
               units="1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="LAMBDAC">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>LAMBDAC pbuf_LAMBDAC</ic_file_input_names>
@@ -2207,7 +2214,8 @@
     <variable local_name="pgam"
               standard_name="size_distribution_shape_parameter_for_microphysics"
               units="1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="MU">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>MU pbuf_MU</ic_file_input_names>
@@ -2215,7 +2223,8 @@
     <variable local_name="iclwpth"
               standard_name="in_cloud_liquid_water_path_for_radiation"
               units="kg m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="ICLWP">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICLWP pbuf_ICLWP</ic_file_input_names>
@@ -2223,7 +2232,8 @@
     <variable local_name="iciwpth"
               standard_name="in_cloud_ice_water_path"
               units="kg m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="ICIWP">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICIWP pbuf_ICIWP</ic_file_input_names>
@@ -2231,7 +2241,8 @@
     <variable local_name="icswpth"
               standard_name="in_cloud_snow_water_path"
               units="kg m-2" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="ICSWP">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICSWP pbuf_ICSWP</ic_file_input_names>
@@ -2239,7 +2250,8 @@
     <variable local_name="dei"
               standard_name="effective_diameter_of_stratiform_cloud_ice_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="DEI">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DEI pbuf_DEI</ic_file_input_names>
@@ -2247,7 +2259,8 @@
     <variable local_name="des"
               standard_name="effective_diameter_of_stratiform_snow_crystal_for_radiation"
               units="um" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="DES">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
@@ -2255,7 +2268,8 @@
     <variable local_name="qrs"
               standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_shortwave_radiation_adjusted_by_air_pressure_thickness"
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="QRS">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRS pbuf_QRS</ic_file_input_names>
@@ -2263,7 +2277,8 @@
     <variable local_name="qrl"
               standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_longwave_radiation_adjusted_by_air_pressure_thickness"
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
-              allocatable="allocatable">
+              allocatable="allocatable" restart="true"
+	      diagnostic_name="QRL">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
