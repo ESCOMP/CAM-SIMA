@@ -12,6 +12,7 @@ CONTAINS
     use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill
     use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
     use restart_physics,  only: restart_physics_write, restart_physics_init
+    use tracer_data,      only: tracer_data_define_restart, tracer_data_write_restart
     use cam_history,      only: history_restart_init, history_restart_write
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
@@ -65,6 +66,8 @@ CONTAINS
     if (errflg /= 0) then
        call endrun(errmsg)
     end if
+    ! Define restart variables for prescribed (tracer) data files
+    call tracer_data_define_restart(fh)
     call history_restart_init(fh)
 
     ierr = pio_put_att(fh, pio_global, 'caseid', caseid)
@@ -88,6 +91,9 @@ CONTAINS
     if (errflg /= 0) then
        call endrun(errmsg)
     end if
+
+    ! Write the state of prescribed (tracer) data files
+    call tracer_data_write_restart(fh)
 
     call history_restart_write(fh)
 

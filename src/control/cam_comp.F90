@@ -83,7 +83,8 @@ contains
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,             only: cam_initfiles_open
+      use cam_initfiles,             only: cam_initfiles_open, initial_file_get_id
+      use tracer_data,               only: tracer_data_set_restart_read_file
       use dyn_grid,                  only: model_grid_init
       use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
@@ -274,7 +275,13 @@ contains
       ! be run before phys_init
       call rad_aer_init_all()
 
+      if (.not. initial_run_in) then
+         call tracer_data_set_restart_read_file(initial_file_get_id())
+      end if
+
       call phys_init()
+
+      call tracer_data_set_restart_read_file()
 
       ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
       ! from the topo file into the physics state
