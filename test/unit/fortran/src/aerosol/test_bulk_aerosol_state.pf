@@ -177,6 +177,7 @@ subroutine test_surf_area_dens_sulfate()
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
     use aerosol_mmr_host, only: aero_host_binding
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use physconst, only: rair
     use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
 
     type(bulk_aerosol_state), pointer :: state
@@ -229,13 +230,13 @@ subroutine test_surf_area_dens_sulfate()
     relhum(2,1) = 0.995_r8  ! above the last table point: clamped growth factor
 
     call state%surf_area_dens(props, [character(len=32) :: 'sulfate'], &
-         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, sad, reff, &
+         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, rair, sad, reff, &
          sfc=sfc, dm_aer=dm_aer)
 
     ! Expected SAD from the lognormal surface area of a distribution whose
     ! number density is derived from the dry volume mixing ratio, with the
     ! wet diameter grown by the RH factor from the Chin et al. table.
-    rho_air = pmid_val/(temp_val*287.04_r8)
+    rho_air = pmid_val/(temp_val*rair)
     vol = mmr_sulf*rho_air/rho_sulf
     num = vol*(6._r8/pi)*(1._r8/dm_sulf**3)*exp(-4.5_r8*log(sd_sulf)**2)
     do i = 1, ncol
@@ -274,6 +275,7 @@ subroutine test_surf_area_dens_gating()
     use bulk_aerosol_state_mod, only: bulk_aerosol_state
     use aerosol_mmr_host, only: aero_host_binding
     use bulk_aerosol_properties_mod, only: bulk_aerosol_properties
+    use physconst, only: rair
     use radiative_aerosol, only: setup_mock_rad_aer, cleanup_mock_rad_aer
 
     type(bulk_aerosol_state), pointer :: state
@@ -330,7 +332,7 @@ subroutine test_surf_area_dens_gating()
     relhum = 0.85_r8
 
     call state%surf_area_dens(props, [character(len=32) :: 'black-c'], &
-         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, sad, reff, &
+         ncol, nlev, beglev, endlev, relhum, pmid, temp, pi, rair, sad, reff, &
          sfc=sfc, dm_aer=dm_aer)
 
     ! level 1 is outside beglev/endlev
@@ -341,7 +343,7 @@ subroutine test_surf_area_dens_gating()
     ! RH=0.85 interpolates the table from the lower point: 1.2 + 0.5*(1.4-1.2)
     ! = 1.3.  This also guards the fix of the long-standing CAM bug that
     ! interpolated rfac_bc/rfac_oc from the upper point (giving 1.5 here).
-    rho_air = pmid_val/(temp_val*287.04_r8)
+    rho_air = pmid_val/(temp_val*rair)
     vol = mmr_bcphi*rho_air/rho_bc
     num = vol*(6._r8/pi)*(1._r8/dm_bc**3)*exp(-4.5_r8*log(sd_sulf)**2)
     factor = (0.85_r8 - 0.8_r8)/(0.9_r8 - 0.8_r8)
