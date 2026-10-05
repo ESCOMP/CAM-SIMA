@@ -6,6 +6,11 @@ ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test
 ncdata_check_err = .true.
 min_difference = 2e-15
 
+! PREC_STR in CAM-SIMA is prec_sed + prec_pcw, the correct definition physically:
+! the value in CAM snapshot has rliq subtracted for check_energy so it is not expected
+! to match SIMA:
+ncdata_check_exclude = 'lwe_large_scale_precipitation_rate_at_surface'
+
 ! cam4 vertical levels.
 pver = 26
 
