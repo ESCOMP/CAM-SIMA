@@ -6,8 +6,8 @@
 	fxDONOTUSEurl = https://github.com/NCAR/ccpp-framework
 [submodule "history"]
 	path          = src/history/buffers
-	url           = https://github.com/ESMCI/history_output
-	fxtag         = history01_02
+	url           = https://github.com/peverwhee/history_output
+	fxtag         = 006b8edf121f1027b3002baece8df2d1d4445a87
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
@@ -62,7 +62,7 @@
 [submodule "cmeps"]
         path          = components/cmeps
         url           = https://github.com/ESCOMP/CMEPS.git
-        fxtag         = cmeps1.1.54
+        fxtag         = cmeps1.1.58
         fxrequired    = ToplevelRequired
 	fxDONOTUSEurl = https://github.com/ESCOMP/CMEPS.git
 [submodule "fms"]

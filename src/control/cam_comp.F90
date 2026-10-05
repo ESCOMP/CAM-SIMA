@@ -83,13 +83,14 @@ contains
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,             only: cam_initfiles_open
+      use cam_initfiles,             only: cam_initfiles_open, initial_file_get_id
+      use tracer_data,               only: tracer_data_set_restart_read_file
       use dyn_grid,                  only: model_grid_init
       use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
-!      use cam_restart,               only: cam_read_restart
-      use cam_history,               only: history_init_files
+      use cam_restart,               only: cam_read_restart
+      use cam_history,               only: history_init_files, history_restart_overwrite
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
       use cam_instance,              only: inst_suffix
@@ -230,6 +231,10 @@ contains
                      file=__FILE__, line=__LINE__)
       end if
 
+      if (initial_run_in) then
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
@@ -240,23 +245,12 @@ contains
       !!XXgoldyXX: Leaving this place. Why before dyn_init?
       !call ionosphere_init()
 
-      if (initial_run_in) then
-
-         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-
-      else
-
-!!XXgoldyXX: v need to import this
-!         call cam_read_restart(cam_in, cam_out, dyn_in, dyn_out,              &
-!              stop_ymd, stop_tod)
-!!XXgoldyXX: ^ need to import this
-
 !!XXgoldyXX: v need to import this
 !         if (BFB_CAM_SCAM_IOP) then
 !            call initialize_iop_history()
 !         end if
 !!XXgoldyXX: ^ need to import this
-      end if
+!      end if
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()
@@ -281,11 +275,21 @@ contains
       ! be run before phys_init
       call rad_aer_init_all()
 
+      if (.not. initial_run_in) then
+         call tracer_data_set_restart_read_file(initial_file_get_id())
+      end if
+
       call phys_init()
+
+      call tracer_data_set_restart_read_file()
 
       ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
       ! from the topo file into the physics state
       call topography_statics_read_file()
+
+      if (.not. initial_run_in) then
+         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+      end if
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
@@ -297,6 +301,9 @@ contains
       !    call scm_intht()
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
+      if (.not. initial_run_in) then
+         call history_restart_overwrite()
+      end if
 
    end subroutine cam_init
 
@@ -483,51 +490,24 @@ contains
    !-----------------------------------------------------------------------
    !
 
-   subroutine cam_run4(rstwr, nlend,                         &
-        yr_spec, mon_spec, day_spec, sec_spec)
+   subroutine cam_run4(rstwr, nlend)
+      logical, intent(in)  :: rstwr    ! write restart file
+      logical, intent(in)  :: nlend    ! this is final timestep
 
       !-----------------------------------------------------------------------
       !
-      ! Purpose:  Final phase of atmosphere model run method. This consists
-      !           of all the restart output, history writes, and other
-      !           file output.
+      ! Purpose:
       !
       !-----------------------------------------------------------------------
-!      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
-
-      logical,         intent(in)           :: rstwr    ! write restart file
-      logical,         intent(in)           :: nlend    ! this is final timestep
-      integer,         intent(in), optional :: yr_spec  ! Simulation year
-      integer,         intent(in), optional :: mon_spec ! Simulation month
-      integer,         intent(in), optional :: day_spec ! Simulation day
-      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
-
-      !
-      ! Write restart files
-      !
-      if (rstwr) then
-         call t_startf('cam_write_restart')
-         if (present(yr_spec) .and. present(mon_spec) .and.                   &
-              present(day_spec).and.present(sec_spec)) then
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out, yr_spec=yr_spec, &
-!                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
-!!XXgoldyXX: ^ need to import this
-         else
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out)
-!!XXgoldyXX: ^ need to import this
-         end if
-         call t_stopf('cam_write_restart')
-      end if
 
    end subroutine cam_run4
 
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, do_history_write)
+   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, &
+                   yr_spec, mon_spec, day_spec, sec_spec, do_history_write)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
@@ -537,15 +517,20 @@ contains
       use phys_comp,    only: phys_timestep_final
       use cam_history,  only: history_write_files
       use cam_history,  only: history_wrap_up
+      use cam_restart,  only: cam_write_restart
       logical, intent(in)  :: rstwr    ! write restart file
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
       ! - flag is true if this is not the first or last step
       logical, intent(in)  :: do_ncdata_check
+      integer,         intent(in), optional :: yr_spec  ! Simulation year
+      integer,         intent(in), optional :: mon_spec ! Simulation month
+      integer,         intent(in), optional :: day_spec ! Simulation day
+      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
       !Flag for whether to perform the history write
       logical, optional, intent(in) :: do_history_write
 
-      logical :: history_write_loc
+      logical                               :: history_write_loc
 
       if (present(do_history_write)) then
          history_write_loc = do_history_write
@@ -556,7 +541,20 @@ contains
       if (history_write_loc) then
          call history_write_files()
       end if
-      ! peverwhee - todo: handle restarts
+      !
+      ! Write restart files
+      !
+      if (rstwr) then
+         call t_startf('cam_write_restart')
+         if (present(yr_spec) .and. present(mon_spec) .and.                   &
+              present(day_spec).and.present(sec_spec)) then
+            call cam_write_restart(dyn_out, yr_spec=yr_spec, &
+                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
+         else
+            call cam_write_restart(dyn_out)
+         end if
+         call t_stopf('cam_write_restart')
+      end if
       call history_wrap_up(rstwr, nlend)
 
       !

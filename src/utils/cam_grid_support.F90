@@ -17,6 +17,7 @@ module cam_grid_support
 
    integer, parameter, public :: max_hcoordname_len   = 16
    integer, parameter, public :: max_split_files      = 2
+   integer, parameter         :: max_files = max_split_files + 1 ! Split files plus restart
 
    type, public :: vardesc_ptr_t
       type(var_desc_t), pointer :: p => NULL()
@@ -41,8 +42,8 @@ module cam_grid_support
       integer(iMap),    pointer :: map(:) => NULL()  ! map (dof) for dist. coord
       logical                   :: latitude          ! .false. means longitude
       real(r8),         pointer :: bnds(:,:) => NULL() ! bounds, if present
-      type(vardesc_ptr_t)       :: vardesc(max_split_files) ! If we are to write coord
-      type(vardesc_ptr_t)       :: bndsvdesc(max_split_files) ! Set to write bounds
+      type(vardesc_ptr_t)       :: vardesc(max_files) ! If we are to write coord
+      type(vardesc_ptr_t)       :: bndsvdesc(max_files) ! Set to write bounds
    contains
       procedure                 :: get_coord_len  => horiz_coord_len
       procedure                 :: num_elem       => horiz_coord_num_elem
@@ -63,7 +64,7 @@ module cam_grid_support
    type, abstract :: cam_grid_attribute_t
       character(len=max_hcoordname_len)    :: name = ''      ! attribute name
       character(len=max_chars)             :: long_name = '' ! attr long_name
-      type(vardesc_ptr_t)                  :: vardesc(max_split_files)
+      type(vardesc_ptr_t)                  :: vardesc(max_files)
       ! We aren't going to use this until we sort out PGI issues
       class(cam_grid_attribute_t), pointer :: next => NULL()
    contains
@@ -165,7 +166,7 @@ module cam_grid_support
       type(horiz_coord_t), pointer       :: lon_coord => NULL() ! Longitude
       logical                            :: unstructured  ! Is this needed?
       logical                            :: block_indexed ! .false. for lon/lat
-      logical                            :: attrs_defined(max_split_files) = .false.
+      logical                            :: attrs_defined(max_files) = .false.
       logical                            :: zonal_grid    = .false.
       type(cam_filemap_t),       pointer :: map => null() ! global dim map (dof)
       type(cam_grid_attr_ptr_t), pointer :: attributes => NULL()
@@ -191,6 +192,7 @@ module cam_grid_support
       procedure :: read_darray_3d_double  => cam_grid_read_darray_3d_double
       procedure :: read_darray_2d_real    => cam_grid_read_darray_2d_real
       procedure :: read_darray_3d_real    => cam_grid_read_darray_3d_real
+      procedure :: write_darray_1d_int    => cam_grid_write_darray_1d_int
       procedure :: write_darray_2d_int    => cam_grid_write_darray_2d_int
       procedure :: write_darray_3d_int    => cam_grid_write_darray_3d_int
       procedure :: write_darray_1d_double => cam_grid_write_darray_1d_double
@@ -352,6 +354,7 @@ module cam_grid_support
    end interface cam_grid_read_dist_array
 
    interface cam_grid_write_dist_array
+      module procedure cam_grid_write_dist_array_1d_int
       module procedure cam_grid_write_dist_array_2d_int
       module procedure cam_grid_write_dist_array_3d_int
       module procedure cam_grid_write_dist_array_1d_double
@@ -1321,6 +1324,41 @@ contains
       end if
 
    end subroutine cam_grid_read_dist_array_3d_real
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_dist_array_1d_int
+   !
+   !  Interface function for the grid%write_darray_1d_int method
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_dist_array_1d_int(File, id, adims, fdims,        &
+        hbuf, varid)
+      use pio, only: file_desc_t
+
+      ! Dummy arguments
+      type(file_desc_t),         intent(inout) :: File ! PIO file handle
+      integer,                   intent(in)    :: id
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      integer,                   intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variable
+      integer                                  :: gridid
+      character(len=shr_kind_cm)               :: errormsg
+
+      gridid = get_cam_grid_index(id)
+      if (gridid > 0) then
+         call cam_grids(gridid)%write_darray_1d_int(File, adims, fdims,       &
+              hbuf, varid)
+      else
+         write(errormsg, *)                                                   &
+              'cam_grid_write_dist_array_1d_int: Bad grid ID, ', id
+         call endrun(errormsg)
+      end if
+
+   end subroutine cam_grid_write_dist_array_1d_int
 
    !------------------------------------------------------------------------
    !
@@ -3588,6 +3626,36 @@ contains
       call pio_read_darray(File, varid, iodesc, hbuf, ierr)
       call cam_pio_handle_error(ierr, subname//': Error reading variable')
    end subroutine cam_grid_read_darray_3d_real
+
+   !------------------------------------------------------------------------
+   !
+   !  cam_grid_write_darray_1d_int: Write a variable defined on this grid
+   !
+   !------------------------------------------------------------------------
+   subroutine cam_grid_write_darray_1d_int(this, File, adims, fdims,          &
+        hbuf, varid)
+      use pio,           only: file_desc_t, io_desc_t
+      use pio,           only: pio_write_darray, PIO_INT
+
+      use cam_pio_utils, only: cam_pio_get_decomp
+
+      ! Dummy arguments
+      class(cam_grid_t)                        :: this
+      type(file_desc_t),         intent(inout) :: File  ! PIO file handle
+      integer,                   intent(in)    :: adims(:)
+      integer,                   intent(in)    :: fdims(:)
+      integer,                   intent(in)    :: hbuf(:)
+      type(var_desc_t),          intent(inout) :: varid
+
+      ! Local variables
+      type(io_desc_t),  pointer   :: iodesc
+      integer                     :: ierr
+      character(len=*), parameter :: subname = 'cam_grid_write_darray_1d_int'
+
+      call cam_pio_get_decomp(iodesc, adims, fdims, PIO_INT, this%map)
+      call pio_write_darray(File, varid, iodesc, hbuf, ierr)
+      call cam_pio_handle_error(ierr, subname//': Error writing variable')
+   end subroutine cam_grid_write_darray_1d_int
 
    !------------------------------------------------------------------------
    !

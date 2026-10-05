@@ -279,7 +279,6 @@ CONTAINS
       use cam_initfiles,  only: initial_file_get_id
       use physics_types,  only: physics_types_tstep_init
       use physics_inputs, only: physics_read_data
-      use time_manager,   only: is_first_restart_step
       use time_manager,   only: get_nstep
       use cam_abortutils, only: endrun
       use cam_ccpp_cap,   only: cam_ccpp_physics_timestep_initial
@@ -307,8 +306,7 @@ CONTAINS
       is_null_dycore = (cam_runtime_opts%get_dycore() == 'null')
 
       ! Determine if we should read initialized variables from file
-      use_init_variables = (.not. is_first_step()) .and.                      &
-         (.not. is_first_restart_step())
+      use_init_variables = (.not. is_first_step())
 
       ! Read physics data from IC file.  For the null dycore
       ! this should be done every timestep, but for all other

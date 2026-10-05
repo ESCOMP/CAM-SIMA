@@ -226,7 +226,7 @@
   </test>
 
   <!-- Multiple history tape test -->
-  <test compset="FKESSLER" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_multitape">
+  <test compset="FKESSLER" grid="ne3pg3_ne3pg3_mg37" name="ERS_Ln9" testmods="cam/outfrq_se_cslam_multitape">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
     </machines>
@@ -281,7 +281,16 @@
       <option name="comment">Aquaplanet CAM4 test with MPAS dycore at 120 km resolution</option>
     </options>
   </test>
-
+  <test compset="QPC4" grid="mpasa120_mpasa120" name="ERS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:20:00</option>
+      <option name="comment">Aquaplanet CAM4 restart test with MPAS dycore at 480 km resolution</option>
+    </options>
+  </test>
   <test compset="QPC4" grid="mpasa120_mpasa120" name="SMS_D_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>

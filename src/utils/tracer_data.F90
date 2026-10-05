@@ -36,6 +36,9 @@ module tracer_data
   public :: read_trc_restart
   public :: init_trc_restart
   public :: incr_filename
+  public :: tracer_data_set_restart_read_file
+  public :: tracer_data_define_restart
+  public :: tracer_data_write_restart
 
   type input3d
     real(r8), dimension(:, :), allocatable :: data ! ncol, lev
@@ -121,7 +124,28 @@ module tracer_data
     logical                                :: top_bndry = .false.
     logical                                :: top_layer = .false.
     logical                                :: stepTime = .false.  ! Do not interpolate in time, but use stepwise times
+    integer                                :: restart_idx = -1    ! index into trc_restart_entries (set by trcdata_init)
   end type trfile
+
+  ! Restart bookkeeping for tracer data files.
+  ! The trfile objects are owned by the (CCPP) schemes that use tracer_data, so the
+  ! restart-relevant state of each file is mirrored here (keyed by the order in which
+  ! trcdata_init is called) so the host can write it to, and read it from, the restart file.
+  type trc_restart_entry
+    character(len=shr_kind_cl) :: namelist_file = ' '  ! filename passed to trcdata_init
+    character(len=shr_kind_cl) :: curr_filename = ' '
+    character(len=shr_kind_cl) :: next_filename = ' '
+    real(r8)                   :: offset_time = 0._r8
+    type(var_desc_t)           :: currfnameid          ! pio restart file var id
+    type(var_desc_t)           :: nextfnameid          ! pio restart file var id
+  end type trc_restart_entry
+
+  integer, parameter :: max_trc_restart_entries = 64
+  type(trc_restart_entry) :: trc_restart_entries(max_trc_restart_entries)
+  integer :: num_trc_restart_entries = 0
+
+  ! Restart file to read tracer data file state from during trcdata_init (restart runs only)
+  type(file_desc_t), pointer :: trc_restart_read_file => null()
 
   integer, parameter :: LONDIM = 1
   integer, parameter :: LATDIM = 2
@@ -255,6 +279,18 @@ contains
       write (iulog, *) sub//': data type: '//trim(data_type)//' file: '//trim(filename)
     end if
 
+    ! Register this file for restarts and, on a restart run, read its saved state
+    ! (current/next filenames and offset time) so it is used below.
+    num_trc_restart_entries = num_trc_restart_entries + 1
+    if (num_trc_restart_entries > max_trc_restart_entries) then
+      call endrun(sub//': too many tracer data files; increase max_trc_restart_entries')
+    end if
+    file%restart_idx = num_trc_restart_entries
+    trc_restart_entries(file%restart_idx)%namelist_file = filename
+    if (associated(trc_restart_read_file)) then
+      call read_trc_restart_entry(trc_restart_read_file, file)
+    end if
+
     ! if there is no list of files (len_trim(file%filenames_list)<1) then
     !  -> set curr_filename from namelist rather than restart data
     if (len_trim(file%curr_filename) < 1 .or. len_trim(file%filenames_list) < 1 .or. file%fixed) then ! initial run
@@ -272,6 +308,7 @@ contains
         file%offset_time = 0
       end if
     end if
+    call sync_trc_restart_entry(file)
 
     call set_time_float_from_date(time2, 2, 1, 1, 0)
     call set_time_float_from_date(time1, 1, 1, 1, 0)
@@ -819,6 +856,9 @@ contains
       end if
 
       file%initialized = .true.
+
+      ! Keep the restart state of this file up to date
+      call sync_trc_restart_entry(file)
 
     end if
 
@@ -2367,6 +2407,141 @@ contains
     call pio_seterrorhandling(piofile, err_handling)
 
   end subroutine read_trc_restart
+
+  !------------------------------------------------------------------------------
+  ! Restart support for all tracer data files registered through trcdata_init.
+  !------------------------------------------------------------------------------
+
+  ! Set (or, if <piofile> is not present, clear) the restart file that
+  ! trcdata_init reads tracer data file state from. Must be set before the
+  ! physics schemes call trcdata_init on restart runs.
+  subroutine tracer_data_set_restart_read_file(piofile)
+    type(file_desc_t), pointer, intent(in), optional :: piofile
+
+    nullify(trc_restart_read_file)
+    if (present(piofile)) then
+      trc_restart_read_file => piofile
+    end if
+  end subroutine tracer_data_set_restart_read_file
+
+  ! Define the restart variables for all registered tracer data files
+  subroutine tracer_data_define_restart(piofile)
+    use pio, only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio, only: pio_char, pio_inq_dimid, pio_def_dim, pio_put_att, pio_def_var
+
+    type(file_desc_t), intent(inout) :: piofile
+
+    integer :: idx, ioerr, mcdimid, err_handling
+
+    if (num_trc_restart_entries < 1) then
+      return
+    end if
+
+    ! The dimension may already be defined in the restart file
+    call pio_seterrorhandling(piofile, PIO_BCAST_ERROR, oldmethod=err_handling)
+    ioerr = pio_inq_dimid(piofile, 'max_chars', mcdimid)
+    call pio_seterrorhandling(piofile, err_handling)
+    if (ioerr /= PIO_NOERR) then
+      ioerr = pio_def_dim(piofile, 'max_chars', shr_kind_cl, mcdimid)
+    end if
+
+    do idx = 1, num_trc_restart_entries
+      associate(rst => trc_restart_entries(idx))
+        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'curr'), pio_char, (/mcdimid/), rst%currfnameid)
+        ioerr = pio_put_att(piofile, rst%currfnameid, 'namelist_file', trim(rst%namelist_file))
+        ioerr = pio_put_att(piofile, rst%currfnameid, 'offset_time', rst%offset_time)
+        ioerr = pio_put_att(piofile, rst%currfnameid, 'actual_len', len_trim(rst%curr_filename))
+
+        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'next'), pio_char, (/mcdimid/), rst%nextfnameid)
+        ioerr = pio_put_att(piofile, rst%nextfnameid, 'actual_len', len_trim(rst%next_filename))
+      end associate
+    end do
+  end subroutine tracer_data_define_restart
+
+  ! Write the restart variables for all registered tracer data files
+  subroutine tracer_data_write_restart(piofile)
+    use pio, only: pio_put_var
+
+    type(file_desc_t), intent(inout) :: piofile
+
+    integer :: idx, ioerr
+
+    do idx = 1, num_trc_restart_entries
+      ioerr = pio_put_var(piofile, trc_restart_entries(idx)%currfnameid, trc_restart_entries(idx)%curr_filename)
+      ioerr = pio_put_var(piofile, trc_restart_entries(idx)%nextfnameid, trc_restart_entries(idx)%next_filename)
+    end do
+  end subroutine tracer_data_write_restart
+
+  ! Read the saved state of <file> from the restart file, if it is there and
+  ! was written for the same namelist file.
+  subroutine read_trc_restart_entry(piofile, file)
+    use pio,          only: pio_seterrorhandling, PIO_BCAST_ERROR, PIO_NOERR
+    use pio,          only: pio_inq_varid, pio_get_att, pio_get_var
+    use spmd_utils,   only: masterproc
+    use cam_logfile,  only: iulog
+
+    type(file_desc_t), intent(inout) :: piofile
+    type(trfile),      intent(inout) :: file
+
+    character(len=*), parameter :: sub = 'read_trc_restart_entry'
+    type(var_desc_t)           :: vdesc
+    character(len=shr_kind_cl) :: saved_namelist_file
+    integer                    :: ioerr, slen, err_handling
+    real(r8)                   :: offset_time
+
+    call pio_seterrorhandling(piofile, PIO_BCAST_ERROR, oldmethod=err_handling)
+
+    ioerr = pio_inq_varid(piofile, trc_restart_var_name(file%restart_idx, 'curr'), vdesc)
+    if (ioerr == PIO_NOERR) then
+      saved_namelist_file = ' '
+      ioerr = pio_get_att(piofile, vdesc, 'namelist_file', saved_namelist_file)
+      if (trim(saved_namelist_file) /= trim(trc_restart_entries(file%restart_idx)%namelist_file)) then
+        if (masterproc) then
+          write(iulog, *) sub//': ignoring restart state for tracer data file '// &
+               trim(trc_restart_entries(file%restart_idx)%namelist_file)// &
+               '; restart file has state for '//trim(saved_namelist_file)
+        end if
+      else
+        ioerr = pio_get_att(piofile, vdesc, 'offset_time', offset_time)
+        ioerr = pio_get_att(piofile, vdesc, 'actual_len', slen)
+        file%curr_filename = ' '
+        ioerr = pio_get_var(piofile, vdesc, file%curr_filename)
+        if (slen < shr_kind_cl) file%curr_filename(slen + 1:) = ' '
+        file%offset_time = offset_time
+
+        ioerr = pio_inq_varid(piofile, trc_restart_var_name(file%restart_idx, 'next'), vdesc)
+        if (ioerr == PIO_NOERR) then
+          ioerr = pio_get_att(piofile, vdesc, 'actual_len', slen)
+          file%next_filename = ' '
+          ioerr = pio_get_var(piofile, vdesc, file%next_filename)
+          if (slen < shr_kind_cl) file%next_filename(slen + 1:) = ' '
+        end if
+      end if
+    end if
+
+    call pio_seterrorhandling(piofile, err_handling)
+  end subroutine read_trc_restart_entry
+
+  ! Copy the restart-relevant state of <file> into its restart entry
+  subroutine sync_trc_restart_entry(file)
+    type(trfile), intent(in) :: file
+
+    if (file%restart_idx < 1) then
+      return
+    end if
+    trc_restart_entries(file%restart_idx)%curr_filename = file%curr_filename
+    trc_restart_entries(file%restart_idx)%next_filename = file%next_filename
+    trc_restart_entries(file%restart_idx)%offset_time   = file%offset_time
+  end subroutine sync_trc_restart_entry
+
+  ! Name of the restart variable holding the <which> ('curr' or 'next') filename of entry <idx>
+  pure function trc_restart_var_name(idx, which) result(name)
+    integer,          intent(in) :: idx
+    character(len=*), intent(in) :: which
+    character(len=32)            :: name
+
+    write(name, '(a,i0,3a)') 'trcdata', idx, '_', which, '_fname'
+  end function trc_restart_var_name
 
   !------------------------------------------------------------------------------
   ! Various utility subroutines below:

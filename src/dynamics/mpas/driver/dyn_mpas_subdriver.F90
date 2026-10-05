@@ -2003,7 +2003,8 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open, &
                        pio_char, pio_int, pio_real, pio_double, &
-                       pio_inq_varid, pio_inq_varndims, pio_inq_vartype, pio_noerr
+                       pio_inq_dimname, pio_inq_varid, pio_inq_vardimid, pio_inq_varndims, pio_inq_vartype, &
+                       pio_max_name, pio_noerr
         ! Module(s) from MPAS.
         use dyn_mpas_procedures, only: stringify
         use mpas_derived_types, only: field0dchar, field1dchar, &
@@ -2021,9 +2022,13 @@ contains
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_check_variable_status'
         character(strkind) :: cerr
         character(strkind), allocatable :: var_name_list(:)
-        integer :: i
+        character(pio_max_name) :: dimname
+        integer :: i, j
         integer :: ierr
         integer :: varid, varndims, vartype
+        integer :: expected_rank, file_rank
+        integer, allocatable :: dimids(:)
+        logical :: is_var_array
         type(field0dchar), pointer :: field_0d_char
         type(field1dchar), pointer :: field_1d_char
         type(field0dinteger), pointer :: field_0d_integer
@@ -2343,6 +2348,9 @@ contains
                     '" for "' // trim(adjustl(var_info % name)) // '"', subname, __LINE__)
         end select
 
+        ! If `var_name_list` has been populated by now, the variable is a variable array.
+        is_var_array = allocated(var_name_list)
+
         if (.not. allocated(var_name_list)) then
             allocate(var_name_list(1), errmsg=cerr, stat=ierr)
 
@@ -2435,7 +2443,57 @@ contains
                 cycle
             end if
 
-            if (varndims /= var_info % rank) then
+            ! Determine the rank of the variable on the file as MPAS sees it. MPAS treats the "Time" dimension
+            ! specially and does not count it in `var_info % rank`. Therefore, do not count it here either.
+            file_rank = varndims
+
+            if (varndims > 0) then
+                allocate(dimids(varndims), errmsg=cerr, stat=ierr)
+
+                if (ierr /= 0) then
+                    call self % model_error('Failed to allocate dimids' // new_line('') // &
+                        'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                        subname, __LINE__)
+                end if
+
+                ierr = pio_inq_vardimid(pio_file, varid, dimids)
+
+                if (ierr /= pio_noerr) then
+                    deallocate(dimids)
+
+                    cycle
+                end if
+
+                do j = 1, varndims
+                    ierr = pio_inq_dimname(pio_file, dimids(j), dimname)
+
+                    if (ierr /= pio_noerr) then
+                        cycle
+                    end if
+
+                    if (trim(adjustl(dimname)) == 'Time') then
+                        file_rank = file_rank - 1
+                    end if
+                end do
+
+                deallocate(dimids)
+            end if
+
+            ! For a character variable, the string length is an extra dimension on the file
+            ! that is not counted in `var_info % rank`.
+            if (trim(adjustl(var_info % type)) == 'character' .and. file_rank > 0) then
+                file_rank = file_rank - 1
+            end if
+
+            ! For a variable array, the checks are performed on its constituent parts, each of which lacks
+            ! the constituent dimension that is counted in `var_info % rank`.
+            if (is_var_array) then
+                expected_rank = var_info % rank - 1
+            else
+                expected_rank = var_info % rank
+            end if
+
+            if (file_rank /= expected_rank) then
                 cycle
             end if
 

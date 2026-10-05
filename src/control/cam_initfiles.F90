@@ -71,12 +71,13 @@ CONTAINS
 
    subroutine cam_initfiles_readnl(nlfile)
 
-      use shr_nl_mod,   only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,   only: mpicom, mstrid=>masterprocid
-      use mpi,          only: mpi_character, mpi_logical, mpi_real8
-      use pio,          only: pio_offset_kind
-      use ioFileMod,    only: cam_get_file, cam_open_file
-      use cam_instance, only: inst_suffix
+      use shr_nl_mod,    only: find_group_name => shr_nl_find_group_name
+      use spmd_utils,    only: mpicom, mstrid=>masterprocid
+      use mpi,           only: mpi_character, mpi_logical, mpi_real8
+      use pio,           only: pio_offset_kind
+      use ioFileMod,     only: cam_get_file, cam_open_file
+      use cam_instance,  only: inst_suffix
+      use cam_filenames, only: interpret_filename_spec
 
       ! nlfile: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -136,16 +137,27 @@ CONTAINS
       end if
 
       ! Set pointer file name based on instance suffix
-      rest_pfile = './rpointer.atm' //trim(inst_suffix)
+      rest_pfile = './rpointer.cam' //trim(inst_suffix)
 
       ! Set name of primary restart file
       if (restart_run) then
          ! Read name of restart file from pointer file
          if (masterproc) then
-            call cam_open_file(rest_pfile, unitn, 'f', status="old")
+            rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
+            inquire(file=trim(rest_pfile),exist=filefound)
+            if(.not. filefound) then
+               write(iulog, "INFO : rpointer file "//trim(rest_pfile)//" not found.")
+               rest_pfile = "rpointer.cam"//trim(inst_suffix)
+               write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
+               inquire(file=trim(rest_pfile),exist=filefound)
+               if(.not. filefound) then
+                  call endrun(subname // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
+               endif
+            endif
+            open(newunit=unitn, file=trim(rest_pfile), status='old', iostat=ierr)
             read (unitn, '(a)', iostat=ierr) restart_file
             if (ierr /= 0) then
-               call endrun(subname//': ERROR: reading rpointer file')
+               call endrun(subname // ': ERROR: reading rpointer file: '//trim(rest_pfile))
             end if
             close(unitn)
          end if
