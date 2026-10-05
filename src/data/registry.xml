@@ -1577,6 +1577,32 @@
       <ic_file_input_names>pbuf_VPWP_CLUBB_GW</ic_file_input_names>
     </variable>
 
+    <!-- Surface precipitation components -->
+    <variable local_name="prec_dp"
+              standard_name="lwe_precipitation_rate_at_surface_due_to_deep_convection"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_PREC_DP</ic_file_input_names>
+    </variable>
+    <variable local_name="prec_sh"
+              standard_name="lwe_precipitation_rate_at_surface_due_to_shallow_convection"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_PREC_SH</ic_file_input_names>
+    </variable>
+    <variable local_name="prec_str"
+              standard_name="lwe_large_scale_precipitation_rate_at_surface"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_PREC_STR</ic_file_input_names>
+    </variable>
+
     <!-- Temporary initializations for aerosol models -->
     <variable local_name="qsatfac"
               standard_name="subgrid_cloud_water_saturation_scaling_factor_for_microphysics"
