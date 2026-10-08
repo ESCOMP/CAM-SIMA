@@ -48,11 +48,11 @@ end subroutine init_nelem_tot
 
 subroutine init_restart_dynamics(file, dyn_out)
    use hycoef,           only: init_restart_hycoef
-   use cam_ccpp_cap,              only: cam_model_const_properties, cam_ccpp_number_constituents
+   use cam_ccpp_cap,              only: cam_model_const_properties
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use pio, only: file_desc_t, pio_global, pio_unlimited, pio_double, pio_seterrorhandling
    use pio, only: pio_bcast_error, pio_def_dim, pio_def_var, pio_put_att
-   use dyn_comp, only: dyn_export_t, write_restart_unstruct
+   use dyn_comp, only: dyn_export_t, write_restart_unstruct, advected_constituent_index
    use cam_grid_support, only: cam_grid_header_info_t, cam_grid_id
    use cam_grid_support, only: cam_grid_write_attr
    use dimensions_mod,   only: np, npsq, ne, nelemd, fv_nphys
@@ -78,9 +78,8 @@ subroutine init_restart_dynamics(file, dyn_out)
 
    integer :: grid_id
    type(cam_grid_header_info_t) :: info
-   integer :: constituent_idx
-   integer :: num_advected_const, advected_index
-   logical :: advected
+   integer :: m_index
+   integer :: num_advected_const
    type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
    character(len=512) :: errmsg
    character(len=256) :: const_diag_name
@@ -116,21 +115,15 @@ subroutine init_restart_dynamics(file, dyn_out)
    ierr = PIO_Def_Var(File, 'T', pio_double, (/ncol_dimid, nlev_dimid, time_dimid/), Tdesc)
 
    const_props => cam_model_const_properties()
-   call cam_ccpp_number_constituents(num_advected_const, advected=.true., errcode=ierr, errmsg=errmsg)
+   num_advected_const = size(advected_constituent_index)
    allocate(qdesc_dp(num_advected_const), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'qdesc_dp', &
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
-   advected_index = 1
-   do constituent_idx = 1, size(const_props)
-      call const_props(constituent_idx)%is_advected(advected)
-      if (.not. advected) then
-         cycle
-      end if
+   do m_index = 1, num_advected_const
       ! Grab constituent diagnostic name:
-      call const_props(constituent_idx)%diagnostic_name(const_diag_name)
+      call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
       ierr = PIO_Def_Var(File,"dp"//trim(const_diag_name), pio_double, &
-                         (/ncol_dimid, nlev_dimid, time_dimid/), Qdesc_dp(advected_index))
-      advected_index = advected_index + 1
+                         (/ncol_dimid, nlev_dimid, time_dimid/), Qdesc_dp(m_index))
    end do
 
    ! CSLAM restart fields
@@ -144,20 +137,13 @@ subroutine init_restart_dynamics(file, dyn_out)
       ierr = PIO_Def_Var(File, 'dp_fvm', pio_double, &
          (/ncol_fvm_dimid, nlev_dimid, time_dimid/), dp_fvm_desc)
 
-      advected_index = 1
-
       allocate(c_fvm_desc(num_advected_const), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'c_fvm_desc', &
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
-      do constituent_idx = 1, size(const_props)
-         call const_props(constituent_idx)%is_advected(advected)
-         if (.not. advected) then
-            cycle
-         end if
-         call const_props(constituent_idx)%diagnostic_name(const_diag_name)
+      do m_index = 1, num_advected_const
+         call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
          ierr = PIO_Def_Var(File, trim(const_diag_name)//"_fvm", pio_double, &
-            (/ncol_fvm_dimid, nlev_dimid, time_dimid/), c_fvm_desc(advected_index))
-         advected_index = advected_index + 1
+            (/ncol_fvm_dimid, nlev_dimid, time_dimid/), c_fvm_desc(m_index))
       end do
 
    end if
@@ -172,7 +158,7 @@ subroutine write_restart_dynamics(File, dyn_out)
    use control_mod,               only: qsplit
    use pio,                       only: file_desc_t, pio_offset_kind, io_desc_t, pio_double
    use pio,                       only: pio_initdecomp, pio_freedecomp, pio_setframe, pio_write_darray
-   use dyn_comp,                  only: dyn_export_t, write_restart_unstruct
+   use dyn_comp,                  only: dyn_export_t, write_restart_unstruct, advected_constituent_index
    use dyn_grid,                  only: timelevel
    use cam_grid_support,          only: cam_grid_id, cam_grid_write_var, cam_grid_get_decomp, cam_grid_dimensions
    use element_mod,               only: element_t
@@ -181,8 +167,6 @@ subroutine write_restart_dynamics(File, dyn_out)
    use time_mod,                  only: TimeLevel_Qdp
    use parallel_mod,              only: par
    use dimensions_mod,            only: nc, np, npsq, ne, nelemd, fv_nphys, nlev
-   use cam_ccpp_cap,              only: cam_model_const_properties
-   use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
    use cam_pio_utils,             only: pio_subsystem
    use thread_mod,                only: horz_num_threads
    use spmd_utils,                only: iam
@@ -198,7 +182,8 @@ subroutine write_restart_dynamics(File, dyn_out)
    type(fvm_struct), pointer :: fvm(:)
 
    integer :: tl, tlqdp
-   integer :: i, ie, ii, j, k, m
+   integer :: i, ie, ii, j, k
+   integer :: m_index
    integer :: ierr
 
    integer :: grid_id
@@ -208,11 +193,8 @@ subroutine write_restart_dynamics(File, dyn_out)
 
    integer :: array_lens(3)
    integer :: file_lens(2)
-   integer :: advected_index
-   logical :: advected
    type(io_desc_t), pointer :: iodesc3d_fvm
    real(r8),    allocatable :: buf3d(:,:,:)
-   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
 
    character(len=*), parameter :: sub = 'write_restart_dynamics'
    !----------------------------------------------------------------------------
@@ -221,7 +203,6 @@ subroutine write_restart_dynamics(File, dyn_out)
 
    tl = timelevel%n0
    call TimeLevel_Qdp(timelevel, qsplit, tlQdp)
-   const_props => cam_model_const_properties()
 
    if (iam .lt. par%nprocs) then
       elem => dyn_out%elem
@@ -267,26 +248,20 @@ subroutine write_restart_dynamics(File, dyn_out)
       call PIO_Setframe(file, dp_fvm_desc, t_idx)
       call PIO_Write_Darray(file, dp_fvm_desc, iodesc3d_fvm, buf3d, ierr)
 
-      advected_index = 1
-      do m = 1, size(const_props)
-         call const_props(m)%is_advected(advected)
-         if (.not. advected) then
-            cycle
-         end if
+      do m_index = 1, size(advected_constituent_index)
          do ie = 1, nelemd
             do k = 1, nlev
                ii = 1
                do j = 1, nc
                   do i = 1, nc
-                     buf3d(ii,k,ie) = fvm(ie)%c(i,j,k,advected_index)
+                     buf3d(ii,k,ie) = fvm(ie)%c(i,j,k,m_index)
                      ii = ii + 1
                   end do
                end do
             end do
          end do
-         call PIO_Setframe(file, c_fvm_desc(advected_index), t_idx)
-         call PIO_Write_Darray(file, c_fvm_desc(advected_index), iodesc3d_fvm, buf3d, ierr)
-         advected_index = advected_index + 1
+         call PIO_Setframe(file, c_fvm_desc(m_index), t_idx)
+         call PIO_Write_Darray(file, c_fvm_desc(m_index), iodesc3d_fvm, buf3d, ierr)
       end do
 
       deallocate(c_fvm_desc)
@@ -309,9 +284,7 @@ subroutine write_elem()
    ! local variables
    integer          :: i, ie, j, k
    integer          :: ierr
-   integer          :: advected_index
    integer, pointer :: ldof(:)
-   logical          :: advected
 
    type(io_desc_t)  :: iodesc2d, iodesc3d
 
@@ -379,26 +352,19 @@ subroutine write_elem()
    call PIO_Setframe(File, Tdesc, t_idx)
    call PIO_Write_Darray(File, Tdesc, iodesc3d, var3d, ierr)
 
-   advected_index = 1
-   do m = 1, size(const_props)
-      call const_props(m)%is_advected(advected)
-      if (.not. advected) then
-         cycle
-      end if
-
+   do m_index = 1, size(advected_constituent_index)
       !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
       do ie = 1, nelemd
          do k = 1, nlev
             do j = 1, np
                do i = 1, np
-                  var3d(i,j,ie,k) = elem(ie)%state%Qdp(i,j,k,advected_index,tlQdp)
+                  var3d(i,j,ie,k) = elem(ie)%state%Qdp(i,j,k,m_index,tlQdp)
                end do
             end do
          end do
       end do
-      call PIO_Setframe(File, Qdesc_dp(advected_index), t_idx)
-      call PIO_Write_Darray(File, Qdesc_dp(advected_index), iodesc3d, var3d, ierr)
-      advected_index = advected_index + 1
+      call PIO_Setframe(File, Qdesc_dp(m_index), t_idx)
+      call PIO_Write_Darray(File, Qdesc_dp(m_index), iodesc3d, var3d, ierr)
    end do
 
    deallocate(var2d)
@@ -417,8 +383,6 @@ subroutine write_unstruct()
    ! local variables
    integer          :: i, ie, ii, j, k
    integer          :: ierr
-   integer          :: advected_index
-   logical          :: advected
 
    integer :: array_lens_3d(3), array_lens_2d(2)
    integer :: file_lens_2d(2), file_lens_1d(1)
@@ -506,28 +470,21 @@ subroutine write_unstruct()
    call PIO_Setframe(File, Tdesc, t_idx)
    call PIO_Write_Darray(File, Tdesc, iodesc, var3d, ierr)
 
-   advected_index = 1
-   do m = 1, size(const_props)
-      call const_props(m)%is_advected(advected)
-      if (.not. advected) then
-         cycle
-      end if
-
+   do m_index = 1, size(advected_constituent_index)
       !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
       do ie = 1, nelemd
          do k = 1, nlev
             ii = 1
             do j = 1, np
                do i = 1, np
-                  var3d(ii,k,ie) = elem(ie)%state%Qdp(i,j,k,advected_index,tlQdp)
+                  var3d(ii,k,ie) = elem(ie)%state%Qdp(i,j,k,m_index,tlQdp)
                   ii = ii + 1
                end do
             end do
          end do
       end do
-      call PIO_Setframe(File, Qdesc_dp(advected_index), t_idx)
-      call PIO_Write_Darray(File, Qdesc_dp(advected_index), iodesc, var3d, ierr)
-      advected_index = advected_index + 1
+      call PIO_Setframe(File, Qdesc_dp(m_index), t_idx)
+      call PIO_Write_Darray(File, Qdesc_dp(m_index), iodesc, var3d, ierr)
    end do
 
    deallocate(var3d)
