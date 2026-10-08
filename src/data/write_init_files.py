@@ -148,7 +148,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set = gather_ccpp_req_vars(cap_database)
 
     # Generate "phys_vars_init_check.F90" file:
     # -----------------------------------------
@@ -315,7 +315,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
         # Exclude it from generated read/check code. (Var.intrinsic_elements
         # would also raise a CCPPError for a DDT variable when called
         # without a DDT library, as done below.)
-        return missing_vars
+        return
     if hvar and (hvar.source.ptype != 'host'):
         var_dict[stdname] = hvar
         # Process elements (if any)

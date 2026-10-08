@@ -51,7 +51,7 @@ module cam_hist_restart
     public :: hist_restart_init
     public :: hist_restart_write
 
-CONTAINS
+contains
 
    subroutine hist_restart_init(restart_file, num_hist_configs, max_fields)
       use pio,           only: file_desc_t, pio_def_var
@@ -80,7 +80,8 @@ CONTAINS
           dimids(kdx)=restart_dims(restart_vars(idx)%dimension_ids(kdx))%dimension_id
         end do
         allocate(restart_vars(idx)%vdesc)
-        ierr = pio_def_var(restart_file, restart_vars(idx)%var_name, restart_vars(idx)%var_type, dimids(1:ndims), restart_vars(idx)%vdesc)
+        ierr = pio_def_var(restart_file, restart_vars(idx)%var_name, restart_vars(idx)%var_type, dimids(1:ndims), &
+                restart_vars(idx)%vdesc)
         call cam_pio_handle_error(ierr, 'INIT_RESTART_HISTORY: Error defining '//trim(restart_vars(idx)%var_name))
       end do
 

@@ -29,7 +29,7 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, _ = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, _ = gather_ccpp_req_vars(cap_database)
 
     # -----------------------------------------
     # Generate "restart_physics.F90" file:

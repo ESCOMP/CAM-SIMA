@@ -1098,16 +1098,16 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        model_host = os.path.join(_SHARED_DIR, "simple_host.meta")
         ddt_host_mod = os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_host_mod.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_ddt_arg.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_scheme.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_arg.xml")
 
@@ -1511,7 +1511,7 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
@@ -1519,7 +1519,7 @@ class WriteInitTest(unittest.TestCase):
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_set_before_use.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_set_before_use.xml")
 
@@ -1598,7 +1598,7 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
@@ -1606,7 +1606,7 @@ class WriteInitTest(unittest.TestCase):
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_use_before_set.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_use_before_set.xml")
 
