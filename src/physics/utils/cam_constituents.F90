@@ -1,4 +1,10 @@
 module cam_constituents
+   ! Module which contains utilities and helper functions
+   ! for accessing data in the CCPP constituents object.
+   !
+   ! Please note that these routines can only be used after
+   ! the CCPP constituents object has been fully initialized
+   ! and locked.
 
    use ccpp_kinds,                only: kind_phys
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -335,8 +341,9 @@ contains
    !#######################################################################
 
    subroutine const_get_index(name, cindex, abort, warning, caller)
-      ! from to_be_ccppized utility routine
-      use ccpp_scheme_utils,    only: ccpp_constituent_index
+
+      ! From ccpp-framework:
+      use ccpp_scheme_utils,         only: ccpp_constituent_index
       use ccpp_constituent_prop_mod, only: int_unassigned
 
       use shr_kind_mod,         only: CX => SHR_KIND_CX
