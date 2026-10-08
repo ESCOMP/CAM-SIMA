@@ -10,6 +10,7 @@
   units = 1
   type = integer
   dimensions = ()
+  protected = True
 [ tropp_p_loc ]
   standard_name = tropopause_air_pressure_from_tropopause_climatology_dataset
   units = Pa

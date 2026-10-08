@@ -404,12 +404,17 @@ class NLVar:
     def write_metadata_entry(self, file):
         """Write a metadata entry for this NLVar object to <file>."""
         if self.array_len:
-            # Write unique array dimension variable(s)
+            # Write unique array dimension variable(s).  These are declared
+            # as Fortran parameters (see write_dimension_decls), so mark them
+            # protected: schemes only use them as dimensions, and the host
+            # provides their values, so they must not be treated as fields to
+            # read from the initial-conditions file.
             for aname in self.__array_names:
                 file.write(f"[ {aname} ]\n")
                 file.write(f"  standard_name = {aname}\n")
                 file.write("  type = integer | units = 1\n")
                 file.write("  dimensions = ()\n")
+                file.write("  protected = True\n")
             # end for
         # end if (no else)
         file.write(f"[ {self.var_name} ]\n")
@@ -915,7 +920,7 @@ class SchemeNamelistInfo:
     def nlread_file(self):
         """Return the generated namelist read filename for this
         SchemeNamelistInfo object"""
-        return self._nlread_file
+        return self.__nlread_file
 
     @property
     def nlread_module(self):
@@ -994,16 +999,6 @@ class NamelistFiles:
             self.__outdir = os.getcwd()
         else:
             self.__outdir = args.output_dir
-        # end if
-        if logger:
-            if args.debug:
-                loglevel = logging.DEBUG
-            elif args.quiet:
-                loglevel = logging.ERROR
-            else:
-                loglevel = logging.INFO
-            # end if
-            logger.setLevel(loglevel)
         # end if
         self.__scheme_read_file = None
         self.__nlfile_arg = "nlfile"

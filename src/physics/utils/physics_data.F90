@@ -1,5 +1,7 @@
 module physics_data
 
+   use shr_kind_mod,         only: r8 => shr_kind_r8
+
    implicit none
    private
 
@@ -8,6 +10,7 @@ module physics_data
    public :: read_constituent_dimensioned_field
    public :: check_field
    public :: flush_check_field_verbose
+   public :: set_check_field_exclusions
 
    ! Non-standard variable indices:
    integer, public, parameter :: no_exist_idx     = -1
@@ -37,17 +40,25 @@ module physics_data
    ! "OK" list is printed after any diff entries.
    integer, parameter :: max_verbose_entries = 1000
    integer, parameter :: verbose_name_len    = 256
-   integer, save      :: num_verbose_entries = 0
-   character(len=verbose_name_len), save :: verbose_stdnames(max_verbose_entries)
-   integer,            save :: verbose_global_count(max_verbose_entries)
-   real(8),            save :: verbose_avg_model(max_verbose_entries)
-   real(8),            save :: verbose_avg_snapshot(max_verbose_entries)
+   integer            :: num_verbose_entries = 0
+   character(len=verbose_name_len) :: verbose_stdnames(max_verbose_entries)
+   integer                         :: verbose_global_count(max_verbose_entries)
+   real(r8)                        :: verbose_avg_model(max_verbose_entries)
+   real(r8)                        :: verbose_avg_snapshot(max_verbose_entries)
+
+   ! Module-level storage for check-exclusion patterns.  Rows that match
+   ! a given '*'-glob pattern are excluded from check_field, but are
+   ! flushed to the log via flush_check_field_verbose so that an excluded
+   ! check is not fully silent.
+   character(len=verbose_name_len), allocatable :: check_exclude_patterns(:)
+   integer :: num_excluded_entries = 0
+   character(len=verbose_name_len) :: excluded_stdnames(max_verbose_entries)
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
-   integer function find_input_name_idx(stdname, use_init_variables, constituent_index)
+   integer function find_input_name_idx(stdname, use_init_variables, constituent_index) result(name_idx)
 
       !Finds the 'input_var_names' array index for a given
       !variable standard name.
@@ -59,6 +70,7 @@ CONTAINS
       use phys_vars_init_check, only: is_initialized
       use phys_vars_init_check, only: is_read_from_file
       use cam_constituents,     only: const_get_index
+      use string_utils,         only: to_lower
 
       ! Dummy arguments
       ! Variable standard name being checked:
@@ -77,24 +89,26 @@ CONTAINS
       logical                       :: found_in_phys_vars
 
       !Initialize function:
-      find_input_name_idx = no_exist_idx
+      name_idx = no_exist_idx
       constituent_index = no_exist_idx
       is_constituent = .false.
       found_in_phys_vars = .false.
 
       !First check if quantity is a constituent:
-      call const_get_index(trim(stdname), find_input_name_idx, abort=.false., warning=.false.)
-      if (find_input_name_idx >= 0) then
-         constituent_index = find_input_name_idx
+      call const_get_index(trim(stdname), name_idx, abort=.false., warning=.false.)
+      if (name_idx >= 0) then
+         constituent_index = name_idx
          is_constituent = .true.
       else
-         find_input_name_idx = no_exist_idx
+         name_idx = no_exist_idx
       end if
 
       !Loop through physics variable standard names:
       do idx = 1, phys_var_num
-         !Check if provided name is in required names array:
-         if (trim(phys_var_stdnames(idx)) == trim(stdname)) then
+         !Check if provided name is in required names array (standard names
+         !are case-insensitive: capgen normalizes scheme-side names to
+         !lowercase while registry declarations keep their authored case):
+         if (to_lower(trim(phys_var_stdnames(idx))) == to_lower(trim(stdname))) then
             found_in_phys_vars = .true.
             !Check if this variable has already been initialized.
             !If so, then set the index to a quantity that will be skipped:
@@ -107,22 +121,22 @@ CONTAINS
                if (is_read) then
                   !If reading initialized variables, set to idx:
                   if (is_constituent) then
-                     find_input_name_idx = const_idx
+                     name_idx = const_idx
                   else
-                     find_input_name_idx = idx
+                     name_idx = idx
                   end if
                else
                   !Otherwise, set to init_mark_idx:
-                  find_input_name_idx = init_mark_idx
+                  name_idx = init_mark_idx
                end if
             else if (protected_vars(idx)) then
-               find_input_name_idx = prot_no_init_idx
+               name_idx = prot_no_init_idx
             else
                !If not already initialized, then pass on the real array index:
                if (is_constituent) then
-                  find_input_name_idx = const_idx
+                  name_idx = const_idx
                else
-                  find_input_name_idx = idx
+                  name_idx = idx
                end if
             end if
             !Exit physics variable name loop:
@@ -135,15 +149,15 @@ CONTAINS
       ! const_get_index would leak through as a phys_var_stdnames array
       ! index, causing an unrelated variable to be accessed.
       if (.not. found_in_phys_vars .and. is_constituent) then
-         find_input_name_idx = const_idx
+         name_idx = const_idx
       end if
       ! If not found, loop through the excluded variable standard names
-      if (find_input_name_idx == no_exist_idx) then
+      if (name_idx == no_exist_idx) then
          do idx = 1, phys_const_num
-            if (trim(phys_const_stdnames(idx)) == trim(stdname)) then
+            if (to_lower(trim(phys_const_stdnames(idx))) == to_lower(trim(stdname))) then
                ! Set to initialized because we can't check here.
                ! The relevant modules (e.g., cam_constituents) will check.
-               find_input_name_idx = init_mark_idx
+               name_idx = init_mark_idx
             end if
          end do
       end if
@@ -461,6 +475,7 @@ CONTAINS
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check, only: mark_as_read_from_file
       use phys_vars_init_check, only: phys_var_stdnames, input_var_names, phys_var_num
+      use string_utils,         only: to_lower
 
       ! Dummy arguments
       type(ccpp_constituent_prop_ptr_t),     intent(in)    :: const_props(:)      ! Constituent properties
@@ -525,7 +540,8 @@ CONTAINS
          ! is the short name
          const_input_idx = -1
          phys_inputvar_loop: do n = 1, phys_var_num
-            if (trim(phys_var_stdnames(n)) == trim(constituent_std_name)) then
+            ! case-insensitive: see find_input_name_idx
+            if (to_lower(trim(phys_var_stdnames(n))) == to_lower(trim(constituent_std_name))) then
                const_input_idx = n
                exit phys_inputvar_loop
             end if
@@ -550,16 +566,18 @@ CONTAINS
             ! Get constituent short name
             constituent_name = constituent_short_names(const_idx)
 
-            ! Create file variable name: <base_var_name>_<constituent_name>
-            file_var_name = trim(base_var_names(base_idx)) // '_' // trim(constituent_name)
-
-            ! Try to find variable in file
+            ! Try to find variable in file: <base_var_name>_<constituent_name>,
+            ! trying case variants of the constituent name (see
+            ! constituent_dim_file_var_names).
             var_found = .false.
-            call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+            call cam_pio_find_var(file,                                         &
+                 constituent_dim_file_var_names(base_var_names(base_idx),       &
+                                                constituent_name),              &
+                 found_name, vardesc, var_found)
 
             if(var_found) then
                exit base_idx_loop
-            endif
+            end if
          end do const_idx_loop
       end do base_idx_loop
 
@@ -582,20 +600,26 @@ CONTAINS
          ! Get constituent short name
          constituent_name = constituent_short_names(const_idx)
 
-         ! Create file variable name: <base_var_name>_<constituent_name>
+         ! Create file variable name (used for reporting): <base_var_name>_<constituent_name>
          file_var_name = trim(base_var_names(base_idx)) // '_' // trim(constituent_name)
 
-         ! Try to find variable in file
+         ! Try to find variable in file, trying case variants of the
+         ! constituent name (see constituent_dim_file_var_names).
          var_found = .false.
-         call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+         call cam_pio_find_var(file,                                            &
+              constituent_dim_file_var_names(base_var_names(base_idx),          &
+                                             constituent_name),                 &
+              found_name, vardesc, var_found)
 
          ! Some constituents whose names are not specified in the registry
          ! will have cnst_ prepended to them (e.g., cnst_dst_a1); also try reading
          ! from file by removing this prefix:
          if (.not. var_found) then
             if (constituent_name(1:5) == 'cnst_') then
-               file_var_name = trim(base_var_names(base_idx)) // '_' // trim(constituent_name(6:))
-               call cam_pio_find_var(file, [file_var_name], found_name, vardesc, var_found)
+               call cam_pio_find_var(file,                                      &
+                    constituent_dim_file_var_names(base_var_names(base_idx),    &
+                                                   constituent_name(6:)),       &
+                    found_name, vardesc, var_found)
             end if
          end if
 
@@ -661,9 +685,31 @@ CONTAINS
 
    end subroutine read_constituent_dimensioned_field_2d
 
+   function constituent_dim_file_var_names(base_name, cname) result(var_names)
+      ! Build candidate file variable names '<base_name>_<cname>' for a
+      ! constituent-dimensioned field.  netCDF variable names are
+      ! case-sensitive, but a constituent name that is not enumerated in the
+      ! registry derives from its standard name, which is case-insensitive and
+      ! arrives lowercased from capgen (e.g. 'co2' for a field authored 'CO2').
+      ! Try the constituent name as registered plus its all-upper and all-lower
+      ! spellings; the base name keeps its case.
+      use string_utils, only: to_upper, to_lower
+      use shr_kind_mod, only: cl => shr_kind_cl
+
+      character(len=*), intent(in) :: base_name
+      character(len=*), intent(in) :: cname
+      character(len=cl)           :: var_names(3)
+
+      var_names(1) = trim(base_name) // '_' // trim(cname)
+      var_names(2) = trim(base_name) // '_' // trim(to_upper(cname))
+      var_names(3) = trim(base_name) // '_' // trim(to_lower(cname))
+
+   end function constituent_dim_file_var_names
+
    subroutine check_field_2d(file, var_names, timestep, current_value,        &
       stdname, min_difference, min_relative_value, is_first, diff_found)
       use ccpp_kinds,     only: kind_phys
+      use shr_kind_mod,   only: cl => shr_kind_cl
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
       use spmd_utils,     only: mpicom, iam
@@ -695,6 +741,7 @@ CONTAINS
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_2d'
+      character(len=cl)                :: errmsg
       real(kind_phys)                  :: diff
       integer                          :: col
       integer                          :: ierr      !For MPI
@@ -720,10 +767,15 @@ CONTAINS
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
+      diff_found = .false.
+      if (check_field_excluded(stdname)) return
+
       !Initialize output variables
       ierr = 0
-      allocate(buffer(size(current_value)), stat=ierr)
-      call check_allocate(ierr, subname, 'buffer')
+      allocate(buffer(size(current_value)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
       max_diff_col  = 0
       diff_count    = 0
       diff          = 0._kind_phys
@@ -847,11 +899,12 @@ CONTAINS
                   diff_found = .true.
                end if
                ! Store verbose entry for later printing (after all diffs)
-               if ((debug_output >= DEBUGOUT_INFO) .and.                 &
-                   diff_count_gl == 0 .and. global_count > 0) then
-                  call store_verbose_entry(stdname, global_count,           &
-                                           global_avg_model,               &
-                                           global_avg_snapshot)
+               if (debug_output >= DEBUGOUT_INFO) then
+                  if (diff_count_gl == 0 .and. global_count > 0) then
+                     call store_verbose_entry(stdname, global_count,        &
+                                              global_avg_model,             &
+                                              global_avg_snapshot)
+                  end if
                end if
             end if
          end if
@@ -863,6 +916,7 @@ CONTAINS
       current_value, stdname, min_difference, min_relative_value, is_first,   &
       diff_found)
       use ccpp_kinds,     only: kind_phys
+      use shr_kind_mod,   only: cl => shr_kind_cl
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
@@ -893,10 +947,11 @@ CONTAINS
       logical,           intent(out)   :: diff_found
 
       !Local variables:
-      logical                          :: var_found = .true.
+      logical                          :: var_found
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_3d'
+      character(len=cl)                :: errmsg
       real(kind_phys)                  :: diff
       integer                          :: ierr                      !For MPI
       integer                          :: mpi_stat(mpi_status_size) !For MPI
@@ -926,11 +981,16 @@ CONTAINS
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
+      diff_found = .false.
+      if (check_field_excluded(stdname)) return
+
       !Initialize output variables
       ierr = 0
       allocate(buffer(size(current_value, 1), size(current_value, 2)),        &
-        stat=ierr)
-      call check_allocate(ierr, subname, 'buffer')
+        stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
       max_diff_col  = 0
       max_diff_lev  = 0
       diff_count    = 0
@@ -1092,6 +1152,7 @@ CONTAINS
       current_value, stdname, min_difference, min_relative_value, is_first,   &
       diff_found)
       use ccpp_kinds,     only: kind_phys
+      use shr_kind_mod,   only: cl => shr_kind_cl
       use shr_sys_mod,    only: shr_sys_flush
       use pio,            only: file_desc_t, var_desc_t
       use spmd_utils,     only: masterproc, masterprocid
@@ -1120,10 +1181,11 @@ CONTAINS
       logical,           intent(out)   :: diff_found
 
       !Local variables:
-      logical                          :: var_found = .true.
+      logical                          :: var_found
       character(len=std_name_len)      :: found_name
       type(var_desc_t)                 :: vardesc
       character(len=*),  parameter     :: subname = 'check_field_4d'
+      character(len=cl)                :: errmsg
       real(kind_phys)                  :: diff
       integer                          :: ierr                      !For MPI
       integer                          :: mpi_stat(mpi_status_size) !For MPI
@@ -1156,11 +1218,16 @@ CONTAINS
       real(kind_phys)                  :: global_avg_model   ! Global average of model state
       real(kind_phys)                  :: global_avg_snapshot! Global average of snapshot
 
+      ! Skip rows/variables excluded by the ncdata_check_exclude namelist option;
+      ! excluded rows are buffered and listed by flush_check_field_verbose:
+      diff_found = .false.
+      if (check_field_excluded(stdname)) return
+
       !Initialize output variables
       ierr = 0
       allocate(buffer(size(current_value, 1), size(current_value, 2),         &
-                      size(current_value, 3)),  stat=ierr)
-      call check_allocate(ierr, subname, 'buffer')
+                      size(current_value, 3)),  stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'buffer', errmsg=errmsg)
       max_diff_col       = 0
       max_diff_lev       = 0
       max_diff_extra_dim = 0
@@ -1324,11 +1391,12 @@ CONTAINS
                end if
 
                ! Store verbose entry for later printing (after all diffs)
-               if ((debug_output >= DEBUGOUT_INFO) .and.                 &
-                   diff_count_gl == 0 .and. global_count > 0) then
-                  call store_verbose_entry(stdname, global_count,          &
-                                           global_avg_model,               &
-                                           global_avg_snapshot)
+               if (debug_output >= DEBUGOUT_INFO) then
+                  if(diff_count_gl == 0 .and. global_count > 0) then
+                     call store_verbose_entry(stdname, global_count,          &
+                                              global_avg_model,               &
+                                              global_avg_snapshot)
+                  end if
                end if
             end if
          end if
@@ -1336,6 +1404,78 @@ CONTAINS
       deallocate(buffer)
 
    end subroutine check_field_4d
+
+   subroutine set_check_field_exclusions(patterns)
+      !
+      ! Store the ordered check-exclusion glob patterns (the
+      ! ncdata_check_exclude namelist option), lowercased for the
+      ! case-insensitive match in check_field_excluded. Blank entries are
+      ! dropped; the relative order of the rest is preserved (first match
+      ! wins in check_field_excluded).
+      !
+      use cam_abortutils, only: check_allocate
+      use string_utils,   only: to_lower
+
+      !Dummy variables:
+      character(len=*), intent(in) :: patterns(:)
+
+      !Local variables:
+      integer :: i, num_patterns, ierr
+      character(len=256) :: errmsg
+      character(len=*), parameter :: subname = 'set_check_field_exclusions'
+
+      num_patterns = 0
+      do i = 1, size(patterns)
+         if (len_trim(patterns(i)) > 0) then
+            num_patterns = num_patterns + 1
+         end if
+      end do
+
+      if (allocated(check_exclude_patterns)) then
+         deallocate(check_exclude_patterns)
+      end if
+      allocate(check_exclude_patterns(num_patterns), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'check_exclude_patterns(num_patterns)', errmsg=errmsg)
+
+      num_patterns = 0
+      do i = 1, size(patterns)
+         if (len_trim(patterns(i)) > 0) then
+            num_patterns = num_patterns + 1
+            check_exclude_patterns(num_patterns) = to_lower(patterns(i))
+         end if
+      end do
+
+   end subroutine set_check_field_exclusions
+
+   logical function check_field_excluded(stdname) result(excluded)
+      !
+      ! Decide whether a check row is excluded from comparison by the
+      ! ncdata_check_exclude patterns; excluded rows are buffered and later
+      ! listed by flush_check_field_verbose. Matching is case-insensitive.
+      !
+      use string_core_utils, only: core_glob_list_excluded
+      use string_utils,      only: to_lower
+
+      !Dummy variables:
+      character(len=*), intent(in) :: stdname
+
+      excluded = .false.
+      if (.not. allocated(check_exclude_patterns)) then
+         return
+      end if
+      if (size(check_exclude_patterns) == 0) then
+         return
+      end if
+
+      excluded = core_glob_list_excluded(                                     &
+         to_lower(trim(stdname)), check_exclude_patterns)
+
+      if (excluded .and. (num_excluded_entries < max_verbose_entries)) then
+         num_excluded_entries = num_excluded_entries + 1
+         excluded_stdnames(num_excluded_entries) = stdname
+      end if
+
+   end function check_field_excluded
 
    subroutine write_check_field_entry(stdname,                                &
                                       diff_count,   nan_count,                &
@@ -1437,6 +1577,18 @@ CONTAINS
       character(len=cs)  :: fmt_str
       integer            :: i, slen
       integer, parameter :: indent_level = 50
+
+      !List and reset the rows/variables excluded by ncdata_check_exclude:
+      if (masterproc .and. (num_excluded_entries > 0)) then
+         write(iulog, *) ''
+         write(iulog, '(1x,a,i0,a)')                                          &
+            'Excluded from comparison by ncdata_check_exclude (',             &
+            num_excluded_entries, ' fields, no diffs computed):'
+         do i = 1, num_excluded_entries
+            write(iulog, '(4x,a)') trim(excluded_stdnames(i))
+         end do
+      end if
+      num_excluded_entries = 0
 
       if (num_verbose_entries == 0) return
       if (.not. masterproc) return
