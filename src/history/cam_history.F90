@@ -32,8 +32,8 @@ module cam_history
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
-   public :: history_restart_init   ! Initialize history fields on restart file, if necessary
-   public :: history_restart_write  ! Write restart files, if necessary
+   public :: init_restart_history   ! Initialize history fields on restart file, if necessary
+   public :: write_restart_history  ! Write restart files, if necessary
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -901,7 +901,7 @@ CONTAINS
 
 !#######################################################################
 
-   subroutine history_restart_init(restart_file)
+   subroutine init_restart_history(restart_file)
       use cam_hist_restart, only: hist_restart_init
       use pio,              only: file_desc_t
       ! Dummy variables
@@ -924,11 +924,11 @@ CONTAINS
          call hist_configs(config_idx)%define_restart_file(logname, host, model_doi_url)
       end do
 
-   end subroutine history_restart_init
+   end subroutine init_restart_history
 
 !#######################################################################
 
-   subroutine history_restart_write(restart_file)
+   subroutine write_restart_history(restart_file)
       use pio,              only: file_desc_t
       use cam_hist_restart, only: hist_restart_write
       ! Dummy variables
@@ -953,7 +953,7 @@ CONTAINS
          call hist_configs(config_idx)%close_restart_file()
       end do
 
-   end subroutine history_restart_write
+   end subroutine write_restart_history
 !#######################################################################
 
    recursive function get_entry_by_name(listentry, name) result(entry)

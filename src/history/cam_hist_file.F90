@@ -562,13 +562,14 @@ CONTAINS
 
    function config_get_dimension_indices(this) result(dimids)
       use cam_abortutils, only: endrun
+      use cam_history_support, only: max_dimensions
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: dimids(:,:)
       ! Local variables
       character(len=512) :: errmsg
       integer :: idx, ierr
-      allocate(dimids(4, size(this%field_list)), stat=ierr, errmsg=errmsg)
+      allocate(dimids(max_dimensions, size(this%field_list)), stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
          call endrun('config_get_dimension_indices: failed to allocate dimids; errmsg = '//errmsg)
       end if
@@ -2134,8 +2135,6 @@ CONTAINS
          end if
          call this%write_restart_fields(this%restart_file, this%field_list(field_index), field_index, write_var_buffer, &
             var_buffer_idx)
-         ! Clear the buffers
-         call this%field_list(field_index)%clear_buffers()
       end do
 
    end subroutine config_write_restart_file

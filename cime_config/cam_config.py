@@ -904,7 +904,7 @@ class ConfigCAM:
                                           capgen_db, ic_names, registry_constituents,
                                           vars_init_value)
 
-        #Add registry path to config object:
+        #Add physics initialization directory path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."
         self.create_config("init_dir", init_dir_desc, init_dir)
 
@@ -913,11 +913,10 @@ class ConfigCAM:
         #---------------------------------------------------------
         restart_dir = generate_restart_routines(build_cache, self.__bldroot,
                                                 force_ccpp, force_init,
-                                                source_mods_dir, gen_fort_indent,
-                                                capgen_db, ic_names,
+                                                gen_fort_indent, capgen_db,
                                                 registry_constituents, restart_vars)
 
-        #Add registry path to config object:
+        #Add physics restart directory path to config object:
         restart_dir_desc = "Location of auto-generated physics restart code."
         self.create_config("restart_dir", restart_dir_desc, restart_dir)
 

@@ -23,21 +23,22 @@ module restart_physics_no_required
    private
 
 !! public interfaces
-   public :: restart_physics_init
-   public :: restart_physics_write
-   public :: restart_physics_read
+   public :: init_restart_physics
+   public :: write_restart_physics
+   public :: read_restart_physics
 
 ! Private module data
    type(var_desc_t), allocatable :: cnst_desc(:)
 
 contains
 
-   subroutine restart_physics_init(file, errmsg, errflg)
+   subroutine init_restart_physics(file, errmsg, errflg)
       use pio,                       only: file_desc_t, pio_double
       use cam_pio_utils,             only: cam_pio_def_dim, cam_pio_def_var
       use cam_ccpp_cap,              only: cam_model_const_properties, cam_constituents_array
       use physics_grid,              only: num_global_phys_cols
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use cam_constituents,          only: num_constituents, num_advected
       use vert_coord,   only: pver
       use physics_grid, only: columns_on_task
       type(file_desc_t), intent(inout) :: file
@@ -47,6 +48,7 @@ contains
       ! Local variables
       integer, allocatable :: dimids(:)
       integer :: constituent_idx
+      integer :: nonadvected
       integer :: nonadvected_idx
       logical :: advected
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
@@ -60,12 +62,24 @@ contains
       end if
       call cam_pio_def_dim(file, 'ncol', num_global_phys_cols, dimids(1), existOK=.true.)
       call cam_pio_def_dim(file, 'lev', pver, dimids(2), existOK=.true.)
+      const_props => cam_model_const_properties()
+
 
       ! Handling for non-advected constituent vars (advected constituents handled by dynamics restart)
-      ! Allocate cnst_desc to total size of constituents array; some will be unused
-      allocate(cnst_desc(size(const_props)))
+      ! If there are no non-advected constituents, no need to do anything else
+      if ((num_constituents - num_advected) == 0) then
+         return
+      end if
+      ! Otherwise, allocate cnst_desc to total size of constituents array minus the number of advected constituents
+      nonadvected = num_constituents - num_advected
+      if (.not. allocated(cnst_desc)) then
+         allocate(cnst_desc(nonadvected), stat=errflg, errmsg=errmsg)
+         if (errflg /= 0) then
+            return
+         end if
+      end if
       nonadvected_idx = 1
-      do constituent_idx = 1, size(const_props)
+      do constituent_idx = 1, num_constituents
          call const_props(constituent_idx)%is_advected(advected)
          if (.not. advected) then
             call const_props(constituent_idx)%diagnostic_name(const_diag_name)
@@ -73,27 +87,27 @@ contains
             nonadvected_idx = nonadvected_idx + 1
          end if
       end do
-   end subroutine restart_physics_init
+   end subroutine init_restart_physics
 
-   subroutine restart_physics_write(file, grid_id, errmsg, errflg)
+   subroutine write_restart_physics(file, grid_id, errmsg, errflg)
       use pio,                       only: file_desc_t, io_desc_t, pio_write_darray, pio_double
       use cam_ccpp_cap,              only: cam_model_const_properties, cam_constituents_array
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use physics_grid,              only: num_global_phys_cols
+      use cam_constituents,          only: num_constituents
       use cam_grid_support,          only: cam_grid_id, cam_grid_write_dist_array
       use vert_coord,   only: pver
       use physics_grid, only: columns_on_task
 
       type(file_desc_t), intent(inout) :: file
       integer,            intent(in)   :: grid_id
-      character(len=512),intent(out)   :: errmsg
+      character(len=*),  intent(out)   :: errmsg
       integer,           intent(out)   :: errflg
 
       ! Local variables
       integer                          :: dims(2)
       integer                          :: grid_decomp
-      integer                          :: grid_dims(2)
       integer                          :: field_shape(2)
       integer                          :: constituent_idx
       integer                          :: nonadvected_idx
@@ -105,13 +119,19 @@ contains
       dims(1) = columns_on_task
       dims(2) = pver
       ! Write required restart variables to the restart file
+      const_props => cam_model_const_properties()
+
 
       ! Handling for non-advected constituent vars (advected constituents handled by dynamics restart)
+      ! No need to do anything if cnst_desc isn't allocated (no non-advected constituents)
+      if (.not. allocated(cnst_desc)) then
+         return
+      end if
       field_shape(1) = num_global_phys_cols
       field_shape(2) = pver
       nonadvected_idx = 1
       field_data_ptr => cam_constituents_array()
-      do constituent_idx = 1, size(const_props)
+      do constituent_idx = 1, num_constituents
          call const_props(constituent_idx)%is_advected(advected)
          if (.not. advected) then
             call cam_grid_write_dist_array(file, grid_decomp, (/dims(1), dims(2)/), field_shape, field_data_ptr(:,:,constituent_idx), &
@@ -119,9 +139,9 @@ contains
             nonadvected_idx = nonadvected_idx + 1
          end if
       end do
-   end subroutine restart_physics_write
+   end subroutine write_restart_physics
 
-   subroutine restart_physics_read()
-   end subroutine restart_physics_read
+   subroutine read_restart_physics()
+   end subroutine read_restart_physics
 
 end module restart_physics_no_required

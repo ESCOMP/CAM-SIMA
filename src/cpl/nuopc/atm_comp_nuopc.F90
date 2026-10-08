@@ -41,7 +41,7 @@ module atm_comp_nuopc
    use shr_const_mod       , only : shr_const_pi
    use shr_orb_mod         , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
    use cam_instance        , only : cam_instance_init, inst_suffix, inst_index
-   use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
+   use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_final
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
    use physics_types       , only : cam_out, cam_in
    use cam_logfile         , only : cam_set_log_unit, iulog
@@ -1182,11 +1182,10 @@ contains
        call cam_run3()
        call t_stopf  ('CAM_run3')
 
-       call t_startf ('CAM_run4')
-       call cam_run4(rstwr, nlend)
-       call t_stopf  ('CAM_run4')
+       call t_startf ('CAM_timestep_final')
        call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check, &
                yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
+       call t_stopf  ('CAM_timestep_final')
 
        ! Advance cam time step
 

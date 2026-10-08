@@ -72,11 +72,16 @@ CONTAINS
     end do
 
     call simple_ccpp_physics_timestep_final('simple_suite', errmsg, errflg)
+    if (errflg /= 0) then
+      write(6, *) trim(errmsg)
+      write(6,'(a)') 'An error occurred in ccpp_timestep_final, Exiting...'
+      stop
+    end if
 
     call simple_ccpp_physics_finalize('simple_suite', errmsg, errflg)
     if (errflg /= 0) then
       write(6, *) trim(errmsg)
-      write(6,'(a)') 'An error occurred in ccpp_timestep_final, Exiting...'
+      write(6,'(a)') 'An error occurred in ccpp_finalize, Exiting...'
       stop
     end if
 

@@ -45,7 +45,6 @@ module cam_comp
    public cam_run1           ! CAM run method phase 1
    public cam_run2           ! CAM run method phase 2
    public cam_run3           ! CAM run method phase 3
-   public cam_run4           ! CAM run method phase 4
    public cam_timestep_final ! CAM timestep finalization
    public cam_final          ! CAM Finalization
 
@@ -466,23 +465,6 @@ CONTAINS
    !
    !-----------------------------------------------------------------------
    !
-
-   subroutine cam_run4(rstwr, nlend)
-      logical, intent(in)  :: rstwr    ! write restart file
-      logical, intent(in)  :: nlend    ! this is final timestep
-
-      !-----------------------------------------------------------------------
-      !
-      ! Purpose:
-      !
-      !-----------------------------------------------------------------------
-!      use qneg_module,  only: qneg_print_summary
-
-   end subroutine cam_run4
-
-   !
-   !-----------------------------------------------------------------------
-   !
    subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, &
                    yr_spec, mon_spec, day_spec, sec_spec, do_history_write)
       !-----------------------------------------------------------------------
@@ -499,14 +481,14 @@ CONTAINS
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
       ! - flag is true if this is not the first or last step
-      logical, intent(in)  :: do_ncdata_check
+      logical,         intent(in)           :: do_ncdata_check
       integer,         intent(in), optional :: yr_spec  ! Simulation year
       integer,         intent(in), optional :: mon_spec ! Simulation month
       integer,         intent(in), optional :: day_spec ! Simulation day
-      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
+      integer,         intent(in), optional :: sec_spec ! Seconds in current simulation day
       !Flag for whether to perform the history write
-      logical, optional, intent(in) :: do_history_write
-
+      logical,         intent(in), optional :: do_history_write
+      !Local variables
       logical                               :: history_write_loc
 
       if (present(do_history_write)) then
@@ -523,13 +505,8 @@ CONTAINS
       !
       if (rstwr) then
          call t_startf('cam_write_restart')
-         if (present(yr_spec) .and. present(mon_spec) .and.                   &
-              present(day_spec).and.present(sec_spec)) then
-            call cam_write_restart(dyn_out, yr_spec=yr_spec, &
-                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
-         else
-            call cam_write_restart(dyn_out)
-         end if
+         call cam_write_restart(dyn_out, yr_spec=yr_spec, &
+              mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
          call t_stopf('cam_write_restart')
       end if
       call history_wrap_up(rstwr, nlend)

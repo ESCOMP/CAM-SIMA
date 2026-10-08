@@ -8,20 +8,20 @@ module cam_restart
 CONTAINS
   subroutine cam_write_restart(dyn_out, yr_spec, mon_spec, day_spec, sec_spec)
     use cam_filenames,    only: interpret_filename_spec
-    use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill
+    use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill, cam_pio_closefile
     use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
-    use restart_physics,  only: restart_physics_write, restart_physics_init
-    use cam_history,      only: history_restart_init, history_restart_write
+    use restart_physics,  only: write_restart_physics, init_restart_physics
+    use cam_history,      only: init_restart_history, write_restart_history
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
-    use pio,              only: pio_put_att, pio_enddef, pio_closefile
+    use pio,              only: pio_put_att, pio_enddef
     use cam_grid_support, only: cam_grid_write_attr, cam_grid_id
     use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_var
     use cam_grid_support, only: cam_grid_dimensions, cam_grid_get_decomp
     use physics_grid,     only: phys_decomp, num_global_phys_cols
     use dyn_comp,         only: dyn_export_t
     use cam_control_mod,  only: caseid
-    use cam_abortutils,   only: endrun
+    use cam_abortutils,   only: safe_endrun
     use shr_kind_mod,     only: cl=>shr_kind_cl
     use runtime_obj,      only: cam_runtime_opts
 
@@ -50,7 +50,7 @@ CONTAINS
     fname = interpret_filename_spec(rfilename_spec, yr_spec=yr_spec, &
             mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
 
-    call cam_pio_createfile(fh, trim(fname), 0)
+    call cam_pio_createfile(fh, trim(fname))
     ierr = cam_pio_set_fill(fh)
 
     call init_restart_dynamics(fh, dyn_out)
@@ -61,11 +61,11 @@ CONTAINS
     grid_id = cam_grid_id('physgrid')
     call cam_grid_write_attr(fh, grid_id, info)
 
-    call restart_physics_init(fh, errmsg, errflg)
+    call init_restart_physics(fh, errmsg, errflg)
     if (errflg /= 0) then
-       call endrun(errmsg)
+       call safe_endrun(errmsg)
     end if
-    call history_restart_init(fh)
+    call init_restart_history(fh)
 
     ierr = pio_put_att(fh, pio_global, 'caseid', caseid)
 
@@ -84,15 +84,15 @@ CONTAINS
     call cam_grid_write_var(fh, phys_decomp)
 
     ! Write physics restart variables
-    call restart_physics_write(fh, grid_id, errmsg, errflg)
+    call write_restart_physics(fh, grid_id, errmsg, errflg)
     if (errflg /= 0) then
-       call endrun(errmsg)
+       call safe_endrun(errmsg)
     end if
 
-    call history_restart_write(fh)
+    call write_restart_history(fh)
 
     ! Close the primary restart file
-    call pio_closefile(fh)
+    call cam_pio_closefile(fh)
 
     ! Update the restart pointer file
     call write_rest_pfile(fname, yr_spec=yr_spec, mon_spec=mon_spec, &
@@ -122,6 +122,7 @@ CONTAINS
 
      integer :: ierr, unitn
      character(len=CL) :: rest_pfile
+     character(len=256) :: errmsg
      character(len=*), parameter :: sub='write_rest_pfile'
      !---------------------------------------------------------------------------
 
@@ -130,9 +131,9 @@ CONTAINS
              yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
         call cam_open_file(rest_pfile, unitn, 'f', status="unknown")
         rewind unitn
-        write(unitn, '(a)', iostat=ierr) trim(restart_file)
+        write(unitn, '(a)', iostat=ierr, iosmg=errmsg) trim(restart_file)
         if (ierr /= 0) then
-           call endrun(sub//': ERROR: writing rpointer file')
+           call endrun(sub//': ERROR: writing rpointer file: '//trim(errmsg))
         end if
         close(unitn)
 

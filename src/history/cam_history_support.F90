@@ -24,6 +24,7 @@ module cam_history_support
    integer,  parameter, public :: pfiles = 12             ! max number of history configurations
    integer, parameter, public :: max_chars = shr_kind_cl  ! max chars for char variables
    integer, parameter, public :: max_string_len = shr_kind_cxx
+   integer, parameter, public :: max_dimensions = 4
    real(r8), parameter, public :: fillvalue = 1.e36_r8    ! default fill value for netcdf fields
    ! A special symbol for declaring a field which has no vertical or
    ! non-grid dimensions. It is here (rather than cam_history) so that it

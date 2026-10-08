@@ -812,8 +812,8 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
 
 ###############################################################################
 def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
-                              source_mods_dir, gen_fort_indent, cap_database,
-                              ic_names, registry_constituents, restart_vars):
+                              gen_fort_indent, cap_database, registry_constituents,
+                              restart_vars):
 ###############################################################################
     """
     Generate the physics restart routines (restart_physics.F90) using
@@ -843,7 +843,6 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
         do_gen_restart = True
     # End if
     if do_gen_restart:
-        source_paths = [source_mods_dir, _REG_GEN_DIR]
         retmsg = write_restart_physics(cap_database, registry_constituents, restart_vars, 
                                        restart_dir, gen_fort_indent, _LOGGER)
         

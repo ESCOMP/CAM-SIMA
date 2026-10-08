@@ -116,6 +116,8 @@
                 default="false"/>
   <xs:attribute name="phys_timestep_init_zero" type="xs:boolean"
                 default="false"/>
+
+  <!-- other optional attributes -->
   <xs:attribute name="diagnostic_name" type="fortran_id_type"
                 default="none"/>
 

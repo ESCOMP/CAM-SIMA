@@ -140,7 +140,7 @@
               standard_name="frontogenesis_function"
               units="K2 m-2 s-1" type="real" kind="kind_phys"
               allocatable="pointer" restart="true"
-	      diagnostic_name="FRONTGF">
+              diagnostic_name="FRONTGF">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>frontgf pbuf_FRONTGF</ic_file_input_names>
     </variable>
@@ -616,7 +616,7 @@
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
-              units="kg kg-1" type="real" constituent="true" restart="true" diagnostic_name="cldliq">
+              units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>

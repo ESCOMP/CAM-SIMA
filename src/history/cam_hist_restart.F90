@@ -1,14 +1,11 @@
 module cam_hist_restart
    use pio,                 only: var_desc_t
-   use cam_history_support, only: max_fieldname_len
+   use cam_history_support, only: max_fieldname_len, max_dimensions
    use shr_kind_mod,        only: r4 => shr_kind_r4
    use shr_kind_mod,        only: r8 => shr_kind_r8
-   use cam_logfile,         only: iulog
 
    implicit none
    private
-
-   integer, parameter :: max_dimensions = 4
 
    type restart_variable_t
       type(var_desc_t), pointer        :: vdesc => null()

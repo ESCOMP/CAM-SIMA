@@ -25,7 +25,7 @@ __CCPP_DIR = os.path.join(_CAM_ROOT, "ccpp_framework", "scripts")
 __REGISTRY_DIR = os.path.join(_CAM_ROOT, "src", "data")
 _REG_SAMPLES_DIR = os.path.join(__TEST_DIR, "sample_files")
 _RESTART_SAMPLES_DIR = os.path.join(_REG_SAMPLES_DIR, "write_restart_physics")
-_SHARED_DIR = os.path.join(_REG_SAMPLES_DIR, "shared")
+_SHARED_DIR = os.path.join(_REG_SAMPLES_DIR, "shared_files")
 _PRE_TMP_DIR = os.path.join(__TEST_DIR, "tmp")
 _TMP_DIR = os.path.join(_PRE_TMP_DIR, "write_restart_physics")
 _SRC_MOD_DIR = os.path.join(_PRE_TMP_DIR, "SourceMods")
@@ -46,7 +46,7 @@ if not os.path.exists(_REG_SAMPLES_DIR):
     raise ImportError("Cannot find sample files directory")
 
 if not os.path.exists(_SHARED_DIR):
-    raise ImportError("Cannot find 'write_restart_physics' sample files directory")
+    raise ImportError("Cannot find 'shared_files' sample files directory")
 
 if not os.path.exists(_SHARED_DIR):
     raise ImportError("Cannot find 'write_restart_physics' sample files directory")
@@ -63,7 +63,7 @@ sys.path.append(__REGISTRY_DIR)
 from ccpp_capgen import capgen
 from framework_env import CCPPFrameworkEnv
 from generate_registry_data import gen_registry
-import write_restart_physics as write_restart
+from write_restart_physics import write_restart_physics
 from parse_source import CCPPError
 # pylint: enable=wrong-import-position
 
@@ -177,7 +177,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics restart file:
-        retmsg = write_restart.write_restart_physics(cap_database, {}, restart_vars, _TMP_DIR,
+        retmsg = write_restart_physics(cap_database, {}, restart_vars, _TMP_DIR,
                                              3, logger,
                                              phys_restart_filename=rest_name)
 
@@ -248,7 +248,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics restart file:
-        retmsg = write_restart.write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
+        retmsg = write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
                                              3, logger,
                                              phys_restart_filename=rest_name)
 
@@ -292,7 +292,7 @@ class WriteInitTest(unittest.TestCase):
                       check_restart_out])
 
         # Attempt to generate registry files
-        with self.assertRaises(CCPPError) as cerr:
+        with self.assertRaises(ValueError) as cerr:
             _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                              _SRC_MOD_DIR, _CAM_ROOT,
                              loglevel=logging.ERROR,
@@ -356,7 +356,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics restart file:
-        retmsg = write_restart.write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
+        retmsg = write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
                                              3, logger,
                                              phys_restart_filename=rest_name)
 
@@ -428,7 +428,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics restart file:
-        retmsg = write_restart.write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
+        retmsg = write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
                                              3, logger,
                                              phys_restart_filename=rest_name)
 
@@ -501,7 +501,7 @@ class WriteInitTest(unittest.TestCase):
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics restart file:
-        retmsg = write_restart.write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
+        retmsg = write_restart_physics(cap_database, constituents, restart_vars, _TMP_DIR,
                                              3, logger,
                                              phys_restart_filename=rest_name)
 
