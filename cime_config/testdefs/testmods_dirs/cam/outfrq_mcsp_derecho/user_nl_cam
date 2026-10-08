@@ -1,0 +1,33 @@
+! Snapshot test for Zhang-McFarlane deep convection followed by MCSP
+! (CAM bracket: before convect_deep_tend, after mcsp_cam_tend; cam7 physics, 58 levels).
+ncdata='SNAPSHOT_BEFORE_PLACEHOLDER'
+ncdata_check='SNAPSHOT_AFTER_PLACEHOLDER'
+debug_output=0
+pver=58
+! ZM namelist as in the CAM7 snapshot run
+zmconv_c0_lnd=0.00549D0
+zmconv_c0_ocn=0.0300D0
+zmconv_capelmt=70.0D0
+zmconv_dmpdz=-1.0E-3
+zmconv_ke=5.0E-6
+zmconv_ke_lnd=1.0E-5
+zmconv_momcd=0.7D0
+zmconv_momcu=0.7D0
+zmconv_num_cin=1
+zmconv_parcel_hscale=0.5D0
+zmconv_parcel_pbl=.true.
+zmconv_tau=3600.0D0
+zmconv_tiedtke_add=0.5D0
+! MCSP namelist as in the CAM7 snapshot run (all four tendencies active)
+mcsp_heat_coeff=0.3D0
+mcsp_moisture_coeff=0.3D0
+mcsp_uwind_coeff=1.0D-5
+mcsp_vwind_coeff=1.0D-5
+mcsp_storm_speed_pref=60000.0D0
+mcsp_conv_depth_min=50000.0D0
+mcsp_shear_min=3.0D0
+hist_add_inst_fields;h1: ZMDT, ZMDQ, CAPE, FREQZM, PCONVT, PCONVB
+hist_add_inst_fields;h1: MCSP_DT, MCSP_DQ, MCSP_DU, MCSP_DV, MCSP_DT_max, MCSP_freq, MCSP_shear, MCSP_conv_depth
+hist_output_frequency;h1: 1*nstep
+hist_precision;h1: REAL64
+hist_max_frames;h1: 1
