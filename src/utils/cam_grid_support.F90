@@ -3136,6 +3136,7 @@ contains
       integer                                :: dims(2)
       integer                                :: dstrt, dend
       integer                                :: gridlen, gridloc, ierr
+      character(len=shr_kind_cm)             :: errormsg
       character(len=*), parameter            :: subname = 'cam_grid_set_map'
 
       ! Check to make sure the map meets our needs
@@ -3164,9 +3165,9 @@ contains
          call endrun('cam_grid_set_map: Bad map size for '//trim(this%name))
       else
          if (.not. associated(this%map)) then
-            allocate(this%map, stat=ierr)
+            allocate(this%map, stat=ierr, errmsg=errormsg)
             call check_allocate(ierr, subname, 'this%map',                    &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errormsg)
          end if
          call this%map%init(map, this%unstructured, src, dest)
       end if
