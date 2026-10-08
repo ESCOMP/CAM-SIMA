@@ -83,7 +83,7 @@ contains
          call const_props(constituent_idx)%is_advected(advected)
          if (.not. advected) then
             call const_props(constituent_idx)%diagnostic_name(const_diag_name)
-            call cam_pio_def_var(file, trim(const_diag_name), pio_double, (/dimids(1), dimids(2)/), cnst_desc(nonadvected_idx), existOK=.false.)
+            call cam_pio_def_var(file, trim(const_diag_name), pio_double, [dimids(1), dimids(2)], cnst_desc(nonadvected_idx), existOK=.false.)
             nonadvected_idx = nonadvected_idx + 1
          end if
       end do
@@ -134,7 +134,7 @@ contains
       do constituent_idx = 1, num_constituents
          call const_props(constituent_idx)%is_advected(advected)
          if (.not. advected) then
-            call cam_grid_write_dist_array(file, grid_decomp, (/dims(1), dims(2)/), field_shape, field_data_ptr(:,:,constituent_idx), &
+            call cam_grid_write_dist_array(file, grid_decomp, [dims(1), dims(2)], field_shape, field_data_ptr(:,:,constituent_idx), &
                 cnst_desc(nonadvected_idx))
             nonadvected_idx = nonadvected_idx + 1
          end if

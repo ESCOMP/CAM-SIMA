@@ -7,7 +7,7 @@ module simple_host
 
   public simple_sub
 
-CONTAINS
+contains
 
   !> \section arg_table_simple_sub  Argument Table
   !! \htmlinclude arg_table_simple_sub.html
@@ -22,6 +22,7 @@ CONTAINS
     use simple_ccpp_cap, only: ccpp_physics_suite_list
     use simple_ccpp_cap, only: ccpp_physics_suite_part_list
     use simple_mod,     only: init_temp, compare_temp
+    use, intrinsic :: iso_fortran_env, only: output_unit
 
 
     !integer                         :: col_start, col_end
@@ -45,14 +46,14 @@ CONTAINS
     ! Use the suite information to setup the run
     call simple_ccpp_physics_initialize('simple_suite', errmsg, errflg)
     if (errflg /= 0) then
-      write(6, *) trim(errmsg)
+      write(output_unit, *) trim(errmsg)
       stop
     end if
 
     ! Initialize the timestep
     call simple_ccpp_physics_timestep_initial('simple_suite', errmsg, errflg)
     if (errflg /= 0) then
-      write(6, *) trim(errmsg)
+      write(output_unit, *) trim(errmsg)
       stop
     end if
 
@@ -61,11 +62,11 @@ CONTAINS
 
       call simple_ccpp_physics_run('simple_suite', 'physics', col_start, col_end, errmsg, errflg)
       if (errflg /= 0) then
-        write(6, *) trim(errmsg)
+        write(output_unit, *) trim(errmsg)
         call ccpp_physics_suite_part_list('simple_suite', part_names, errmsg, errflg)
-        write(6, *) 'Available suite parts are:'
+        write(output_unit, *) 'Available suite parts are:'
         do index = 1, size(part_names)
-          write(6, *) trim(part_names(index))
+          write(output_unit, *) trim(part_names(index))
         end do
         stop
       end if
@@ -73,22 +74,22 @@ CONTAINS
 
     call simple_ccpp_physics_timestep_final('simple_suite', errmsg, errflg)
     if (errflg /= 0) then
-      write(6, *) trim(errmsg)
-      write(6,'(a)') 'An error occurred in ccpp_timestep_final, Exiting...'
+      write(output_unit, *) trim(errmsg)
+      write(output_unit,'(a)') 'An error occurred in ccpp_timestep_final, Exiting...'
       stop
     end if
 
     call simple_ccpp_physics_finalize('simple_suite', errmsg, errflg)
     if (errflg /= 0) then
-      write(6, *) trim(errmsg)
-      write(6,'(a)') 'An error occurred in ccpp_finalize, Exiting...'
+      write(output_unit, *) trim(errmsg)
+      write(output_unit,'(a)') 'An error occurred in ccpp_finalize, Exiting...'
       stop
     end if
 
     if (compare_temp()) then
-      write(6, *) 'Answers are correct!'
+      write(output_unit, *) 'Answers are correct!'
     else
-      write(6, *) 'Answers are not correct!'
+      write(output_unit, *) 'Answers are not correct!'
     end if
 
   end subroutine simple_sub
@@ -97,5 +98,6 @@ end module simple_host
 
 program simple
   use simple_host, only: simple_sub
+  implicit none
   call simple_sub()
 end program simple

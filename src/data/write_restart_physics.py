@@ -226,7 +226,7 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
         outfile.comment("Define required restart variables on the restart file", 2)
         desc_name = f"{value['diag_name'].lower()}_desc"
         dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
-        outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}', pio_double, (/{dimids_array}/), {desc_name}, existOK=.false.)", 2)
+        outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}', pio_double, [{dimids_array}], {desc_name}, existOK=.false.)", 2)
         outfile.blank_line()
     # end for
 
@@ -274,7 +274,7 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
             outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 3)
             desc_name = f"{value['diag_name'].lower()}_desc"
             dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
-            outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}_'//trim(const_diag_name), pio_double, (/{dimids_array}/), {desc_name}(constituent_idx), existOK=.false.)", 3)
+            outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}_'//trim(const_diag_name), pio_double, [{dimids_array}], {desc_name}(constituent_idx), existOK=.false.)", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
         # end for
@@ -304,7 +304,7 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("call const_props(constituent_idx)%is_advected(advected)", 3)
     outfile.write("if (.not. advected) then", 3)
     outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 4)
-    outfile.write(f"call cam_pio_def_var(file, trim(const_diag_name), pio_double, (/{dimids_array}/), cnst_desc(nonadvected_idx), existOK=.false.)", 4)
+    outfile.write(f"call cam_pio_def_var(file, trim(const_diag_name), pio_double, [{dimids_array}], cnst_desc(nonadvected_idx), existOK=.false.)", 4)
     outfile.write("nonadvected_idx = nonadvected_idx + 1", 4)
     outfile.write("end if", 3)
     outfile.write("end do", 2)
@@ -362,9 +362,9 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
         desc_name = f"{value['diag_name'].lower()}_desc"
         if len(value['dims']) == 1 and 'horizontal_dimension' in value['dims'][0]:
             outfile.comment("Handle horizontal-only field", 2)
-            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, [num_global_phys_cols], (/field_shape(1)/), {key}, {desc_name})", 2)
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, [num_global_phys_cols], [field_shape(1)], {key}, {desc_name})", 2)
         elif len(value["dims"]) > 1:
-            dimstr = '(/'
+            dimstr = '['
             for index, dim in enumerate(value["dims"]):
                 dimstr = f"{dimstr}dims({dimensions_dict[dim.split(':')[1]]['index']}),"
                 if 'horizontal_dimension' in dim:
@@ -373,7 +373,7 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
                     outfile.write(f"field_shape({index + 1}) = size({key}, {index + 1})", 2)
                 # end if
             # end if
-            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, {dimstr[:-1]}/), field_shape, {key}, {desc_name})", 2)
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, {dimstr[:-1]}], field_shape, {key}, {desc_name})", 2)
         # end if
     # end for
 
@@ -386,7 +386,7 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
             outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
             outfile.write("do constituent_idx = 1, num_constituents", 2)
             desc_name = f"{value['diag_name'].lower()}_desc"
-            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), [num_global_phys_cols], {key}(:,constituent_idx), {desc_name}(constituent_idx))", 3)
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, [dims(1)], [num_global_phys_cols], {key}(:,constituent_idx), {desc_name}(constituent_idx))", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
         # end for
@@ -406,7 +406,7 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
     outfile.write("do constituent_idx = 1, num_constituents", 2)
     outfile.write("call const_props(constituent_idx)%is_advected(advected)", 3)
     outfile.write("if (.not. advected) then", 3)
-    outfile.write("call cam_grid_write_dist_array(file, grid_decomp, (/dims(1), dims(2)/), field_shape, field_data_ptr(:,:,constituent_idx), cnst_desc(nonadvected_idx))", 4)
+    outfile.write("call cam_grid_write_dist_array(file, grid_decomp, [dims(1), dims(2)], field_shape, field_data_ptr(:,:,constituent_idx), cnst_desc(nonadvected_idx))", 4)
     outfile.write("nonadvected_idx = nonadvected_idx + 1", 4)
     outfile.write("end if", 3)
     outfile.write("end do", 2)

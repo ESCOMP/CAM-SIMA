@@ -5,7 +5,6 @@ use pio,                only: file_desc_t
 
 implicit none
 private
-save
 
 public :: &
    init_restart_dynamics,  &

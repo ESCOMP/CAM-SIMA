@@ -131,7 +131,7 @@ CONTAINS
              yr_spec=yr_spec, mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec )
         call cam_open_file(rest_pfile, unitn, 'f', status="unknown")
         rewind unitn
-        write(unitn, '(a)', iostat=ierr, iosmg=errmsg) trim(restart_file)
+        write(unitn, '(a)', iostat=ierr, iomsg=errmsg) trim(restart_file)
         if (ierr /= 0) then
            call endrun(sub//': ERROR: writing rpointer file: '//trim(errmsg))
         end if

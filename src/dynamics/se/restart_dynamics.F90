@@ -15,7 +15,6 @@ use pio,              only: var_desc_t
 
 implicit none
 private
-save
 
 public :: init_restart_dynamics
 public :: write_restart_dynamics
@@ -31,7 +30,7 @@ type(var_desc_t), pointer     :: c_fvm_desc(:)
 integer, private :: nelem_tot = -1 ! Correct total number of elements
 
 !=========================================================================================
-CONTAINS
+contains
 !=========================================================================================
 
 subroutine init_nelem_tot()
@@ -109,10 +108,10 @@ subroutine init_restart_dynamics(file, dyn_out)
       ierr = PIO_Put_Att(File, PIO_GLOBAL, 'np', np)
    end if
 
-   ierr = PIO_Def_Var(File, 'PSDRY', pio_double, (/ncol_dimid, time_dimid/), psdry_desc)
-   ierr = PIO_Def_Var(File, 'U', pio_double, (/ncol_dimid, nlev_dimid, time_dimid/), Udesc)
-   ierr = PIO_Def_Var(File, 'V', pio_double, (/ncol_dimid, nlev_dimid, time_dimid/), Vdesc)
-   ierr = PIO_Def_Var(File, 'T', pio_double, (/ncol_dimid, nlev_dimid, time_dimid/), Tdesc)
+   ierr = PIO_Def_Var(File, 'PSDRY', pio_double, [ncol_dimid, time_dimid], psdry_desc)
+   ierr = PIO_Def_Var(File, 'U', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Udesc)
+   ierr = PIO_Def_Var(File, 'V', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Vdesc)
+   ierr = PIO_Def_Var(File, 'T', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Tdesc)
 
    const_props => cam_model_const_properties()
    num_advected_const = size(advected_constituent_index)
@@ -122,8 +121,8 @@ subroutine init_restart_dynamics(file, dyn_out)
    do m_index = 1, num_advected_const
       ! Grab constituent diagnostic name:
       call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
-      ierr = PIO_Def_Var(File,"dp"//trim(const_diag_name), pio_double, &
-                         (/ncol_dimid, nlev_dimid, time_dimid/), Qdesc_dp(m_index))
+      ierr = PIO_Def_Var(File,'dp'//trim(const_diag_name), pio_double, &
+                         [ncol_dimid, nlev_dimid, time_dimid], Qdesc_dp(m_index))
    end do
 
    ! CSLAM restart fields
@@ -135,15 +134,15 @@ subroutine init_restart_dynamics(file, dyn_out)
       ncol_fvm_dimid = info%get_hdimid(1)
 
       ierr = PIO_Def_Var(File, 'dp_fvm', pio_double, &
-         (/ncol_fvm_dimid, nlev_dimid, time_dimid/), dp_fvm_desc)
+         [ncol_fvm_dimid, nlev_dimid, time_dimid], dp_fvm_desc)
 
       allocate(c_fvm_desc(num_advected_const), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'c_fvm_desc', &
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
       do m_index = 1, num_advected_const
          call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
-         ierr = PIO_Def_Var(File, trim(const_diag_name)//"_fvm", pio_double, &
-            (/ncol_fvm_dimid, nlev_dimid, time_dimid/), c_fvm_desc(m_index))
+         ierr = PIO_Def_Var(File, trim(const_diag_name)//'_fvm', pio_double, &
+            [ncol_fvm_dimid, nlev_dimid, time_dimid], c_fvm_desc(m_index))
       end do
 
    end if
@@ -204,12 +203,12 @@ subroutine write_restart_dynamics(File, dyn_out)
    tl = timelevel%n0
    call TimeLevel_Qdp(timelevel, qsplit, tlQdp)
 
-   if (iam .lt. par%nprocs) then
+   if (iam < par%nprocs) then
       elem => dyn_out%elem
       fvm => dyn_out%fvm
    else
       allocate (elem(0), fvm(0))
-   endif
+   end if
 
    ! write fields on GLL grid
 
@@ -230,8 +229,8 @@ subroutine write_restart_dynamics(File, dyn_out)
 
       call cam_grid_dimensions(grid_id, grid_dimlens)
       allocate(buf3d(nc*nc,nlev,nelemd))
-      array_lens = (/nc*nc, nlev, nelemd/)
-      file_lens  = (/grid_dimlens(1), nlev/)
+      array_lens = [nc*nc, nlev, nelemd]
+      file_lens  = [grid_dimlens(1), nlev]
       call cam_grid_get_decomp(grid_id, array_lens, file_lens, pio_double, iodesc3d_fvm)
 
       do ie = 1, nelemd
@@ -273,7 +272,7 @@ subroutine write_restart_dynamics(File, dyn_out)
 
    if (iam >= par%nprocs) then
       deallocate(elem, fvm)
-   endif
+   end if
 
 !-------------------------------------------------------------------------------
 contains
@@ -292,11 +291,11 @@ subroutine write_elem()
    !----------------------------------------------------------------------------
 
    ldof => get_restart_decomp(elem, 1)
-   call PIO_InitDecomp(pio_subsystem, pio_double, (/nelem_tot*np*np/), ldof, iodesc2d)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [nelem_tot*np*np], ldof, iodesc2d)
    deallocate(ldof)
 
    ldof => get_restart_decomp(elem, nlev)
-   call PIO_InitDecomp(pio_subsystem, pio_double, (/nelem_tot*np*np,nlev/), ldof, iodesc3d)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [nelem_tot*np*np,nlev], ldof, iodesc3d)
    deallocate(ldof)
 
    allocate(var2d(np,np,nelemd))
@@ -400,8 +399,8 @@ subroutine write_unstruct()
    call cam_grid_dimensions(grid_id, grid_dimlens)
 
    ! create map for distributed write of 2D fields
-   array_lens_2d = (/npsq, nelemd/)
-   file_lens_1d  = (/grid_dimlens(1)/)
+   array_lens_2d = [npsq, nelemd]
+   file_lens_1d  = [grid_dimlens(1)]
    call cam_grid_get_decomp(grid_id, array_lens_2d, file_lens_1d, pio_double, iodesc)
 
    allocate(var2d(npsq,nelemd))
@@ -422,8 +421,8 @@ subroutine write_unstruct()
    deallocate(var2d)
 
    ! create map for distributed write of 3D fields
-   array_lens_3d = (/npsq, nlev, nelemd/)
-   file_lens_2d  = (/grid_dimlens(1), nlev/)
+   array_lens_3d = [npsq, nlev, nelemd]
+   file_lens_2d  = [grid_dimlens(1), nlev]
    call cam_grid_get_decomp(grid_id, array_lens_3d, file_lens_2d, pio_double, iodesc)
 
    allocate(var3d(npsq,nlev,nelemd))

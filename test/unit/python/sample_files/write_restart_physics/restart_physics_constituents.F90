@@ -61,13 +61,13 @@ contains
       call cam_pio_def_dim(file, 'ncol', num_global_phys_cols, dimids(1), existOK=.true.)
       ! Define potentially new dimension 'vertical_layer_dimension'
       call cam_pio_def_dim(file, 'lev', pver, dimids(2), existOK=.true.)
-      call cam_pio_def_var(file, 'theta', pio_double, (/dimids(1), dimids(2)/), theta_desc, existOK=.false.)
+      call cam_pio_def_var(file, 'theta', pio_double, [dimids(1), dimids(2)], theta_desc, existOK=.false.)
       if (errflg /= 0) then
          write(errmsg,*) 'restart_physics_init: error defining variable theta'
          return
       end if
 
-      call cam_pio_def_var(file, 'slp', pio_double, (/dimids(1)/), slp_desc, existOK=.false.)
+      call cam_pio_def_var(file, 'slp', pio_double, [dimids(1)], slp_desc, existOK=.false.)
       if (errflg /= 0) then
          write(errmsg,*) 'restart_physics_init: error defining variable slp'
          return
@@ -108,7 +108,7 @@ contains
       call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, theta, theta_desc)
       ! Handle horizontal-only field
       field_shape(1) = num_global_phys_cols
-      call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), (/field_shape(1)/), slp, slp_desc)
+      call cam_grid_write_dist_array(file, grid_decomp, [dims(1)], [field_shape(1)], slp, slp_desc)
    end subroutine restart_physics_write
 
    subroutine restart_physics_read()
