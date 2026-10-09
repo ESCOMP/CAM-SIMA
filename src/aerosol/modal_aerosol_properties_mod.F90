@@ -3,6 +3,7 @@ module modal_aerosol_properties_mod
   use physconst, only: pi
   use aerosol_properties_mod, only: aerosol_properties, aero_name_len
   use radiative_aerosol, only: rad_aer_get_info, rad_aer_get_mode_props, rad_aer_get_props
+  use cam_abortutils, only: check_allocate, endrun
   implicit none
 
   private
@@ -87,73 +88,53 @@ contains
     real(r8),allocatable :: rhdeliques_arr(:)
     integer :: ierr
 
+    character(len=256) :: errmsg
     character(len=aero_name_len) :: spectype
+    character(len=*), parameter :: subname = 'modal_aerosol_properties'
 
     integer :: npoa, nsoa, nbc
 
     list_idx_loc = 0
     if (present(list_idx)) list_idx_loc = list_idx
 
-    allocate(newobj,stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+    allocate(newobj, stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     call rad_aer_get_info(list_idx_loc, nmodes=nmodes)
 
-    allocate(nspecies(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(alogsig(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate( f1(nmodes),stat=ierr )
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate( f2(nmodes),stat=ierr )
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+    allocate(nspecies(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'nspecies(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(alogsig(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'alogsig(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(f1(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'f1(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(f2(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'f2(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(sigmag(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%exp45logsig_(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%voltonumblo_(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%voltonumbhi_(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+    allocate(sigmag(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'sigmag(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%exp45logsig_(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%exp45logsig_(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%voltonumblo_(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%voltonumblo_(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%voltonumbhi_(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%voltonumbhi_(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
     allocate(dgnum_arr(nmodes),dgnumhi_arr(nmodes),dgnumlo_arr(nmodes), &
-             rhcrystal_arr(nmodes),rhdeliques_arr(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%mode_size_order_(nmodes),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+             rhcrystal_arr(nmodes),rhdeliques_arr(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'dgnum_arr, dgnumhi_arr, dgnumlo_arr, rhcrystal_arr, rhdeliques_arr', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%mode_size_order_(nmodes), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%mode_size_order_(nmodes)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     ncnst_tot = 0
 
@@ -203,6 +184,9 @@ contains
     call newobj%initialize(nmodes,ncnst_tot,nspecies,nspecies,alogsig,f1,f2,ierr,list_idx_loc, &
                            dgnum=dgnum_arr,dgnumhi=dgnumhi_arr,dgnumlo=dgnumlo_arr, &
                            rhcrystal=rhcrystal_arr,rhdeliques=rhdeliques_arr)
+    if( ierr /= 0 ) then
+       call endrun(subname//': newobj%initialize failed')
+    end if
 
     npoa = 0
     nsoa = 0
@@ -226,36 +210,24 @@ contains
     newobj%num_poa_ = npoa
     newobj%num_bc_ = nbc
 
-    allocate(newobj%sulfate_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%dust_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%ssalt_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%ammon_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%nitrate_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%msa_mode_ndxs_(newobj%nbins()),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+    allocate(newobj%sulfate_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%sulfate_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%dust_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%dust_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%ssalt_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%ssalt_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%ammon_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%ammon_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%nitrate_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%nitrate_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%msa_mode_ndxs_(newobj%nbins()), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%msa_mode_ndxs_(nbins)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     newobj%sulfate_mode_ndxs_ = 0
     newobj%dust_mode_ndxs_ = 0
@@ -264,21 +236,15 @@ contains
     newobj%nitrate_mode_ndxs_ = 0
     newobj%msa_mode_ndxs_ = 0
 
-    allocate(newobj%porganic_mode_ndxs_(newobj%nbins(),npoa),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%sorganic_mode_ndxs_(newobj%nbins(),nsoa),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
-    allocate(newobj%bcarbon_mode_ndxs_(newobj%nbins(),nbc),stat=ierr)
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
+    allocate(newobj%porganic_mode_ndxs_(newobj%nbins(),npoa), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%porganic_mode_ndxs_(nbins,npoa)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%sorganic_mode_ndxs_(newobj%nbins(),nsoa), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%sorganic_mode_ndxs_(nbins,nsoa)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate(newobj%bcarbon_mode_ndxs_(newobj%nbins(),nbc), stat=ierr, errmsg=errmsg)
+    call check_allocate(ierr, subname, 'newobj%bcarbon_mode_ndxs_(nbins,nbc)', &
+         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     newobj%porganic_mode_ndxs_ = 0._r8
     newobj%sorganic_mode_ndxs_ = 0._r8
@@ -320,10 +286,6 @@ contains
        end do
     end do
 
-    if( ierr /= 0 ) then
-       nullify(newobj)
-       return
-    end if
     deallocate(nspecies)
     deallocate(alogsig)
     deallocate(sigmag)
@@ -390,10 +352,10 @@ contains
   !------------------------------------------------------------------------------
   ! returns number of transported aerosol constituents
   !------------------------------------------------------------------------------
-  integer function number_transported(self)
+  integer function number_transported(self) result(res)
     class(modal_aerosol_properties), intent(in) :: self
     ! to be implemented later
-    number_transported = -1
+    res = -1
   end function number_transported
 
   !------------------------------------------------------------------------
@@ -467,27 +429,27 @@ contains
   !------------------------------------------------------------------------
   ! returns the physprop ID for a given bin (mode) index
   !------------------------------------------------------------------------
-  integer function physprop_id(self, bin_ndx)
+  integer function physprop_id(self, bin_ndx) result(res)
     use radiative_aerosol, only: rad_aer_mode_physprop_id
 
     class(modal_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx
 
-    physprop_id = rad_aer_mode_physprop_id(self%list_idx_, bin_ndx)
+    res = rad_aer_mode_physprop_id(self%list_idx_, bin_ndx)
 
   end function physprop_id
 
   !------------------------------------------------------------------------------
   ! returns radius^3 (m3) of a given bin number
   !------------------------------------------------------------------------------
-  pure elemental real(r8) function amcube(self, bin_ndx, volconc, numconc)
+  pure elemental real(r8) function amcube(self, bin_ndx, volconc, numconc) result(res)
 
     class(modal_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx  ! bin number
     real(r8), intent(in) :: volconc ! volume conc (m3/m3)
     real(r8), intent(in) :: numconc ! number conc (1/m3)
 
-    amcube = (3._r8*volconc/(4._r8*pi*self%exp45logsig_(bin_ndx)*numconc))
+    res = (3._r8*volconc/(4._r8*pi*self%exp45logsig_(bin_ndx)*numconc))
 
   end function amcube
 
@@ -692,7 +654,7 @@ contains
   !------------------------------------------------------------------------------
   ! returns TRUE if soluble
   !------------------------------------------------------------------------------
-  logical function soluble(self,bin_ndx)
+  logical function soluble(self,bin_ndx) result(res)
     class(modal_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx           ! bin number
 
@@ -700,7 +662,7 @@ contains
 
     call rad_aer_get_info(self%list_idx_, bin_ndx, mode_type=mode_name)
 
-    soluble = trim(mode_name)/='primary_carbon'
+    res = trim(mode_name)/='primary_carbon'
 
   end function soluble
 
@@ -941,7 +903,7 @@ contains
   !------------------------------------------------------------------------------
   ! Returns TRUE if bin is hydrophilic, otherwise FALSE
   !------------------------------------------------------------------------------
-  logical function hydrophilic(self, bin_ndx)
+  logical function hydrophilic(self, bin_ndx) result(res)
     class(modal_aerosol_properties), intent(in) :: self
     integer, intent(in) :: bin_ndx ! bin number
 
@@ -949,23 +911,23 @@ contains
 
     call rad_aer_get_info(self%list_idx_, bin_ndx, mode_type=modetype)
 
-    hydrophilic = (trim(modetype) == 'accum')
+    res = (trim(modetype) == 'accum')
 
   end function hydrophilic
 
   !------------------------------------------------------------------------------
   ! returns TRUE if modal aerosol representation
   !------------------------------------------------------------------------------
-  pure logical function model_is(self, query)
+  pure logical function model_is(self, query) result(res)
     class(modal_aerosol_properties), intent(in) :: self
     character(len=*),               intent(in) :: query
 
     if (trim(query) == 'MAM' .or. trim(query) == 'mam') then
-       model_is = .true.
+       res = .true.
     else if (trim(query) == 'modal') then
-       model_is = .true.
+       res = .true.
     else
-       model_is = .false.
+       res = .false.
     end if
 
   end function model_is
