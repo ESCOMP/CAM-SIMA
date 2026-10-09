@@ -187,7 +187,7 @@ contains
       accum_types(accumulated_file_index)   = 'a'
       allocate(cfiles(max_split_files), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'cfiles',             &
-           file=__FILE__, line=__LINE__-1, errmsg=errmg)
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
 
       do file_idx = 1, size(cfiles)
          cfiles(file_idx) = interpret_filename_spec(this%filename_spec, &

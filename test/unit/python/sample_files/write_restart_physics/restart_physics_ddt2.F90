@@ -134,7 +134,7 @@ contains
       field_shape(2) = size(phys_state%thermo%theta, 2)
       call cam_grid_write_dist_array(file, grid_decomp, [dims(1),dims(2)], field_shape, phys_state%thermo%theta, theta_desc)
       ! Handle horizontal-only field
-      call cam_grid_write_dist_array(file, grid_decomp, [num_global_phys_cols], [field_shape(1)], phys_state%slp, slp_desc)
+      call cam_grid_write_dist_array(file, grid_decomp, [dims(1)], [num_global_phys_cols], phys_state%slp, slp_desc)
       const_props => cam_model_const_properties()
 
 

@@ -163,7 +163,6 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
     # Gather up dimension imports
     dim_use_stmts = [['vert_coord', ['pver']], ['physics_grid', ['columns_on_task']]]
     for key in sorted(dim_use_stmt_dict):
-        dim_use_stmts.append([key, imports])
         dim_use_stmts.append([key, sorted(dim_use_stmt_dict[key])])
     # end for
 
@@ -362,7 +361,7 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
         desc_name = f"{value['diag_name'].lower()}_desc"
         if len(value['dims']) == 1 and 'horizontal_dimension' in value['dims'][0]:
             outfile.comment("Handle horizontal-only field", 2)
-            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, [num_global_phys_cols], [field_shape(1)], {key}, {desc_name})", 2)
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, [dims(1)], [num_global_phys_cols], {key}, {desc_name})", 2)
         elif len(value["dims"]) > 1:
             dimstr = '['
             for index, dim in enumerate(value["dims"]):

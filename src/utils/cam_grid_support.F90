@@ -871,7 +871,7 @@ contains
       ! Local variables
       class(cam_grid_attr_ptr_t), pointer                 :: attrPtr
 
-      num_cam_grid_attrs = 0
+      num_attrs = 0
       attrPtr => cam_grids(gridind)%attributes
       do while (associated(attrPtr))
          num_attrs = num_attrs + 1
@@ -4536,7 +4536,7 @@ contains
          field_lens(1) = 0
          allocate(map(0), stat=ierr, errmsg=errormsg)
          call check_allocate(ierr, subname, 'map', file=__FILE__, &
-                      line=__LINE__-1, errmsg=errormgs)
+                      line=__LINE__-1, errmsg=errormsg)
       end if
       file_lens(1) = this%global_lon_size
       !! XXgoldyXX: Think about caching these decomps

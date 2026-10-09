@@ -193,7 +193,7 @@ module cam_history_support
       consistent = .true.
     else
       ! We have to match definitions
-      constitent = (trim(input) == trim(defined))
+      consistent = (trim(input) == trim(defined))
     end if
   end function check_hist_coord_char
 
@@ -228,7 +228,7 @@ module cam_history_support
       ! We have to match definitions
       consistent = (size(input) == size(defined))
     end if
-    if (constitent .and. associated(defined)) then
+    if (consistent .and. associated(defined)) then
       ! Need to check the values
       do i = 1, size(defined)
         if (defined(i) /= input(i)) then
