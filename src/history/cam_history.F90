@@ -13,6 +13,7 @@ module cam_history
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -30,6 +31,8 @@ module cam_history
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
+   public :: init_restart_history   ! Initialize history fields on restart file, if necessary
+   public :: write_restart_history  ! Write restart files, if necessary
 
    ! Helper functions
    public :: is_history_field_active ! Check if a field is active on any history file
@@ -50,8 +53,10 @@ module cam_history
    type(hist_field_info_t), pointer :: possible_field_list_head
    type(hist_hash_table_t)          :: possible_field_list
    integer                          :: num_possible_fields
+   logical,           allocatable   :: just_written(:)
+   integer                          :: max_num_fields
 
-CONTAINS
+contains
 
    subroutine history_readnl(nlfile)
       !-----------------------------------------------------------------------
@@ -59,13 +64,23 @@ CONTAINS
       ! Purpose: Read in history namelist and set hist_configs
       !
       !-----------------------------------------------------------------------
-      use cam_hist_file, only: hist_read_namelist_config
+      use cam_hist_file,  only: hist_read_namelist_config
+      use cam_abortutils, only: endrun
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
+      integer :: ierr
+      character(len=256) :: alloc_errmsg
+      character(len=512) :: errmsg
 
       ! Read in CAM history configuration
-      call hist_read_namelist_config(nlfile, hist_configs)
+      call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
+      allocate(just_written(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
+      if (ierr /= 0) then
+         write(errmsg,*) 'history_readnl: failed to allocate hist_configs; errmsg = ', alloc_errmsg
+         call endrun(errmsg)
+      end if
+      just_written = .false.
 
    end subroutine history_readnl
 
@@ -112,6 +127,8 @@ CONTAINS
 
       ! peverwhee - TODO: remove when restarts are implemented
       restart = .false.
+
+      just_written = .false.
 
       ! Loop over history volumes
       do file_idx = 1, size(hist_configs)
@@ -204,7 +221,7 @@ CONTAINS
                         write(iulog,*)'history_write_files: New filename same as old file = ', trim(file_names(idx))
                         write(iulog,*)'Is there an error in your filename specifiers?'
                         write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
-                        if ( prev_file_idx /= file_idx )then
+                        if (prev_file_idx /= file_idx) then
                            write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
                         end if
                      end if
@@ -212,13 +229,15 @@ CONTAINS
                   end if
                end do
             end do
-            call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
+            call hist_configs(file_idx)%define_file(logname, host, model_doi_url)
          end if
-         call hist_configs(file_idx)%write_time_dependent_variables(restart)
+         call hist_configs(file_idx)%write_time_dependent_variables()
          if (nstep == 0) then
              ! Reset samples if nstep0 was written
              call hist_configs(file_idx)%reset_samples()
          end if
+         ! Flag that we've just written this volume
+         just_written(file_idx) = .true.
       end do
 
    end subroutine history_write_files
@@ -276,7 +295,7 @@ CONTAINS
          logname = ' '
          call shr_sys_getenv ('LOGNAME', logname, rcode)
          if (rcode == -1) then
-            write(iulog,*) subname//'WARNING: user logname has been truncated to '//stringify((/len(logname)/))//' characters'
+            write(iulog,*) subname//'WARNING: user logname has been truncated to '//stringify([len(logname)])//' characters'
          else if (rcode == 1) then
             write(iulog,*) subname//'WARNING: user logname not found; defaulting to empty string'
             logname = ' '
@@ -284,7 +303,7 @@ CONTAINS
          host = ' '
          call shr_sys_getenv ('HOST', host, rcode)
          if (rcode == -1) then
-            write(iulog,*) subname//'WARNING: machine host name has been truncated to '//stringify((/len(host)/))//' characters'
+            write(iulog,*) subname//'WARNING: machine host name has been truncated to '//stringify([len(host)])//' characters'
          else if (rcode == 1) then
             write(iulog,*) subname//'WARNING: machine host name not found; defaulting to empty string'
             host = ' '
@@ -417,20 +436,21 @@ CONTAINS
       character(len=max_chars), allocatable :: dimnames(:)
       integer                               :: index
       integer                               :: ierr
+      character(len=256) :: errmsg
       character(len=*), parameter           :: subname = 'history_add_field_1d'
 
       if (trim(vdim_name) == trim(horiz_only)) then
-         allocate(dimnames(0), stat=ierr)
+         allocate(dimnames(0), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'dimnames', &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       else
          index = get_hist_coord_index(trim(vdim_name))
          if (index < 1) then
            call endrun('history_add_field_1d: Invalid coordinate, '//trim(vdim_name))
          end if
-         allocate(dimnames(1), stat=ierr)
+         allocate(dimnames(1), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'dimnames', &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
@@ -521,8 +541,8 @@ CONTAINS
             write(iulog,*)'Field name:  ',diagnostic_name
          end if
          write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long ', '(len=', &
-                 stringify((/len_trim(fname_tmp)/)), ' longer than max length of ',          &
-                 stringify((/fieldname_len/)), ')'
+                 stringify([len_trim(fname_tmp)]), ' longer than max length of ',          &
+                 stringify([fieldname_len]), ')'
          call endrun('history_add_field_nd: '//trim(errmsg))
       end if
 
@@ -571,8 +591,8 @@ CONTAINS
       ! config_define_file (cam_hist_file.F90).
       ! TODO: fill-aware accumulation for averaged output.
 
-      allocate(mdim_indices(size(dimnames)), stat=ierr)
-      call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1)
+      allocate(mdim_indices(size(dimnames)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
 
       call lookup_hist_coord_indices(dimnames, mdim_indices)
 
@@ -589,10 +609,10 @@ CONTAINS
       if (size(mdim_indices) > 0) then
          rank = rank + size(mdim_indices)
       end if
-      allocate(field_shape(rank), stat=ierr)
-      call check_allocate(ierr, subname, 'field_shape', file=__FILE__, line=__LINE__-1)
-      allocate(mdim_sizes(size(mdim_indices)), stat=ierr)
-      call check_allocate(ierr, subname, 'mdim_sizes', file=__FILE__, line=__LINE__-1)
+      allocate(field_shape(rank), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'field_shape', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+      allocate(mdim_sizes(size(mdim_indices)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'mdim_sizes', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       field_shape(1:pos) = grid_dims(1:pos)
       if (rank > pos) then
          do idx = 1, size(mdim_indices)
@@ -883,13 +903,68 @@ CONTAINS
 
 !#######################################################################
 
+   subroutine init_restart_history(restart_file)
+      use cam_hist_restart, only: hist_restart_init
+      use pio,              only: file_desc_t
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
+
+      ! Set up history restart variables in the restart file
+      ! We can skip this if we have no output for this run
+      if (max_num_fields > 0) then
+         call hist_restart_init(restart_file, size(hist_configs), max_num_fields)
+      end if
+
+      ! Create restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%define_restart_file(logname, host, model_doi_url)
+      end do
+
+   end subroutine init_restart_history
+
+!#######################################################################
+
+   subroutine write_restart_history(restart_file)
+      use pio,              only: file_desc_t
+      use cam_hist_restart, only: hist_restart_write
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
+
+      if (max_num_fields == 0) then
+         ! Don't do anything if there aren't any history fields
+         return
+      end if
+
+      call hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
+
+      ! Write restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%write_restart_file()
+         call hist_configs(config_idx)%close_restart_file()
+      end do
+
+   end subroutine write_restart_history
+!#######################################################################
+
    recursive function get_entry_by_name(listentry, name) result(entry)
-     type(hist_field_info_t),  pointer :: listentry
+     type(hist_field_info_t), pointer :: listentry
      character(len=*), intent(in) :: name ! variable name
      type(hist_field_info_t), pointer :: entry
 
      if(associated(listentry)) then
-        if(listentry%diag_name() .eq. name) then
+        if(listentry%diag_name() == name) then
            entry => listentry
         else
            entry=>get_entry_by_name(listentry%next, name)
