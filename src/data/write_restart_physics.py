@@ -427,8 +427,9 @@ def write_read_restart_physics(outfile):
 ##############################################################################
 def gather_required_restart_variables(all_req_vars, restart_vars, host_dict):
     """
-    Return dictionaries of the required restart non-constituent variables, and the required
-    restart constituent variables, as well as a list of the local names to grab from the
+    Return dictionaries of the required variables with 'restart="true"' in the registry.
+    One dictionary for non-constituent variables, and another for required
+    constituent variables, as well as a list of the local names to import from the
     physics_types module
     """
 
