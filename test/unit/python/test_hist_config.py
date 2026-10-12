@@ -7,7 +7,7 @@
 #
 # Command line arguments: none
 #
-# Usage: python3 test_registry.py         # run the unit tests
+# Usage: python3 test_hist_config.py         # run the unit tests
 #-----------------------------------------------------------------------
 
 """Test parse_hist_config_file in hist_config.py"""

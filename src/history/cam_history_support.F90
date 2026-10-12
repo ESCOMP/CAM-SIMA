@@ -9,6 +9,7 @@ module cam_history_support
 
    use shr_kind_mod,     only: r8=>shr_kind_r8, shr_kind_cl, shr_kind_cxx
    use cam_grid_support, only: max_hcoordname_len
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -16,13 +17,14 @@ module cam_history_support
    integer, parameter, public :: fieldname_len = 32              ! max chars for field name
    integer, parameter, public :: fieldname_suffix_len =  3       ! length of field name suffix ("&IC")
    ! max_fieldname_len = max chars for field name (including suffix)
-   integer, parameter, public :: max_fieldname_len    = fieldname_len + fieldname_suffix_len
+   integer, parameter, public :: max_fieldname_len = fieldname_len + fieldname_suffix_len
    ! default fill value for history NetCDF fields
    real(r8), parameter, public :: hist_default_fillvalue = 1.e36_r8
-   integer,  parameter, public :: pfiles = 12        ! max number of tapes
+   integer,  parameter, public :: pfiles = 12             ! max number of history configurations
    integer, parameter, public :: max_chars = shr_kind_cl  ! max chars for char variables
    integer, parameter, public :: max_string_len = shr_kind_cxx
-   real(r8), parameter, public :: fillvalue = 1.e36_r8     ! fill value for netcdf fields
+   integer, parameter, public :: max_dimensions = 4
+   real(r8), parameter, public :: fillvalue = 1.e36_r8    ! default fill value for netcdf fields
    ! A special symbol for declaring a field which has no vertical or
    ! non-grid dimensions. It is here (rather than cam_history) so that it
    ! can be checked by add_hist_coord
@@ -99,9 +101,9 @@ module cam_history_support
     integer               :: interp_type = interp_type_bilinear
     integer               :: interp_nlat = 0
     integer               :: interp_nlon = 0
-    real(r8), pointer     :: interp_lat(:) => NULL()
-    real(r8), pointer     :: interp_lon(:) => NULL()
-    real(r8), pointer     :: interp_gweight(:) => NULL()
+    real(r8), pointer     :: interp_lat(:) => null()
+    real(r8), pointer     :: interp_lon(:) => null()
+    real(r8), pointer     :: interp_gweight(:) => null()
   end type interp_info_t
 
   !! Coordinate variables
@@ -117,6 +119,7 @@ module cam_history_support
   public     :: lookup_hist_coord_indices
   public     :: hist_coord_find_levels
   public     :: get_hist_coord_index
+  public     :: get_hist_coord_names
   public     :: parse_multiplier     ! Parse a repeat count and a token from input
 
   interface add_hist_coord
@@ -143,27 +146,43 @@ module cam_history_support
 
   !!---------------------------------------------------------------------------
 
-  CONTAINS
+  contains
 
-  pure integer function get_hist_coord_index(mdimname)
+  pure integer function get_hist_coord_index(mdimname) result(hist_coord_index)
     ! Input variables
     character(len=*), intent(in)            :: mdimname
     ! Local variable
     integer :: i
 
-    get_hist_coord_index = -1
+    hist_coord_index = -1
     do i = 1, registeredmdims
       if(trim(mdimname) == trim(hist_coords(i)%name)) then
-        get_hist_coord_index = i
+        hist_coord_index = i
         exit
       end if
     end do
 
   end function get_hist_coord_index
 
+  function get_hist_coord_names() result(mdimnames)
+     use cam_abortutils, only: endrun
+     character(len=max_hcoordname_len), allocatable :: mdimnames(:)
+     character(len=512) :: errmsg
+     integer :: ierr, idx
+
+     allocate(mdimnames(registeredmdims), stat=ierr, errmsg=errmsg)
+     if (ierr /= 0) then
+        call endrun('get_hist_coord_names: failed to allocate mdimnames; errmsg = '//trim(errmsg))
+     end if
+     do idx = 1, registeredmdims
+        mdimnames(idx) = hist_coords(idx)%name
+     end do
+
+  end function get_hist_coord_names
+
 
   ! Functions to check consistent term definition for hist coords
-  pure logical function check_hist_coord_char(defined, input)
+  pure logical function check_hist_coord_char(defined, input) result(consistent)
 
     ! Input variables
     character(len=*), intent(in)            :: defined
@@ -171,14 +190,14 @@ module cam_history_support
 
     if (len_trim(defined) == 0) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_char = .true.
+      consistent = .true.
     else
       ! We have to match definitions
-      check_hist_coord_char = (trim(input) == trim(defined))
+      consistent = (trim(input) == trim(defined))
     end if
   end function check_hist_coord_char
 
-  pure logical function check_hist_coord_int(defined, input)
+  pure logical function check_hist_coord_int(defined, input) result(consistent)
 
     ! Input variables
     integer, intent(in)            :: defined
@@ -186,14 +205,14 @@ module cam_history_support
 
     if (defined == 0) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_int = .true.
+      consistent = .true.
     else
       ! We have to match definitions
-      check_hist_coord_int = (input == defined)
+      consistent = (input == defined)
     end if
   end function check_hist_coord_int
 
-  pure logical function check_hist_coord_int_1d(defined, input)
+  pure logical function check_hist_coord_int_1d(defined, input) result(consistent)
 
     ! Input variables
     integer,             pointer            :: defined(:)
@@ -204,23 +223,23 @@ module cam_history_support
 
     if (.not. associated(defined)) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_int_1d = .true.
+      consistent = .true.
     else
       ! We have to match definitions
-      check_hist_coord_int_1d = (size(input) == size(defined))
+      consistent = (size(input) == size(defined))
     end if
-    if (check_hist_coord_int_1d .and. associated(defined)) then
+    if (consistent .and. associated(defined)) then
       ! Need to check the values
       do i = 1, size(defined)
         if (defined(i) /= input(i)) then
-          check_hist_coord_int_1d = .false.
+          consistent = .false.
           exit
         end if
       end do
     end if
   end function check_hist_coord_int_1d
 
-  pure logical function check_hist_coord_r8(defined, input)
+  pure logical function check_hist_coord_r8(defined, input) result(consistent)
 
     ! Input variables
     real(r8), intent(in)            :: defined
@@ -228,14 +247,14 @@ module cam_history_support
 
     if (defined == fillvalue) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_r8 = .true.
+      consistent = .true.
     else
       ! We have to match definitions (within a tolerance)
-      check_hist_coord_r8 = (abs(input - defined) <= error_tolerance)
+      consistent = (abs(input - defined) <= error_tolerance)
     end if
   end function check_hist_coord_r8
 
-  pure logical function check_hist_coord_r8_1d(defined, input)
+  pure logical function check_hist_coord_r8_1d(defined, input) result(consistent)
 
     ! Input variables
     real(r8),             pointer            :: defined(:)
@@ -246,23 +265,23 @@ module cam_history_support
 
     if (.not. associated(defined)) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_r8_1d = .true.
+      consistent = .true.
     else
       ! We have to match definitions
-      check_hist_coord_r8_1d = (size(input) == size(defined))
+      consistent = (size(input) == size(defined))
     end if
-    if (check_hist_coord_r8_1d .and. associated(defined)) then
+    if (consistent .and. associated(defined)) then
       ! Need to check the values (within a tolerance)
       do i = 1, size(defined)
         if (abs(defined(i) - input(i)) > error_tolerance) then
-          check_hist_coord_r8_1d = .false.
+          consistent = .false.
           exit
         end if
       end do
     end if
   end function check_hist_coord_r8_1d
 
-  pure logical function check_hist_coord_r8_2d(defined, input)
+  pure logical function check_hist_coord_r8_2d(defined, input) result(consistent)
 
     ! Input variables
     real(r8),             pointer            :: defined(:,:)
@@ -273,26 +292,26 @@ module cam_history_support
 
     if (.not. associated(defined)) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_r8_2d = .true.
+      consistent = .true.
     else
       ! We have to match definitions
-      check_hist_coord_r8_2d = ((size(input, 1) == size(defined, 1)) .and.    &
+      consistent = ((size(input, 1) == size(defined, 1)) .and.    &
                                 (size(input, 2) == size(defined, 2)))
     end if
-    if (check_hist_coord_r8_2d .and. associated(defined)) then
+    if (consistent .and. associated(defined)) then
       ! Need to check the values (within a tolerance)
       do j = 1, size(defined, 2)
-        do i = 1, size(defined, 1)
+        inner_loop:do i = 1, size(defined, 1)
           if (abs(defined(i, j) - input(i, j)) > error_tolerance) then
-            check_hist_coord_r8_2d = .false.
-            exit
+            consistent = .false.
+            exit inner_loop
           end if
-        end do
+        end do inner_loop
       end do
     end if
   end function check_hist_coord_r8_2d
 
-  logical function check_hist_coord_ft(defined, input)
+  logical function check_hist_coord_ft(defined, input) result(consistent)
 
     ! Input variables
     type(formula_terms_t), intent(in)           :: defined
@@ -301,11 +320,11 @@ module cam_history_support
     ! We will assume that if formula_terms has been defined, a_name has a value
     if (len_trim(defined%a_name) == 0) then
       ! In this case, we assume the current value is undefined so any input OK
-      check_hist_coord_ft = .true.
+      consistent = .true.
     else
       ! We have to match definitions
       ! Need to check the values
-      check_hist_coord_ft =                                                   &
+      consistent =                                                            &
            check_hist_coord(defined%a_name,       input%a_name)         .and. &
            check_hist_coord(defined%a_long_name,  input%a_long_name)    .and. &
            check_hist_coord(defined%a_values,     input%a_values)       .and. &
@@ -325,7 +344,7 @@ module cam_history_support
   !                   calls endrun if <name> is registered with incompatible
   !                   values
   integer function check_hist_coord_all(name, vlen, long_name, units, bounds, &
-       i_values, r_values, bounds_name, positive, standard_name, formula_terms)
+       i_values, r_values, bounds_name, positive, standard_name, formula_terms) result(check_result)
     use cam_abortutils,   only: endrun
     use string_utils,     only: stringify
 
@@ -349,10 +368,10 @@ module cam_history_support
     i = get_hist_coord_index(trim(name))
     ! If i > 0, this mdim has already been registered
     if (i > 0) then
-      check_hist_coord_all = i
+      check_result = i
       if (.not. check_hist_coord(hist_coords(i)%dimsize, vlen)) then
         write(errormsg, *) 'ERROR: Attempt to register dimension, '//trim(name)//', with incompatible size ( ', &
-           stringify((/hist_coords(i)%dimsize/)), ' vs vlen= '//stringify((/vlen/))//' )'
+           stringify([hist_coords(i)%dimsize]), ' vs vlen= '//stringify([vlen])//' )'
         call endrun(errormsg, file=__FILE__, line=__LINE__)
       end if
       if (.not. check_hist_coord(hist_coords(i)%long_name, long_name)) then
@@ -412,7 +431,7 @@ module cam_history_support
         call endrun(errormsg, file=__FILE__, line=__LINE__)
       end if
     else
-      check_hist_coord_all = 0
+      check_result = 0
     end if
   end function check_hist_coord_all
 
@@ -784,7 +803,7 @@ module cam_history_support
       end if
       if (defvar) then
         call cam_pio_def_var(File, trim(hist_coords(mdimind)%name), dtype,    &
-             (/dimid/), vardesc, existOK=.false.)
+             [dimid], vardesc, existOK=.false.)
         ! long_name
         if(len_trim(hist_coords(mdimind)%long_name) > 0) then
            ierr=pio_put_att(File, vardesc, 'long_name',                       &
@@ -855,7 +874,7 @@ module cam_history_support
           call endrun(errormsg)
         end if
         call cam_pio_def_var(File, trim(hist_coords(mdimind)%bounds_name),    &
-             pio_double, (/boundsdim,dimid/), vardesc, existOK=.false.)
+             pio_double, [boundsdim,dimid], vardesc, existOK=.false.)
       end if
 
       ! See if we have formula_terms variables to define
@@ -869,7 +888,7 @@ module cam_history_support
           call endrun(errormsg)
         end if
         call cam_pio_def_var(File, trim(hist_coords(mdimind)%formula_terms%a_name), &
-             pio_double, (/dimid/), vardesc, existOK=.false.)
+             pio_double, [dimid], vardesc, existOK=.false.)
         ierr = pio_put_att(File, vardesc, 'long_name', trim(hist_coords(mdimind)%formula_terms%a_long_name))
         write(errormsg,*) subname, ': Error writing "long_name" attr for "a" formula_term for variable "', &
                 trim(hist_coords(mdimind)%name), '" (a_long_name="', &
@@ -886,7 +905,7 @@ module cam_history_support
           call endrun(errormsg)
         end if
         call cam_pio_def_var(File, trim(hist_coords(mdimind)%formula_terms%b_name), &
-             pio_double, (/dimid/), vardesc, existOK=.false.)
+             pio_double, [dimid], vardesc, existOK=.false.)
         ierr = pio_put_att(File, vardesc, 'long_name', trim(hist_coords(mdimind)%formula_terms%b_long_name))
         write(errormsg,*) subname, ': Error writing "long_name" attr for "b" formula_term for variable "', &
                 trim(hist_coords(mdimind)%name), '" (b_long_name="', &
@@ -955,8 +974,8 @@ module cam_history_support
     character(len=*), parameter      :: subname = 'write_hist_coord_attrs'
 
     if (present(mdimids)) then
-      allocate(mdimids(registeredmdims), stat=ierr)
-      call check_allocate(ierr, subname, 'mdimids', file=__FILE__, line=__LINE__-1)
+      allocate(mdimids(registeredmdims), stat=ierr, errmsg=errormsg)
+      call check_allocate(ierr, subname, 'mdimids', file=__FILE__, line=__LINE__-1, errmsg=errormsg)
     end if
 
     ! We will handle errors for this routine
@@ -1094,7 +1113,7 @@ module cam_history_support
       ierr = pio_put_var(File, vardesc, hist_coords(mdimind)%formula_terms%p0_value)
       write(errormsg,*) subname, ': Error writing "p0" formula_terms value for variable "',   &
               trim(hist_coords(mdimind)%name), '" (formula_terms%p0_value="',  &
-              stringify((/hist_coords(mdimind)%formula_terms%p0_value/)), '")'
+              stringify([hist_coords(mdimind)%formula_terms%p0_value]), '")'
       call cam_pio_handle_error(ierr, errormsg)
     end if
 
@@ -1118,6 +1137,7 @@ module cam_history_support
     integer                          :: ierr
     logical                          :: writemdims     ! Define an mdim variable
     type(var_desc_t)                 :: vardesc        ! PIO variable descriptor
+    character(len=256) :: errmsg
     character(len=max_hcoordname_len), allocatable :: mdimnames(:)
     character(len=*),    parameter                 :: subname = 'write_hist_coord_vars'
 
@@ -1131,8 +1151,8 @@ module cam_history_support
     end if
 
     if (writemdims) then
-      allocate(mdimnames(registeredmdims), stat=ierr)
-      call check_allocate(ierr, subname, 'mdimnames', file=__FILE__, line=__LINE__-1)
+      allocate(mdimnames(registeredmdims), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'mdimnames', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
     end if
 
     ! Write out the variable values for each mdim
@@ -1212,7 +1232,7 @@ module cam_history_support
     character(len=*), optional, intent(in) :: dimnames(:)
 
     ! Local variables
-    integer i, index, dimcnt
+    integer :: i, index, dimcnt
 
     levels = -1  ! Error return value
 
@@ -1290,15 +1310,15 @@ module cam_history_support
         multiplier = 1
         token = trim(input)
      else
-        write(fmt_str, '(a,i0,a)') "(i", mult_ind - 1, ")"
+        write(fmt_str, '(a,i0,a)') '(i', mult_ind - 1, ')'
         read(input, fmt_str, iostat=stat, iomsg=ioerrmsg) multiplier
         if (stat == 0) then
            token = trim(input(mult_ind+1:))
         else
            if (present(errmsg)) then
-              write(errmsg, *) "Invalid multiplier, '",                      &
-                   input(1:mult_ind-1), "' in '", trim(input), "'. ",        &
-                   "Error message from read(): '", trim(ioerrmsg), "'"
+              write(errmsg, *) 'Invalid multiplier, "',                      &
+                   input(1:mult_ind-1), '" in "', trim(input), '". ',        &
+                   'Error message from read(): "', trim(ioerrmsg), '"'
            end if
            multiplier = -1
            token = ''
@@ -1316,20 +1336,20 @@ module cam_history_support
         end do
         if (.not. match) then
            if (present(errmsg)) then
-              write(errmsg, *) "Error, token, '", trim(token), "' not in (/"
+              write(errmsg, *) 'Error, token, "', trim(token), '" not in ['
               lind = len_trim(errmsg) + 1
               do mult_ind = 1, alen
                  if (mult_ind == alen) then
-                    fmt_str = "' "
+                    fmt_str = '" '
                  else
-                    fmt_str = "', "
+                    fmt_str = '", '
                  end if
-                 write(errmsg(lind:), *) "'", trim(allowed_set(mult_ind)),   &
+                 write(errmsg(lind:), *) '"', trim(allowed_set(mult_ind)),   &
                       trim(fmt_str)
                  lind = lind + len_trim(allowed_set(mult_ind)) +             &
                       len_trim(fmt_str) + 2
               end do
-              write(errmsg(lind:), *) "/)"
+              write(errmsg(lind:), *) ']'
            end if
            multiplier = -1
            token = ''

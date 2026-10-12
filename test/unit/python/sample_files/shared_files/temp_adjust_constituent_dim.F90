@@ -1,28 +1,32 @@
 !simple demonstration parameterization
 !
 
-MODULE temp_adjust
+module temp_adjust
 
-  USE ccpp_kinds, ONLY: kind_phys
+  use ccpp_kinds, only: kind_phys
 
-  IMPLICIT NONE
-  PRIVATE
+  implicit none
+  private
 
-  PUBLIC :: temp_adjust_init
-  PUBLIC :: temp_adjust_run
-  PUBLIC :: temp_adjust_finalize
+  public :: temp_adjust_init
+  public :: temp_adjust_run
+  public :: temp_adjust_finalize
 
-CONTAINS
+contains
 
 !> \section arg_table_temp_adjust_run  Argument Table
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
-  SUBROUTINE temp_adjust_run(nbox, lev, timestep, errmsg, errflg)
-!----------------------------------------------------------------
-   IMPLICIT NONE
+  subroutine temp_adjust_run(nbox, lev, temp_layer,    &
+    slp, cool_cat_for_each_const, cool_cat_default_for_each_const, &
+    timestep, errmsg, errflg)
 !----------------------------------------------------------------
 
    integer,            intent(in)    :: nbox, lev
+   real(kind_phys),    intent(inout) :: temp_layer(:, :)
+   real(kind_phys),    intent(in)    :: slp(:)
+   real(kind_phys),    intent(inout) :: cool_cat_for_each_const(:,:)
+   real(kind_phys),    intent(in)    :: cool_cat_default_for_each_const(:,:)
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
    integer,            intent(out)   :: errflg
@@ -34,20 +38,21 @@ CONTAINS
     errmsg = ''
     errflg = 0
 
-    box_index = 2._kind_phys*timestep*lev
-
-!    do box_index = 1, nbox
-!       do lev_index = 1, lev
-!          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-!               + 1.0_kind_phys
+    do box_index = 1, nbox
+       do lev_index = 1, lev
+          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
+               + 1.0_kind_phys
 
           !Add a made-up term which uses slp:
-!          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
-!               + 0._kind_phys*slp(box_index)
-!       end do
-!    end do
+          temp_layer(box_index, lev_index) = temp_layer(box_index, lev_index) &
+               + 0._kind_phys*slp(box_index)
+       end do
+    end do
 
-  END SUBROUTINE temp_adjust_run
+    ! every constituent should have a cool cat
+    cool_cat_for_each_const(:,:) = 0._kind_phys
+
+  end subroutine temp_adjust_run
 
 !> \section arg_table_temp_adjust_init  Argument Table
 !! \htmlinclude arg_table_temp_adjust_init.html
@@ -79,4 +84,4 @@ CONTAINS
 
   end subroutine temp_adjust_finalize
 
-END MODULE temp_adjust
+end module temp_adjust
