@@ -3,6 +3,9 @@
 ncdata='SNAPSHOT_BEFORE_PLACEHOLDER'
 ncdata_check='SNAPSHOT_AFTER_PLACEHOLDER'
 debug_output=0
+! Fail the test on snapshot differences above roundoff, as the other snapshot tests do
+ncdata_check_err = .true.
+min_difference = 2e-15
 pver=58
 ! ZM namelist as in the CAM7 snapshot run
 zmconv_c0_lnd=0.00549D0
