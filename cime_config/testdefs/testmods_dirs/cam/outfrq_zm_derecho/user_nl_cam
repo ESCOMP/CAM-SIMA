@@ -1,12 +1,7 @@
 ! Snapshot test for Zhang-McFarlane deep convection
-! (CAM bracket: before and after convect_deep_tend; cam7 physics, 58 levels, MCSP off).
-! The suite reproduces the limits CAM's physics_update applies after the deep convection update
-! (clamp_number_concentrations, cloud_condensate_floor), so the snapshot is taken from stock CAM.
-! The earlier c20250116 tapes required removing the number clamp from CAM's physics_update.
-ncdata='SNAPSHOT_BEFORE_PLACEHOLDER'
-ncdata_check='SNAPSHOT_AFTER_PLACEHOLDER'
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_206_ne3pg3_fhistc_ltso_zm_snapshot_derecho_gnu_before_c20261002.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_206_ne3pg3_fhistc_ltso_zm_snapshot_derecho_gnu_after_c20261002.nc'
 debug_output=0
-! Fail the test on snapshot differences above roundoff, as the other snapshot tests do
 ncdata_check_err = .true.
 min_difference = 2e-15
 pver=58

@@ -54,7 +54,8 @@
   </test>
   <test compset="FPHYStest" grid="ne3pg3_ne3pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_mcsp_derecho">
     <machines>
-      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+      <!-- the MCSP test is ZM+MCSP, so it also provides Intel coverage for ZM. -->
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
