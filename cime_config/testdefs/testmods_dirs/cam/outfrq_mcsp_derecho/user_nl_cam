@@ -1,9 +1,8 @@
 ! Snapshot test for Zhang-McFarlane deep convection followed by MCSP
 ! (CAM bracket: before convect_deep_tend, after mcsp_cam_tend; cam7 physics, 58 levels).
-ncdata='SNAPSHOT_BEFORE_PLACEHOLDER'
-ncdata_check='SNAPSHOT_AFTER_PLACEHOLDER'
+ncdata='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_206dev_ne3pg3_fhistc_ltso_zm_mcsp_snapshot_derecho_intel_before_c20261011.nc'
+ncdata_check='/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam6_4_206dev_ne3pg3_fhistc_ltso_zm_mcsp_snapshot_derecho_intel_after_c20261011.nc'
 debug_output=0
-! Fail the test on snapshot differences above roundoff, as the other snapshot tests do
 ncdata_check_err = .true.
 min_difference = 2e-15
 pver=58
