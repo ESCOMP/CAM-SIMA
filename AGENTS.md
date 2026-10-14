@@ -31,7 +31,7 @@ The **CAM-SIMA host model**:
 The **atmospheric_physics** portable CCPP physics:
 - Located at `ESCOMP/atmospheric_physics` and is a submodule that would be checked out under `CAM-SIMA/src/physics/ncar_ccpp`. The default branch is `main`.
 - Contains CCPP-compliant, "portable" (i.e., free of host model code) physics parameterizations.
-- May `use` `ccpp_kinds`, `ccpp_constituent_prop_mod`, and intra-package dependencies only.
+- May `use` `ccpp_kinds`, `ccpp_constituent_prop_mod`, modules under the `phys_utils` directory, and intra-package dependencies only.
 - **Exception:** `schemes/sima_diagnostics/` is a non-portable directory centralizing CAM-SIMA-specific history output. Code outside `sima_diagnostics/` that calls `cam_history` routines is a bug.
 - If a scheme under `atmospheric_physics` depends on a CAM-SIMA host side quantity, it receives it as a subroutine argument threaded through via standard names, not via a `use` statement to a CAM module.
 - Is intended to be portable to any CCPP-enabled host model.
