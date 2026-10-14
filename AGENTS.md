@@ -25,7 +25,7 @@ CAM-SIMA and atmospheric_physics **requires** disclosure of AI-assisted contribu
 The **CAM-SIMA host model**:
 - Located at `ESCOMP/CAM-SIMA`. The default branch is the `development` branch. The `main` branch is empty and only contains a README to prevent users from easily inadvertently checking out unsupported development code.
 - Provides infrastructure, coupling, dynamical cores, and I/O.
-- Interfaces with CIME, PIO, MPI, CESM_share (`shr_*`) and provides CAM-specific utilities like `cam_abortutils`, `cam_history`, etc.
+- Interfaces with CIME, ESMF, CMEPS/NUOPC, PIO, MPI, CESM_share (`shr_*`) and provides CAM-specific utilities like `cam_abortutils`, `cam_history`, etc.
 - Also provides CCPP metadata information via the Registry (`src/data/registry.xml`) and host-side `.meta` files.
 
 The **atmospheric_physics** portable CCPP physics:
