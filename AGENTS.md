@@ -44,7 +44,7 @@ The **atmospheric_physics** portable CCPP physics:
 | Real kind | `r8` from `shr_kind_mod` | `kind_phys` from `ccpp_kinds` |
 | Error handling | `call endrun(msg)` | Set `errmsg`/`errflg` (or `errcode`) and return |
 | Abort utility | `cam_abortutils::endrun` | Never: return error to host |
-| Constituent lookup | `cam_constituents::const_get_index` | `ccpp_const_get_idx(const_props, ...)` |
+| Constituent lookup | `cam_constituents::const_get_index` | `ccpp_scheme_utils::ccpp_constituent_index` |
 | Physical constants | `physconst` module | Passed as arguments via CCPP standard names |
 | History output | `cam_history::history_add_field` / `history_out_field` | Only in dedicated `schemes/sima_diagnostics/*` schemes |
 | Dimensions in dummy args | `(pcols, pver)` acceptable in host code | Assumed-shape `(:,:)` only |
