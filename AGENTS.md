@@ -94,7 +94,7 @@ CAM-SIMA compiles every `.F90` file in every directory listed in a generated `Fi
 
 ## Auto-generated code by the CAM-SIMA host model or CCPP framework
 
-These files live under `$CASE/bld/atm/obj/` and are regenerated every build and should not be edited directly, and may not be present in a development copy:
+These files live in the location specified by the `EXEROOT` CIME variable, which can be found in the relevant case directory, and are regenerated every build and should not be edited directly.  They may also not be present in a development copy:
 
 | Generated file | Generator | Modify instead |
 |-|-|-|
