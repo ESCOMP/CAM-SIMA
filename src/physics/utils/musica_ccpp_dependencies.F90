@@ -54,7 +54,7 @@ module musica_ccpp_dependencies
 contains
 !==============================================================================
 
-  function species_t_constructor(name, initial_mixing_ratio) result( this )
+  function species_t_constructor(name, initial_mixing_ratio) result(this)
 
     !-----------------------------------------------------------------------
     !
@@ -81,13 +81,13 @@ contains
     !-----------------------------------------------------------------------
 
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-    use ccpp_const_utils,          only: ccpp_const_get_idx
+    use ccpp_scheme_utils,         only: ccpp_constituent_index
     use cam_logfile,               only: iulog
     use spmd_utils,                only: primary_process => masterproc
 
-    type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
-    character(len=512),            intent(out) :: errmsg
-    integer,                       intent(out) :: errcode
+    type(ccpp_constituent_prop_ptr_t), pointer, intent(in) :: constituents_properties(:)
+    character(len=512),                         intent(out) :: errmsg
+    integer,                                    intent(out) :: errcode
 
     ! local variables
     integer, parameter           :: num_tuvx_constituents = 4
@@ -97,7 +97,7 @@ contains
 
     if (.not. associated(constituents_properties)) then
       errcode = 1
-      errmsg = "[MUSICA Error] The pointer to the constituents properties object is not associated."
+      errmsg = '[MUSICA Error] The pointer to the constituents properties object is not associated.'
       return
     end if
 
@@ -105,14 +105,14 @@ contains
     if (errcode /= 0) return
 
     tuvx_species(1) = species_t(&
-        "cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water", 0.0000060_kind_phys)
-    tuvx_species(2) = species_t("air", 1.0_kind_phys)
-    tuvx_species(3) = species_t("O2", 0.21_kind_phys)
-    tuvx_species(4) = species_t("O3", 4.0e-6_kind_phys)
-    
+        'cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', 0.0000060_kind_phys)
+    tuvx_species(2) = species_t('air', 1.0_kind_phys)
+    tuvx_species(3) = species_t('O2', 0.21_kind_phys)
+    tuvx_species(4) = species_t('O3', 4.0e-6_kind_phys)
+
     do i_species = 1, num_tuvx_constituents
-      call ccpp_const_get_idx(constituents_properties, trim(tuvx_species(i_species)%name), &
-                              tuvx_species(i_species)%constituent_index, errmsg, errcode)
+      call ccpp_constituent_index(trim(tuvx_species(i_species)%name), &
+                                  tuvx_species(i_species)%constituent_index, errcode, errmsg)
       if (errcode /= 0) return
     end do
 
@@ -123,7 +123,7 @@ contains
     use cam_abortutils,            only: endrun
     use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
     use musica_ccpp_species,       only: micm_species_set
-  
+
     !-----------------------------------------------------------------------
     !
     ! Set initial concentrations for MUSICA species.
@@ -138,12 +138,12 @@ contains
     character(len=512) :: errmsg
     integer            :: errcode
     real(kind_phys)    :: default_value
-    
+
     ! Don't do anything if MUSICA suite is not being used
     if (.not. is_musica_suite) return
 
     if (.not. allocated(tuvx_species)) then
-      errmsg = "[MUSICA Error] MUSICA species are not initialized."
+      errmsg = '[MUSICA Error] MUSICA species are not initialized.'
       call endrun(errmsg, file=__FILE__, line=__LINE__)
     end if
 
@@ -179,10 +179,10 @@ contains
     !
     !-----------------------------------------------------------------------
 
-    integer,                        intent(in) :: horizontal_dimension
-    integer,                        intent(in) :: vertical_layer_dimension
-    type(ccpp_constituent_prop_ptr_t), pointer :: constituents_properties(:)
-    character(len=*),               intent(in) :: phys_suite_name            ! name of the physics suite being run
+    integer,                                    intent(in) :: horizontal_dimension
+    integer,                                    intent(in) :: vertical_layer_dimension
+    type(ccpp_constituent_prop_ptr_t), pointer, intent(in) :: constituents_properties(:)
+    character(len=*),                           intent(in) :: phys_suite_name ! name of the physics suite being run
 
     ! local variables
     character(len=*), parameter :: subroutine_name = &
@@ -191,7 +191,7 @@ contains
     integer                     :: errcode
 
     ! Check if a MUSICA configuration is being used.  If not then just exit.
-    if (trim(phys_suite_name) /= "musica") return
+    if (trim(phys_suite_name) /= 'musica') return
     is_musica_suite = .true.
 
     if (primary_process) then
@@ -225,7 +225,7 @@ contains
     surface_albedo(:) = 0.1_kind_phys
     blackbody_temperature_at_surface(:) = 292.3_kind_phys
     extraterrestrial_radiation_flux(:) = 1.0e14_kind_phys
-    photolysis_wavelength_grid_interfaces = (/ &
+    photolysis_wavelength_grid_interfaces = [ &
       120.0e-9_kind_phys, &
       121.4e-9_kind_phys, &
       121.9e-9_kind_phys, &
@@ -329,7 +329,7 @@ contains
       650.0e-9_kind_phys, &
       700.0e-9_kind_phys, &
       750.0e-9_kind_phys &
-    /)
+    ]
 
   end subroutine musica_ccpp_dependencies_init
 
