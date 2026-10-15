@@ -170,6 +170,7 @@ module cam_hist_file
       procedure, private :: define_header_info => config_define_header_info
       procedure, private :: define_instantaneous_header_info => config_define_instantaneous_header_info
       procedure, private :: define_additional_header_info => config_define_additional_header_info
+      procedure, private :: field_dimids => config_field_dimids
       procedure, private :: define_fields => config_define_fields
       procedure, private :: define_restart_fields => config_define_restart_fields
       procedure, private :: write_invariant_header => config_write_invariant_header
@@ -1392,10 +1393,7 @@ CONTAINS
       integer :: nbdate             ! base date in yyyymmdd format
       integer :: nsbase = 0         ! seconds component of base time
       integer :: ndbase = 0         ! days component of base time
-      integer :: num_hdims
-      integer, allocatable :: fdims(:)
       integer :: num_patches
-      integer, allocatable :: mdims(:)
 
       logical                  :: is_satfile
       logical                  :: is_initfile
@@ -1406,7 +1404,6 @@ CONTAINS
       integer :: bnddim             ! bounds dimension id
       integer :: chardim            ! character dimension id
 
-      integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,        allocatable :: mdimids(:)
@@ -1453,9 +1450,8 @@ CONTAINS
 
       this%files_open = .true.
 
-      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, this%file_varids)
+      call this%set_up_dimensions(num_patches, restart, header_info, this%file_varids)
 
-      allocate(fdims(size(this%field_list)))
       do split_file_index = 1, max_split_files
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
@@ -1477,7 +1473,7 @@ CONTAINS
 
          ! Create variables and attributes for field list
          call this%define_fields(this%hist_files(split_file_index), split_file_index, split_file, restart, mdimids, &
-                   dimindex, timdim, num_patches, header_info, num_hdims, fdims, this%file_varids)
+                   timdim, num_patches, header_info, this%file_varids)
 
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
@@ -1501,10 +1497,6 @@ CONTAINS
             call header_info(idx)%deallocate()
          end do
          deallocate(header_info)
-      end if
-
-      if (allocated(dimindex)) then
-         deallocate(dimindex)
       end if
 
    end subroutine config_define_file
@@ -1533,12 +1525,9 @@ CONTAINS
       integer :: ndbase = 0
       integer :: nsbase = 0
       integer :: num_patches
-      integer :: num_hdims
-      integer, allocatable :: fdims(:)
       integer :: timdim, bnddim, chardim
       logical :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
-      integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,        allocatable :: mdimids(:)
@@ -1569,7 +1558,7 @@ CONTAINS
       call cam_pio_createfile(this%restart_file, this%restart_file_name, amode)
 
       ! Set up data structures for dimension handling
-      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, this%restart_file_varids)
+      call this%set_up_dimensions(num_patches, restart, header_info, this%restart_file_varids)
 
       ! Begin header definition
       !-- Define the file dimensions
@@ -1583,12 +1572,11 @@ CONTAINS
       ! End header definition
 
       ! Create variables and attributes for field list
-      allocate(fdims(size(this%field_list)))
       call this%define_fields(this%restart_file, 1, split_file, restart, mdimids, &
-                dimindex, timdim, num_patches, header_info, num_hdims, fdims, this%restart_file_varids)
-      
+                timdim, num_patches, header_info, this%restart_file_varids)
+
       ! Define additional restart fields
-      call this%define_restart_fields(num_patches, dimindex, num_hdims, fdims)
+      call this%define_restart_fields(num_patches, header_info, mdimids)
 
       deallocate(mdimids)
       ierr = pio_enddef(this%restart_file)
@@ -1615,7 +1603,7 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_set_up_dimensions(this, num_patches, restart, header_info, dimindex, file_varids)
+   subroutine config_set_up_dimensions(this, num_patches, restart, header_info, file_varids)
       use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_attr
       use cam_abortutils,   only: check_allocate
       use pio,              only: pio_file_is_open
@@ -1624,12 +1612,10 @@ CONTAINS
       integer,                                    intent(in) :: num_patches
       logical,                                    intent(in) :: restart
       type(cam_grid_header_info_t), allocatable, intent(out) :: header_info(:)
-      integer,                      allocatable, intent(out) :: dimindex(:)
       type(var_desc_t),             allocatable, intent(out) :: file_varids(:,:)
       ! Local variables
       integer :: ierr
-      integer :: grid_index, field_index, split_file_index
-      integer :: max_hdims, max_mdims
+      integer :: grid_index, split_file_index
       character(len=512) :: errmsg
       character(len=*), parameter :: subname = 'config_set_up_dimensions: '
 
@@ -1637,7 +1623,6 @@ CONTAINS
       call check_allocate(ierr, subname, 'header_info',             &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
 
-      max_hdims = 0
       do grid_index = 1, size(this%grids)
          if (restart) then
             if (pio_file_is_open(this%restart_file)) then
@@ -1650,20 +1635,10 @@ CONTAINS
                   call cam_grid_write_attr(this%hist_files(split_file_index), &
                      this%grids(grid_index), header_info(grid_index),         &
                      file_index=split_file_index)
-                  max_hdims = max(max_hdims, header_info(grid_index)%num_hdims())
                end if
             end do
          end if
       end do
-      ! Determine the maximum number of dimensions
-      max_mdims = 0
-      do field_index = 1, size(this%field_list)
-         max_mdims = max(max_mdims, size(this%field_list(field_index)%dimensions()))
-      end do
-      ! Allocate dimindex to the maximum possible dimensions (plus 1 for time)
-      allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1, &
-              errmsg=errmsg)
 
       ! Allocate the varid array
       if (.not. allocated(file_varids)) then
@@ -1901,8 +1876,62 @@ CONTAINS
 
    ! ========================================================================
 
+   function config_field_dimids(this, field_index, header_info, mdimids, timdim, &
+                   include_time, num_hdims) result(dimids)
+      ! Return the following dimension IDs for the field at <field_index:
+      !    1. horizontal grid dims
+      !    2. field (mdim) dims
+      !    3. time (optional, not included for restarts)
+      use cam_abortutils,   only: endrun
+      use cam_grid_support, only: cam_grid_header_info_t
+      ! Dummy arguments
+      class(hist_file_t),                        intent(in)  :: this
+      integer,                                   intent(in)  :: field_index
+      type(cam_grid_header_info_t), allocatable, intent(in)  :: header_info(:)
+      integer,                                   intent(in)  :: mdimids(:)
+      integer,                                   intent(in)  :: timdim
+      logical,                                   intent(in)  :: include_time
+      integer, optional,                         intent(out) :: num_hdims
+      integer, allocatable :: dimids(:)
+      ! Local variables
+      integer, allocatable :: mdims(:)
+      integer :: grd, idx, nhdims
+      character(len=512) :: errmsg
+
+      !  Find appropriate grid in header_info
+      if (.not. allocated(header_info)) then
+         ! Safety check
+         call endrun('config_field_dimids: header_info not allocated', file=__FILE__, line=__LINE__)
+      end if
+      grd = -1
+      do idx = 1, size(header_info)
+         if (header_info(idx)%get_gridid() == this%field_list(field_index)%decomp()) then
+            grd = idx
+            exit
+         end if
+      end do
+      if (grd < 0) then
+         write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
+            trim(this%field_list(field_index)%diag_name())
+         call endrun('config_field_dimids: '//errmsg, file=__FILE__, line=__LINE__)
+      end if
+
+      nhdims = header_info(grd)%num_hdims()
+      mdims = this%field_list(field_index)%dimensions()
+      dimids = [(header_info(grd)%get_hdimid(idx), idx = 1, nhdims), mdimids(mdims)]
+      if (include_time) then
+         dimids = [dimids, timdim]
+      end if
+      if (present(num_hdims)) then
+         num_hdims = nhdims
+      end if
+
+   end function config_field_dimids
+
+   ! ========================================================================
+
    subroutine config_define_fields(this, hist_file, file_index, split_file, restart, mdimids, &
-                   dimindex, timdim, num_patches, header_info, num_hdims, fdims, file_varids)
+                   timdim, num_patches, header_info, file_varids)
       use string_utils,        only: stringify
       use pio,                 only: pio_def_var, pio_double, pio_real, pio_int, pio_put_att
       use cam_pio_utils,       only: cam_pio_handle_error, cam_pio_def_var
@@ -1917,25 +1946,21 @@ CONTAINS
       logical,                      intent(in)    :: split_file
       logical,                      intent(in)    :: restart
       integer,                      intent(in)    :: mdimids(:)
-      integer,                      intent(inout) :: dimindex(:)
       integer,                      intent(in)    :: timdim
       integer,                      intent(in)    :: num_patches
       type(cam_grid_header_info_t), allocatable, intent(in) :: header_info(:)
-      integer,                      intent(out)   :: num_hdims
-      integer,                      intent(out)   :: fdims(:)
       type(var_desc_t),             intent(inout) :: file_varids(:,:)
 
       ! Local variables
       type(var_desc_t) :: varid
       integer :: dimenchar(2)
       integer :: ierr
-      integer :: field_index, idx, jdx
+      integer :: field_index, idx
       integer :: ncreal
-      integer :: grd
       integer :: mdimsize
       integer, allocatable :: mdims(:)
+      integer, allocatable :: dimids(:)     ! dimension ids for variable declaration
       integer,   parameter :: max_netcdf_len = 256
-      integer              :: nacsdims(2)   ! dimension ids for nacs (used in restart file)
       character(len=max_chars) :: str       ! character temporary
       character(len=512)       :: errmsg
       character(len=max_chars) :: fname_tmp ! local copy of field name
@@ -1983,48 +2008,14 @@ CONTAINS
          !
          !  Create variables and atributes for fields written out as columns
          !
-         !  Find appropriate grid in header_info
-         if (.not. allocated(header_info)) then
-            ! Safety check
-            call endrun('config_define_fields: header_info not allocated', file=__FILE__, line=__LINE__)
-         end if
-         grd = -1
-         do idx = 1, size(header_info)
-           if (header_info(idx)%get_gridid() == this%field_list(field_index)%decomp()) then
-              grd = idx
-              exit
-           end if
-         end do
-         if (grd < 0) then
-            write(errmsg, '(a,i0,2a)') 'grid, ',this%field_list(field_index)%decomp(),', not found for ', &
-               trim(fname_tmp)
-            call endrun('config_define_fields: '//errmsg, file=__FILE__, line=__LINE__)
-         end if
-         num_hdims = header_info(grd)%num_hdims()
-         do idx = 1, num_hdims
-            dimindex(idx) = header_info(grd)%get_hdimid(idx)
-            if (restart) then
-                nacsdims(idx) = header_info(grd)%get_hdimid(idx)
-            end if
-         end do
+         ! Get the dimension id array for this field & only add time dimension if not restart
+         dimids = this%field_dimids(field_index, header_info, mdimids, timdim, &
+                    include_time=.not. restart)
          do idx = 1, num_patches
             varid = file_varids(field_index, idx)
-            ! Figure the dimension ID array for this field
-            ! We have defined the horizontal grid dimensions in dimindex
-            fdims(field_index) = num_hdims
-            do jdx = 1, mdimsize
-               fdims(field_index) = fdims(field_index) + 1
-               dimindex(fdims(field_index)) = mdimids(mdims(jdx))
-            end do
-            if(.not. restart) then
-               ! Only add time dimension if this is not a restart history tape
-               fdims(field_index) = fdims(field_index) + 1
-               dimindex(fdims(field_index)) = timdim
-            end if
             ! peverwhee - TODO: enable patch output
             ! Define the variable
-            call cam_pio_def_var(hist_file, trim(fname_tmp), ncreal,           &
-                 dimindex(1:fdims(field_index)), varid)
+            call cam_pio_def_var(hist_file, trim(fname_tmp), ncreal, dimids, varid)
 
             file_varids(field_index, idx) = varid
 
@@ -2090,19 +2081,21 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_define_restart_fields(this, num_patches, dimindex, num_hdims, fdims)
+   subroutine config_define_restart_fields(this, num_patches, header_info, mdimids)
       use cam_history_support, only: max_chars
       use cam_pio_utils,       only: cam_pio_def_var
       use pio,                 only: pio_int, pio_double
       use cam_abortutils,      only: endrun
-      class(hist_file_t), intent(inout) :: this
-      integer,               intent(in) :: num_patches
-      integer,               intent(in) :: dimindex(:)
-      integer,               intent(in) :: num_hdims
-      integer,               intent(in) :: fdims(:)
+      use cam_grid_support,    only: cam_grid_header_info_t
+      class(hist_file_t),                        intent(inout) :: this
+      integer,                                   intent(in)    :: num_patches
+      type(cam_grid_header_info_t), allocatable, intent(in)    :: header_info(:)
+      integer,                                   intent(in)    :: mdimids(:)
       ! Local variables
       integer :: ierr, field_index, idx
       integer :: nstdev, stdev_index
+      integer :: num_hdims
+      integer, allocatable :: dimids(:)    ! dimension ids for variable declaration
       character(len=512) :: errmsg
       character(len=max_chars) :: str
       type(var_desc_t) :: varid
@@ -2127,20 +2120,23 @@ CONTAINS
          end if
       end if
       do field_index = 1, size(this%field_list)
+         if (this%field_list(field_index)%accumulate_type() == 'lst') then
+            cycle
+         end if
+         ! Restart history tapes have no time dimension
+         dimids = this%field_dimids(field_index, header_info, mdimids, -1, &
+                    include_time=.false., num_hdims=num_hdims)
          do idx = 1, num_patches
-            if (this%field_list(field_index)%accumulate_type() == 'lst') then
-               cycle
-            end if
             ! Define "number of samples" variable per field
             str = trim(this%field_list(field_index)%diag_name()) // '_nacs'
             call cam_pio_def_var(this%restart_file, trim(str), pio_int,      &
-                     dimindex(1:num_hdims), varid)
+                     dimids(1:num_hdims), varid)
             this%nacs_varids(field_index, idx) = varid
             ! Define standard deviation buffer variable where relevant
             if (this%field_list(field_index)%accumulate_type() == 'var') then
                str = trim(this%field_list(field_index)%diag_name()) // '_var_buffer'
                call cam_pio_def_var(this%restart_file, trim(str), pio_double, &
-                     dimindex(1:fdims(field_index)), varid)
+                     dimids, varid)
                this%varbuff_varids(stdev_index, idx) = varid
                stdev_index = stdev_index + 1
             end if
