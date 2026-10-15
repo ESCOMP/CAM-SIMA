@@ -36,18 +36,19 @@ module tracer_data
   public :: read_trc_restart
   public :: init_trc_restart
   public :: incr_filename
+  public :: findplb
 
   type input3d
-    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
+    real(r8), allocatable                  :: data(:, :) ! ncol, lev
   end type input3d
 
   type input2d
-    real(r8), dimension(:),    allocatable :: data ! ncol
+    real(r8), allocatable                  :: data(:) ! ncol
   end type input2d
 
   type trfld
-    real(r8), dimension(:, :), allocatable :: data ! ncol, lev
-    type(input3d), dimension(4)            :: input
+    real(r8), allocatable                  :: data(:, :) ! ncol, lev
+    type(input3d)                          :: input(4)
     character(len=32)                      :: srcnam
     character(len=32)                      :: fldnam
     character(len=32)                      :: units
@@ -58,7 +59,7 @@ module tracer_data
   end type trfld
 
   type trfile
-    type(input2d), dimension(4)            :: ps_in
+    type(input2d)                          :: ps_in(4)
     character(len=shr_kind_cl)             :: pathname = ' '
     character(len=shr_kind_cl)             :: curr_filename = ' '
     character(len=shr_kind_cl)             :: next_filename = ' '
@@ -73,8 +74,8 @@ module tracer_data
     real(r8)                               :: datatimep = -unset_real     ! time of nxt. values read in
     real(r8)                               :: datatimes(4)
     integer                                :: interp_recs
-    real(r8), dimension(:), allocatable    :: curr_data_times
-    real(r8), dimension(:), allocatable    :: next_data_times
+    real(r8), allocatable                  :: curr_data_times(:)
+    real(r8), allocatable                  :: next_data_times(:)
     real(r8)                               :: offset_time
     integer                                :: cyc_ndx_beg
     integer                                :: cyc_ndx_end
@@ -88,20 +89,20 @@ module tracer_data
     integer                                :: nilev = 0
     integer                                :: ps_coords(3) ! LATDIM | LONDIM | TIMDIM
     integer                                :: ps_order(3)  ! LATDIM | LONDIM | TIMDIM
-    real(r8), dimension(:),    allocatable :: lons
-    real(r8), dimension(:),    allocatable :: lats
-    real(r8), dimension(:),    allocatable :: levs
-    real(r8), dimension(:),    allocatable :: ilevs
-    real(r8), dimension(:),    allocatable :: hyam
-    real(r8), dimension(:),    allocatable :: hybm
-    real(r8), dimension(:),    allocatable :: hyai
-    real(r8), dimension(:),    allocatable :: hybi
-    real(r8), dimension(:, :), allocatable :: weight_x, weight_y
-    integer,  dimension(:)   , allocatable :: count_x, count_y
-    integer,  dimension(:, :), allocatable :: index_x, index_y
-    real(r8), dimension(:, :), allocatable :: weight0_x, weight0_y
-    integer,  dimension(:)   , allocatable :: count0_x, count0_y
-    integer,  dimension(:, :), allocatable :: index0_x, index0_y
+    real(r8), allocatable                  :: lons(:)
+    real(r8), allocatable                  :: lats(:)
+    real(r8), allocatable                  :: levs(:)
+    real(r8), allocatable                  :: ilevs(:)
+    real(r8), allocatable                  :: hyam(:)
+    real(r8), allocatable                  :: hybm(:)
+    real(r8), allocatable                  :: hyai(:)
+    real(r8), allocatable                  :: hybi(:)
+    real(r8), allocatable                  :: weight_x(:, :), weight_y(:, :)
+    integer,  allocatable                  :: count_x(:), count_y(:)
+    integer,  allocatable                  :: index_x(:, :), index_y(:, :)
+    real(r8), allocatable                  :: weight0_x(:, :), weight0_y(:, :)
+    integer,  allocatable                  :: count0_x(:), count0_y(:)
+    integer,  allocatable                  :: index0_x(:, :), index0_y(:, :)
     logical                                :: dist
 
     real(r8)                               :: p0
@@ -173,7 +174,7 @@ contains
     character(len=*), intent(in)            :: filename
     character(len=*), intent(in)            :: filelist
     character(len=*), intent(in)            :: datapath
-    type(trfld),      dimension(:), pointer :: flds
+    type(trfld),      pointer               :: flds(:)
     type(trfile),     intent(inout)         :: file
     integer,          intent(in)            :: data_cycle_yr
     integer,          intent(in)            :: data_fixed_ymd
@@ -955,7 +956,7 @@ contains
 
   ! Increment or decrement a date string withing a filename
   ! the filename date section is assumed to be of the form yyyy-dd-mm
-  function incr_filename(filename, filenames_list, datapath, cyclical_list, list_cycled, abort)
+  function incr_filename(filename, filenames_list, datapath, cyclical_list, list_cycled, abort) result(next_filename)
     use spmd_utils,     only: masterproc
     use cam_abortutils, only: endrun
     use cam_logfile,    only: iulog
@@ -970,7 +971,7 @@ contains
     logical, optional, intent(out)   :: list_cycled
     logical, optional, intent(in)    :: abort
 
-    character(len=shr_kind_cl)                :: incr_filename         ! next filename in the sequence
+    character(len=shr_kind_cl)                :: next_filename         ! next filename in the sequence
 
     !-----------------------------------------------------------------------
     !   ... local variables
@@ -979,6 +980,7 @@ contains
     character(len=shr_kind_cl) :: fn_new, line, filepath
     integer :: ios, unitnumber
     logical :: abort_run
+    logical :: have_filenames_list
     character(len=shr_kind_cm) :: errmsg
 
     character(len=*), parameter :: sub = 'incr_filename'
@@ -991,7 +993,12 @@ contains
 
     if (present(list_cycled)) list_cycled = .false.
 
-    if ((.not. present(filenames_list)) .or. (len_trim(filenames_list) == 0)) then
+    have_filenames_list = .false.
+    if (present(filenames_list)) then
+      have_filenames_list = len_trim(filenames_list) > 0
+    end if
+
+    if (.not. have_filenames_list) then
       !-----------------------------------------------------------------------
       !    ... ccm type filename
       !-----------------------------------------------------------------------
@@ -1022,7 +1029,7 @@ contains
         filepath = trim(filenames_list)
       end if
 
-      open (newunit=unitnumber, file=filepath, iostat=ios, iomsg=errmsg, status="OLD")
+      open (newunit=unitnumber, file=filepath, action='read', iostat=ios, iomsg=errmsg, status='OLD')
       if (ios /= 0) then
         call endrun('not able to open file: '//trim(filepath)//'; error = '// trim(errmsg))
       end if
@@ -1036,7 +1043,7 @@ contains
           call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
         else
           fn_new = 'NOT_FOUND'
-          incr_filename = trim(fn_new)
+          next_filename = trim(fn_new)
           return
         end if
       end if
@@ -1057,7 +1064,7 @@ contains
               call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = ' // trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
-              incr_filename = trim(fn_new)
+              next_filename = trim(fn_new)
               return
             end if
           end if
@@ -1091,7 +1098,7 @@ contains
               call endrun(sub//': not able to increment file name from filenames_list file: '//trim(filenames_list)//'; error = '//trim(errmsg))
             else
               fn_new = 'NOT_FOUND'
-              incr_filename = trim(fn_new)
+              next_filename = trim(fn_new)
               return
             end if
           end if
@@ -1110,8 +1117,8 @@ contains
     !---------------------------------------------------------------------------------
     !      return the current filename
     !---------------------------------------------------------------------------------
-    incr_filename = trim(fn_new)
-    if (masterproc) write (iulog, *) sub//': new filename = ', trim(incr_filename)
+    next_filename = trim(fn_new)
+    if (masterproc) write (iulog, *) sub//': new filename = ', trim(next_filename)
 
   end function incr_filename
 
@@ -1135,10 +1142,10 @@ contains
     integer :: astat
     integer :: cyc_tsize
 
-    real(r8), allocatable, dimension(:) :: all_data_times
+    real(r8), allocatable :: all_data_times(:)
 
     character(len=shr_kind_cm) :: errmsg
-    character(len=*), parameter :: subname = "find_times"
+    character(len=*), parameter :: subname = 'find_times'
 
     curr_tsize = size(file%curr_data_times)
     next_tsize = 0
@@ -1205,9 +1212,9 @@ contains
       return
     end if
 
-    deallocate (all_data_times, stat=astat)
+    deallocate (all_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) subname//': failed to deallocate all_data_times array; error = ', astat
+      write (iulog, *) subname//': failed to deallocate all_data_times array; error = ', astat, trim(errmsg)
       call endrun(subname//': failed to deallocate all_data_times array')
     end if
 
@@ -1343,7 +1350,7 @@ contains
           cnt3(flds(f)%coords(ZA_TIMDIM)) = 1
           strt3(flds(f)%coords(ZA_TIMDIM)) = recnos(i)
           call read_za_trc(fids(i), flds(f)%var_id, flds(f)%input(i)%data, strt3, cnt3, file, &
-                           (/flds(f)%order(ZA_LATDIM), flds(f)%order(ZA_LEVDIM)/))
+                           [flds(f)%order(ZA_LATDIM), flds(f)%order(ZA_LEVDIM)])
         else if (flds(f)%srf_fld) then
           if (file%unstructured) then
             ! read data directly onto the unstructureed phys grid -- assumes input data is on same grid as phys
@@ -1354,7 +1361,7 @@ contains
             cnt3(flds(f)%coords(PS_TIMDIM)) = 1
             strt3(flds(f)%coords(PS_TIMDIM)) = recnos(i)
             call read_2d_trc(fids(i), flds(f)%var_id, flds(f)%input(i)%data(:, 1), strt3, cnt3, file, &
-                             (/flds(f)%order(LONDIM), flds(f)%order(LATDIM)/))
+                             [flds(f)%order(LONDIM), flds(f)%order(LATDIM)])
           end if
         else
           if (file%unstructured) then
@@ -1371,7 +1378,7 @@ contains
             cnt4(flds(f)%coords(TIMDIM)) = 1
             strt4(flds(f)%coords(TIMDIM)) = recnos(i)
             call read_3d_trc(fids(i), flds(f)%var_id, flds(f)%input(i)%data, strt4, cnt4, file, &
-                             (/flds(f)%order(LONDIM), flds(f)%order(LATDIM), flds(f)%order(LEVDIM)/))
+                             [flds(f)%order(LONDIM), flds(f)%order(LATDIM), flds(f)%order(LEVDIM)])
           end if
 
         end if
@@ -1392,10 +1399,10 @@ contains
           strt3(file%ps_coords(PS_TIMDIM)) = recnos(i)
           if (file%zonal_ave) then
             call read_2d_trc(fids(i), file%ps_id, file%ps_in(i)%data, strt3(1:2), cnt3(1:2), file, &
-                             (/1, 2/))
+                             [1, 2])
           else
             call read_2d_trc(fids(i), file%ps_id, file%ps_in(i)%data, strt3, cnt3, file, &
-                             (/file%ps_order(LONDIM), file%ps_order(LATDIM)/))
+                             [file%ps_order(LONDIM), file%ps_order(LATDIM)])
           end if
         end if
       end if
@@ -1437,7 +1444,7 @@ contains
     real(r8) :: file_lats(file%nlat)
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_2d_trc"
+    character(len=*), parameter :: subname = 'read_2d_trc'
 
     nullify (wrk2d_in)
     allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
@@ -1453,7 +1460,7 @@ contains
 
     ierr = pio_get_var(fid, vid, strt, cnt, wrk2d)
     if (associated(wrk2d_in)) then
-      wrk2d_in = reshape(wrk2d(:, :), (/file%nlon, file%nlat/), order=order)
+      wrk2d_in = reshape(wrk2d(:, :), [file%nlon, file%nlat], order=order)
       deallocate (wrk2d)
     else
       wrk2d_in => wrk2d
@@ -1536,10 +1543,10 @@ contains
     use interpolate_data, only: lininterp_init, lininterp, interp_type, lininterp_finish
 
     type(file_desc_t), intent(in) :: fid
-    type(var_desc_t), intent(in) :: vid
-    integer, intent(in) :: strt(:), cnt(:)
-    integer, intent(in) :: order(2)
-    real(r8), intent(out):: loc_arr(:, :)
+    type(var_desc_t),  intent(in) :: vid
+    integer,           intent(in) :: strt(:), cnt(:)
+    integer,           intent(in) :: order(2)
+    real(r8), intent(out) :: loc_arr(:, :)
     type(trfile), intent(in) :: file
 
     type(interp_type) :: lat_wgts
@@ -1548,7 +1555,7 @@ contains
     real(r8), pointer :: wrk2d_in(:, :)
     integer :: k, ierr
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_za_trc"
+    character(len=*), parameter :: subname = 'read_za_trc'
 
     nullify (wrk2d_in)
     allocate (wrk2d(cnt(1), cnt(2)), stat=ierr, errmsg=errmsg)
@@ -1564,7 +1571,7 @@ contains
 
     ierr = pio_get_var(fid, vid, strt, cnt, wrk2d)
     if (associated(wrk2d_in)) then
-      wrk2d_in = reshape(wrk2d(:, :), (/file%nlat, file%nlev/), order=order)
+      wrk2d_in = reshape(wrk2d(:, :), [file%nlat, file%nlev], order=order)
       deallocate (wrk2d)
     else
       wrk2d_in => wrk2d
@@ -1678,7 +1685,7 @@ contains
     type(interp_type) :: lon_wgts, lat_wgts
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "read_3d_trc"
+    character(len=*), parameter :: subname = 'read_3d_trc'
 
     loc_arr(:, :) = 0._r8
     nullify (wrk3d_in)
@@ -1694,7 +1701,7 @@ contains
       call check_allocate(ierr, subname, 'wrk3d_in(file%nlon, file%nlat, file%nlev)', &
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      wrk3d_in = reshape(wrk3d(:, :, :), (/file%nlon, file%nlat, file%nlev/), order=order)
+      wrk3d_in = reshape(wrk3d(:, :, :), [file%nlon, file%nlat, file%nlev], order=order)
       deallocate (wrk3d)
     else
       wrk3d_in => wrk3d
@@ -1735,12 +1742,12 @@ contains
     end if
 
     if (allocated(wrk3d)) then
-      deallocate(wrk3d, stat=ierr)
+      deallocate(wrk3d, stat=ierr, errmsg=errmsg)
     else
-      deallocate(wrk3d_in, stat=ierr)
+      deallocate(wrk3d_in, stat=ierr, errmsg=errmsg)
     end if
     if (ierr /= 0) then
-      write(iulog, *) subname//': failed to deallocate wrk3d array; error = ', ierr
+      write(iulog, *) subname//': failed to deallocate wrk3d array; error = ', ierr, trim(errmsg)
       call endrun(subname//': failed to deallocate wrk3d array')
     end if
 
@@ -1930,7 +1937,7 @@ contains
     integer,           intent(out)                :: dsize
 
     integer,  optional, intent(out)               :: dimid
-    real(r8), optional, allocatable, dimension(:) :: data
+    real(r8), optional, allocatable               :: data(:)
 
     integer :: vid, ierr, id
     integer :: err_handling
@@ -1952,9 +1959,9 @@ contains
 
       if (present(data)) then
         if (allocated(data)) then
-          deallocate (data, stat=ierr)
+          deallocate (data, stat=ierr, errmsg=errmsg)
           if (ierr /= 0) then
-            write (iulog, *) sub//': data deallocation error = ', ierr
+            write (iulog, *) sub//': data deallocation error = ', ierr, trim(errmsg)
             call endrun(sub//': failed to deallocate data array')
           end if
         end if
@@ -1984,9 +1991,9 @@ contains
     integer,           intent(in)     :: cyc_yr
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "set_cycle_indices"
+    character(len=*), parameter :: subname = 'set_cycle_indices'
 
-    integer, allocatable, dimension(:) :: dates
+    integer, allocatable :: dates(:)
     integer :: timesize, i, errflg, year, ierr
     type(var_desc_t) :: dateid
     call get_dimension(fileid, 'time', timesize)
@@ -2008,9 +2015,9 @@ contains
         cyc_ndx_end = i
       end if
     end do
-    deallocate (dates, stat=errflg)
+    deallocate (dates, stat=errflg, errmsg=errmsg)
     if (errflg /= 0) then
-      call endrun(subname // ': failed to deallocate dates array')
+      call endrun(subname // ': failed to deallocate dates array; error = '//trim(errmsg))
     end if
     if (cyc_ndx_beg < 0) then
       write (*, *) subname // ': cycle year not found : ', cyc_yr
@@ -2045,13 +2052,13 @@ contains
     character(len=shr_kind_cl) :: filen, filepath
     integer :: year, month, day, i, timesize
     integer :: dateid, secid
-    integer, allocatable, dimension(:) :: dates, datesecs
+    integer, allocatable :: dates(:), datesecs(:)
     integer :: ierr
     logical :: need_first_ndx
     integer :: err_handling
 
     character(len=512) :: errmsg
-    character(len=*), parameter :: subname = "open_trc_datafile"
+    character(len=*), parameter :: subname = 'open_trc_datafile'
 
     if (len_trim(path) == 0) then
       filepath = trim(fname)
@@ -2068,9 +2075,9 @@ contains
     call get_dimension(piofile, 'time', timesize)
 
     if (allocated(times)) then
-      deallocate (times, stat=ierr)
+      deallocate (times, stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
-        write (iulog, *) 'open_trc_datafile: data deallocation error = ', ierr
+        write (iulog, *) 'open_trc_datafile: data deallocation error = ', ierr, trim(errmsg)
         call endrun('open_trc_datafile: failed to deallocate data array')
       end if
     end if
@@ -2119,14 +2126,14 @@ contains
       end if
     end do
 
-    deallocate (dates, stat=ierr)
+    deallocate (dates, stat=ierr, errmsg=errmsg)
     if (ierr /= 0) then
-      if (masterproc) write (iulog, *) subname //': failed to deallocate dates array; error = ', ierr
+      if (masterproc) write (iulog, *) subname //': failed to deallocate dates array; error = ', ierr, trim(errmsg)
       call endrun(subname //': failed to deallocate dates array')
     end if
-    deallocate (datesecs, stat=ierr)
+    deallocate (datesecs, stat=ierr, errmsg=errmsg)
     if (ierr /= 0) then
-      if (masterproc) write (iulog, *) subname //': failed to deallocate datesec array; error = ', ierr
+      if (masterproc) write (iulog, *) subname //': failed to deallocate datesec array; error = ', ierr, trim(errmsg)
       call endrun(subname //': failed to deallocate datesec array')
     end if
 
@@ -2144,12 +2151,12 @@ contains
     use shr_kind_mod,   only: shr_kind_cm
 
     character(len=*), intent(in) :: specifier(:)
-    type(trfld), pointer, dimension(:) :: fields
+    type(trfld), pointer :: fields(:)
 
     integer :: fld_cnt, astat
     integer :: i, j
     character(len=shr_kind_cl) :: str1, str2
-    character(len=32), allocatable, dimension(:) :: fld_name, src_name
+    character(len=32), allocatable :: fld_name(:), src_name(:)
     integer :: nflds
 
     character(len=shr_kind_cm)  :: errmsg
@@ -2240,9 +2247,9 @@ contains
     !-----------------------------------------------------------------------
     !   Advance the curr_data_times
     !-----------------------------------------------------------------------
-    deallocate (file%curr_data_times, stat=astat)
+    deallocate (file%curr_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) sub//': failed to deallocate file%curr_data_times array; error = ', astat
+      write (iulog, *) sub//': failed to deallocate file%curr_data_times array; error = ', astat, trim(errmsg)
       call endrun(sub//': failed to deallocate file%curr_data_times array')
     end if
 
@@ -2257,9 +2264,9 @@ contains
     !-----------------------------------------------------------------------
     file%next_filename = ''
 
-    deallocate (file%next_data_times, stat=astat)
+    deallocate (file%next_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat
+      write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat, trim(errmsg)
       call endrun(sub//': failed to deallocate file%next_data_times array')
     end if
 
@@ -2293,7 +2300,7 @@ contains
     if (len_trim(tr_file%curr_filename) > 1) then
       allocate (tr_file%currfnameid)
       name = trim(whence)//'_curr_fname'
-      ioerr = pio_def_var(pioFile, name, pio_char, (/mcdimid/), tr_file%currfnameid)
+      ioerr = pio_def_var(pioFile, name, pio_char, [mcdimid], tr_file%currfnameid)
       ioerr = pio_put_att(pioFile, tr_file%currfnameid, 'offset_time', tr_file%offset_time)
       maxlen = len_trim(tr_file%curr_filename)
       ioerr = pio_put_att(pioFile, tr_file%currfnameid, 'actual_len', maxlen)
@@ -2304,7 +2311,7 @@ contains
     if (len_trim(tr_file%next_filename) > 1) then
       allocate (tr_file%nextfnameid)
       name = trim(whence)//'_next_fname'
-      ioerr = pio_def_var(pioFile, name, pio_char, (/mcdimid/), tr_file%nextfnameid)
+      ioerr = pio_def_var(pioFile, name, pio_char, [mcdimid], tr_file%nextfnameid)
       maxlen = len_trim(tr_file%next_filename)
       ioerr = pio_put_att(pioFile, tr_file%nextfnameid, 'actual_len', maxlen)
     else
@@ -2391,26 +2398,26 @@ contains
     do i = 1, ntrg
       tl = trg_x(i)
       if ((tl < src_x(nsrc + 1)) .and. (trg_x(i + 1) > src_x(1))) then
-        do sil = 1, nsrc
+        src_ndx_loop: do sil = 1, nsrc
           if ((tl - src_x(sil))*(tl - src_x(sil + 1)) <= 0.0_r8) then
-            exit
+            exit src_ndx_loop
           end if
-        end do
+        end do src_ndx_loop
 
         if (tl < src_x(1)) sil = 1
 
         y = 0.0_r8
         bot = max(tl, src_x(1))
         top = trg_x(i + 1)
-        do j = sil, nsrc
+        accum_loop: do j = sil, nsrc
           if (top > src_x(j + 1)) then
             y = y + (src_x(j + 1) - bot)*src(j)/(src_x(j + 1) - src_x(j))
             bot = src_x(j + 1)
           else
             y = y + (top - bot)*src(j)/(src_x(j + 1) - src_x(j))
-            exit
+            exit accum_loop
           end if
-        end do
+        end do accum_loop
         trg(i) = y
       else
         trg(i) = 0.0_r8
@@ -2507,7 +2514,7 @@ contains
       ! target bucket.
       trg_lo = trg_x(n, 1)
       y = 0.0_r8
-      do j = 1, nsrc
+      below_loop: do j = 1, nsrc
         src_lo = src_x(j)
         src_hi = src_x(j + 1)
 
@@ -2529,14 +2536,14 @@ contains
             y = y + src(n, j)*outside
           end if
         else
-          exit
+          exit below_loop
         end if
-      end do
+      end do below_loop
       trg(n, 1) = trg(n, 1) + y
 
       trg_hi = trg_x(n, ntrg + 1)
       y = 0.0_r8
-      do j = nsrc, 1, -1
+      above_loop: do j = nsrc, 1, -1
         src_lo = src_x(j)
         src_hi = src_x(j + 1)
 
@@ -2558,9 +2565,9 @@ contains
             y = y + src(n, j)*outside
           end if
         else
-          exit
+          exit above_loop
         end if
-      end do
+      end do above_loop
       trg(n, ntrg) = trg(n, ntrg) + y
 
       ! turn mass into mixing ratio
@@ -2708,14 +2715,14 @@ contains
         ku = nlevs
         delp = 0._r8
       else
-        do k = 2, nlevs
+        lev_loop: do k = 2, nlevs
           if (press(i) <= plevs(k)) then
             ku = k
             kl = k - 1
             delp = log(press(i)/plevs(k))/log(plevs(k - 1)/plevs(k))
-            exit
+            exit lev_loop
           end if
-        end do
+        end do lev_loop
       end if
 
       dataout(i) = datain(i, kl) + delp*(datain(i, ku) - datain(i, kl))
@@ -2739,16 +2746,16 @@ contains
     integer, intent(out) ::  index
 
     ! Local variables:
-    integer i
+    integer :: i
     !-----------------------------------------------------------------------
 
-    if (xval .lt. x(1) .or. xval .ge. x(nx)) then
+    if (xval < x(1) .or. xval >= x(nx)) then
       index = nx
       return
     end if
 
     do i = 2, nx
-      if (xval .lt. x(i)) then
+      if (xval < x(i)) then
         index = i - 1
         return
       end if

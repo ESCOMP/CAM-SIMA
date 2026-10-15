@@ -23,11 +23,12 @@ module cam_comp
    use time_manager,              only: timemgr_init, get_step_size
    use time_manager,              only: get_nstep
    use time_manager,              only: is_first_step, is_first_restart_step
-   use time_manager,              only: get_curr_calday
+   use time_manager,              only: get_curr_calday, get_curr_date
 
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
+   use physics_types,             only: current_date, current_sec
    use physics_types,             only: is_first_timestep, nstep
    use physics_types,             only: is_first_restart_timestep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
@@ -148,6 +149,7 @@ contains
 
       ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
+      integer                  :: yr, mon, day, tod
       integer                  :: errflg
       character(len=cx)        :: errmsg
 
@@ -195,6 +197,13 @@ contains
       call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
       call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
       call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
+
+      ! Get current date and elapsed seconds. Needs to be updated at every timestep.
+      call get_curr_date(yr, mon, day, tod)
+      current_date = yr*10000 + mon*100 + day
+      current_sec = tod
+      call mark_as_initialized('current_model_date_in_iso_order')
+      call mark_as_initialized('seconds_of_current_model_date')
 
       ! Read CAM namelists.
       filein = 'atm_in' // trim(inst_suffix)
@@ -324,9 +333,15 @@ contains
 
       real(kind_phys), pointer :: constituents_array(:,:,:)
       type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
+      integer :: yr, mon, day, tod
 
       ! Update current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
+
+      ! Update current date and elapsed seconds
+      call get_curr_date(yr, mon, day, tod)
+      current_date = yr*10000 + mon*100 + day
+      current_sec = tod
 
       ! Update the orbital data
       call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
