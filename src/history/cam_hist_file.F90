@@ -1399,7 +1399,6 @@ CONTAINS
 
       logical                  :: is_satfile
       logical                  :: is_initfile
-      logical                  :: varid_set
       logical                  :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
       ! NetCDF dimensions
@@ -1454,7 +1453,7 @@ CONTAINS
 
       this%files_open = .true.
 
-      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, varid_set, this%file_varids)
+      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, this%file_varids)
 
       allocate(fdims(size(this%field_list)))
       do split_file_index = 1, max_split_files
@@ -1478,7 +1477,7 @@ CONTAINS
 
          ! Create variables and attributes for field list
          call this%define_fields(this%hist_files(split_file_index), split_file_index, split_file, restart, mdimids, &
-                   dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims, this%file_varids)
+                   dimindex, timdim, num_patches, header_info, num_hdims, fdims, this%file_varids)
 
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
@@ -1537,7 +1536,6 @@ CONTAINS
       integer :: num_hdims
       integer, allocatable :: fdims(:)
       integer :: timdim, bnddim, chardim
-      logical :: varid_set
       logical :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
       integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
@@ -1571,7 +1569,7 @@ CONTAINS
       call cam_pio_createfile(this%restart_file, this%restart_file_name, amode)
 
       ! Set up data structures for dimension handling
-      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, varid_set, this%restart_file_varids)
+      call this%set_up_dimensions(num_patches, restart, header_info, dimindex, this%restart_file_varids)
 
       ! Begin header definition
       !-- Define the file dimensions
@@ -1587,7 +1585,7 @@ CONTAINS
       ! Create variables and attributes for field list
       allocate(fdims(size(this%field_list)))
       call this%define_fields(this%restart_file, 1, split_file, restart, mdimids, &
-                dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims, this%restart_file_varids)
+                dimindex, timdim, num_patches, header_info, num_hdims, fdims, this%restart_file_varids)
       
       ! Define additional restart fields
       call this%define_restart_fields(num_patches, dimindex, num_hdims, fdims)
@@ -1617,7 +1615,7 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_set_up_dimensions(this, num_patches, restart, header_info, dimindex, varid_set, file_varids)
+   subroutine config_set_up_dimensions(this, num_patches, restart, header_info, dimindex, file_varids)
       use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_attr
       use cam_abortutils,   only: check_allocate
       use pio,              only: pio_file_is_open
@@ -1627,7 +1625,6 @@ CONTAINS
       logical,                                    intent(in) :: restart
       type(cam_grid_header_info_t), allocatable, intent(out) :: header_info(:)
       integer,                      allocatable, intent(out) :: dimindex(:)
-      logical,                                   intent(out) :: varid_set
       type(var_desc_t),             allocatable, intent(out) :: file_varids(:,:)
       ! Local variables
       integer :: ierr
@@ -1668,13 +1665,11 @@ CONTAINS
       call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1, &
               errmsg=errmsg)
 
-      varid_set = .true.
       ! Allocate the varid array
       if (.not. allocated(file_varids)) then
          allocate(file_varids(size(this%field_list), num_patches), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'file_varids',             &
               file=__FILE__, line=__LINE__-1, errmsg=errmsg)
-         varid_set = .false.
       end if
 
    end subroutine config_set_up_dimensions
@@ -1907,7 +1902,7 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_define_fields(this, hist_file, file_index, split_file, restart, mdimids, &
-                   dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims, file_varids)
+                   dimindex, timdim, num_patches, header_info, num_hdims, fdims, file_varids)
       use string_utils,        only: stringify
       use pio,                 only: pio_def_var, pio_double, pio_real, pio_int, pio_put_att
       use cam_pio_utils,       only: cam_pio_handle_error, cam_pio_def_var
@@ -1925,7 +1920,6 @@ CONTAINS
       integer,                      intent(inout) :: dimindex(:)
       integer,                      intent(in)    :: timdim
       integer,                      intent(in)    :: num_patches
-      logical,                      intent(in)    :: varid_set
       type(cam_grid_header_info_t), allocatable, intent(in) :: header_info(:)
       integer,                      intent(out)   :: num_hdims
       integer,                      intent(out)   :: fdims(:)
@@ -2031,9 +2025,8 @@ CONTAINS
             ! Define the variable
             call cam_pio_def_var(hist_file, trim(fname_tmp), ncreal,           &
                  dimindex(1:fdims(field_index)), varid)
-            if (.not. varid_set) then
-               file_varids(field_index, idx) = varid
-            end if
+
+            file_varids(field_index, idx) = varid
 
             if (mdimsize > 0) then
                ierr = pio_put_att(hist_file, varid, 'mdims', mdims(1:mdimsize))
@@ -2293,8 +2286,6 @@ CONTAINS
          end if
          call this%write_restart_fields(this%restart_file, this%field_list(field_index), field_index, write_var_buffer, &
             var_buffer_idx)
-         ! Clear the buffers
-         call this%field_list(field_index)%clear_buffers()
       end do
 
    end subroutine config_write_restart_file
