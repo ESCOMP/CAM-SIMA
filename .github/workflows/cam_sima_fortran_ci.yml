@@ -402,6 +402,7 @@ jobs:
           gcovr \
             --filter "$SOURCE_PATH/src" \
             --html code-coverage.html \
+            --include-internal-functions \
             --root "$SOURCE_PATH" \
             --verbose \
             .
