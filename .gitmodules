@@ -20,7 +20,7 @@
 [submodule "scotch"]
         path          = src/dynamics/mpas/scotch
         url           = https://gitlab.inria.fr/scotch/scotch.git
-        fxtag         = v7.0.16
+        fxtag         = v7.0.17
         fxrequired    = AlwaysOptional
         fxDONOTUSEurl = https://gitlab.inria.fr/scotch/scotch.git
 [submodule "ncar-physics"]
