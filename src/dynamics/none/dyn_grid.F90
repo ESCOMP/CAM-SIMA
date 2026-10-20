@@ -383,15 +383,28 @@ contains
             call endrun(errormsg)
          end if
          if ((num_lats > 1) .and. (dimlens(1) == num_lats)) then
-            allocate(local_areas(num_lats), stat=iret, errmsg=errormsg)
-            call check_allocate(iret, subname, 'local_areas(num_lats)', &
+            ! Read the global area / weight variable and keep only this
+            ! task's latitudes, mirroring the latitude read above, so that
+            ! local_areas is indexed by the task-local latitude index.
+            start(1) = ((col_start - 1) / num_lons) + 1
+            kount(1) = ((col_end - 1) / num_lons) + 1 - start(1) + 1
+            allocate(local_areas(kount(1)), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'local_areas(kount)', &
                                 file=__FILE__, line=__LINE__, errmsg=errormsg)
-            start(1) = 1
-            kount(1) = num_lats
-            iret = pio_get_var(fh_ini, vardesc, start, kount, local_areas)
+            allocate(temp_arr(num_lats), stat=iret, errmsg=errormsg)
+            call check_allocate(iret, subname, 'temp_arr(num_lats)', &
+                                file=__FILE__, line=__LINE__, errmsg=errormsg)
+            iret = pio_get_var(fh_ini, vardesc, [1], [num_lats], temp_arr)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read '//trim(var_name))
+            lindex = start(1) + kount(1) - 1
+            local_areas(1:kount(1)) = temp_arr(start(1):lindex)
+            deallocate(temp_arr)
          else if (dimlens(1) == num_global_columns) then
+            if (grid_is_latlon) then
+               ! iodesc is only created for the unstructured read above
+               call endrun(subname//': per-column grid areas on a lat/lon grid are not supported')
+            end if
             allocate(local_areas(num_local_columns), stat=iret, errmsg=errormsg)
             call check_allocate(iret, subname, 'local_areas(num_local_columns)', &
                                 file=__FILE__, line=__LINE__, errmsg=errormsg)
@@ -401,6 +414,7 @@ contains
             write(errormsg, '(a,3(a,i0))') subname,                           &
                  'Unsupported number of grid areas, ', dimlens(1),            &
                  ', num_lats = ', num_lats, ', num_cols = ', num_global_columns
+            call endrun(errormsg)
          end if
       else
          call endrun(subname//'Unable to find grid areas')
@@ -473,7 +487,7 @@ contains
       do lindex = 1, num_local_columns
          if (grid_is_latlon) then
             lat_index = ((global_col_offset + lindex - 1) / num_lons) + 1 - lat1
-            lon_index = MOD(lindex - 1, num_lons) + 1
+            lon_index = MOD(global_col_offset + lindex - 1, num_lons) + 1
          else
             lat_index = lindex
             lon_index = lindex
@@ -615,7 +629,7 @@ contains
       character(len=128)               :: errmsg
       character(len=*), parameter      :: subname = 'find_dimension'
 
-      num_dims = len(dim_names)
+      num_dims = size(dim_names)
       found_name = ''
       do index = 1, num_dims
          ierr = PIO_Inq_DimID(file, trim(dim_names(index)), dimid)
@@ -631,7 +645,7 @@ contains
       if (len_trim(found_name) == 0) then
          write(errmsg, '(2a,20("  ",a))') subname,                            &
               ": Did not find any of these dimensions on initial data file:", &
-              (trim(dim_names(index)), index=1, len(dim_names))
+              (trim(dim_names(index)), index=1, size(dim_names))
          call endrun(errmsg)
       end if
    end subroutine find_dimension
