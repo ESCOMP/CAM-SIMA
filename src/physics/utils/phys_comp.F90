@@ -198,7 +198,6 @@ CONTAINS
       use vert_coord,                only: pver, pverp
       use cam_thermo,                only: cam_thermo_init
       use cam_thermo_formula,        only: cam_thermo_formula_init
-      use physics_types,             only: allocate_physics_types_fields
       use cam_ccpp_cap,              only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,              only: cam_constituents_array
       use cam_ccpp_cap,              only: cam_model_const_properties
@@ -217,10 +216,8 @@ CONTAINS
       call cam_thermo_init(columns_on_task, pver, pverp)
       call cam_thermo_formula_init()
 
-      !Allocate CAM-SIMA registry variables:
-      call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
-
-      !Run CCPP "init" phase:
+      !Run CCPP "init" phase (cam_init allocated the registry variables
+      !and stored the host time values the init phases read):
       call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))

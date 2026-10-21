@@ -102,6 +102,7 @@ contains
       use physics_grid,              only: columns_on_task
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
+      use physics_types,             only: allocate_physics_types_fields
       use tropopause_climo_read,     only: tropopause_climo_read_file
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
       use topography_statics_read,   only: topography_statics_read_file
@@ -175,35 +176,6 @@ contains
            dtime, calendar, start_ymd, start_tod, ref_ymd,                    &
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
-
-      dtime_phys = 0.0_r8
-      call mark_as_initialized('timestep_for_physics')
-
-      is_first_timestep = .true.
-      call mark_as_initialized('is_first_timestep')
-
-      is_first_restart_timestep = .false.
-      call mark_as_initialized('is_first_restart_timestep')
-
-      nstep = get_nstep()
-      call mark_as_initialized('current_timestep_number')
-
-      ! Get current fractional calendar day. Needs to be updated at every timestep.
-      calday = get_curr_calday()
-      next_calday = get_curr_calday(offset=int(get_step_size()))
-      radiation_offset = 0
-      nextsw_cday = next_calday
-      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
-      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
-      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
-      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
-
-      ! Get current date and elapsed seconds. Needs to be updated at every timestep.
-      call get_curr_date(yr, mon, day, tod)
-      current_date = yr*10000 + mon*100 + day
-      current_sec = tod
-      call mark_as_initialized('current_model_date_in_iso_order')
-      call mark_as_initialized('seconds_of_current_model_date')
 
       ! Read CAM namelists.
       filein = 'atm_in' // trim(inst_suffix)
@@ -289,6 +261,40 @@ contains
       ! physics init phases will already query aerosol objects so this should
       ! be run before phys_init
       call rad_aer_init_all()
+
+      ! Allocate the registry variables and set their initial values. The
+      ! host values stored below must follow this call, which resets every
+      ! registry variable, scalars included, to its initial value.
+      call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
+
+      dtime_phys = 0.0_r8
+      call mark_as_initialized('timestep_for_physics')
+
+      is_first_timestep = .true.
+      call mark_as_initialized('is_first_timestep')
+
+      is_first_restart_timestep = .false.
+      call mark_as_initialized('is_first_restart_timestep')
+
+      nstep = get_nstep()
+      call mark_as_initialized('current_timestep_number')
+
+      ! Get current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+      next_calday = get_curr_calday(offset=int(get_step_size()))
+      radiation_offset = 0
+      nextsw_cday = next_calday
+      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
+      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
+      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
+
+      ! Get current date and elapsed seconds. Needs to be updated at every timestep.
+      call get_curr_date(yr, mon, day, tod)
+      current_date = yr*10000 + mon*100 + day
+      current_sec = tod
+      call mark_as_initialized('current_model_date_in_iso_order')
+      call mark_as_initialized('seconds_of_current_model_date')
 
       call phys_init()
 
