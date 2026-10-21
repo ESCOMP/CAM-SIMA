@@ -367,11 +367,9 @@ contains
                  iret)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read longitude')
-            ! CAM snapshots also carry the physics grid coordinates in radians
-            ! (lat_rad, lon_rad). Prefer them when present: the degrees
-            ! coordinates converted back to radians differ from the values CAM
-            ! physics used by one ulp at some columns, which seeds answer
-            ! differences in every latitude-dependent scheme.
+
+            ! Prefer physics grid coordinates in radians when available for
+            ! CAM snapshot tests.
             call read_radians_coord(fh_ini, 'lat_rad', iodesc,                &
                  num_global_columns, num_local_columns, local_lats_rad)
             call read_radians_coord(fh_ini, 'lon_rad', iodesc,                &
@@ -545,10 +543,9 @@ contains
 
    subroutine read_radians_coord(file, var_name, iodesc, num_global_columns,  &
         num_local_columns, coord_rad)
-      ! Read a column coordinate in radians that CAM's snapshot code writes as
-      ! a history field (ncol, time); the first record is used. coord_rad is
-      ! left unallocated when the file has no such variable or it does not
-      ! match the column dimension, so the degrees coordinates are used instead.
+      ! Read and validate column coordinates in radians from CAM snapshots.
+      ! coord_rad is left unallocated when the variable is unavailable so we can
+      ! fallback to the degree units in the file.
       use shr_kind_mod,   only: SHR_KIND_CL
       use pio,            only: file_desc_t, var_desc_t, io_desc_t
       use pio,            only: pio_setframe, pio_read_darray, PIO_OFFSET_KIND
