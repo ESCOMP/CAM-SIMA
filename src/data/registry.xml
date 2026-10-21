@@ -719,6 +719,12 @@
     <variable local_name="CFC11"
 	      standard_name="CFC11"
 	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>CFC11 cnst_CFC11</ic_file_input_names>
+    </variable>
+    <!-- CFC11-equivalent that CAM chemistry configurations give radiation as CFC11. -->
+    <variable local_name="CFC11STAR"
+	      standard_name="CFC11STAR"
+	      units="kg kg-1" type="real" constituent="true">
       <ic_file_input_names>CFC11STAR pbuf_CFC11STAR</ic_file_input_names>
     </variable>
     <variable local_name="O3"
@@ -2243,10 +2249,7 @@
       <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
     </variable>
-    <!-- Stratiform liquid effective radius consumed by the slingo/ebertcurry RRTMGP
-         cloud optics. Host homes it so suites whose microphysics does not
-         produce it (e.g. the rrtmgp snapshot test suite) still resolve.
-         RK (cldefr) and PUMAS overwrite it at run time. -->
+    <!-- Stratiform liquid effective radius consumed by the RRTMGP cloud optics. -->
     <variable local_name="rel"
               standard_name="effective_radius_of_stratiform_cloud_liquid_water_droplet"
               units="um" type="real" kind="kind_phys"

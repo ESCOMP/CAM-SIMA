@@ -1214,8 +1214,8 @@ contains
 
     deallocate (all_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) subname//': failed to deallocate all_data_times array; error = ', astat, trim(errmsg)
-      call endrun(subname//': failed to deallocate all_data_times array')
+      write (iulog, *) subname//': failed to deallocate all_data_times array; error = ', astat
+      call endrun(subname//': failed to deallocate all_data_times array, error message: '//trim(errmsg))
     end if
 
     if (.not. file%cyclical) then
@@ -1747,8 +1747,8 @@ contains
       deallocate(wrk3d_in, stat=ierr, errmsg=errmsg)
     end if
     if (ierr /= 0) then
-      write(iulog, *) subname//': failed to deallocate wrk3d array; error = ', ierr, trim(errmsg)
-      call endrun(subname//': failed to deallocate wrk3d array')
+      write(iulog, *) subname//': failed to deallocate wrk3d array; error = ', ierr
+      call endrun(subname//': failed to deallocate wrk3d array, error message: '//trim(errmsg))
     end if
 
     ! FV only: commented out for SIMA
@@ -1961,8 +1961,8 @@ contains
         if (allocated(data)) then
           deallocate (data, stat=ierr, errmsg=errmsg)
           if (ierr /= 0) then
-            write (iulog, *) sub//': data deallocation error = ', ierr, trim(errmsg)
-            call endrun(sub//': failed to deallocate data array')
+            write (iulog, *) sub//': data deallocation error = ', ierr
+            call endrun(sub//': failed to deallocate data array, error message: '//trim(errmsg))
           end if
         end if
         allocate (data(dsize), stat=ierr, errmsg=errmsg)
@@ -2077,8 +2077,8 @@ contains
     if (allocated(times)) then
       deallocate (times, stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
-        write (iulog, *) 'open_trc_datafile: data deallocation error = ', ierr, trim(errmsg)
-        call endrun('open_trc_datafile: failed to deallocate data array')
+        write (iulog, *) 'open_trc_datafile: data deallocation error = ', ierr
+        call endrun('open_trc_datafile: failed to deallocate data array, error message: '//trim(errmsg))
       end if
     end if
 
@@ -2128,13 +2128,13 @@ contains
 
     deallocate (dates, stat=ierr, errmsg=errmsg)
     if (ierr /= 0) then
-      if (masterproc) write (iulog, *) subname //': failed to deallocate dates array; error = ', ierr, trim(errmsg)
-      call endrun(subname //': failed to deallocate dates array')
+      if (masterproc) write (iulog, *) subname //': failed to deallocate dates array; error = ', ierr
+      call endrun(subname //': failed to deallocate dates array, error message: '//trim(errmsg))
     end if
     deallocate (datesecs, stat=ierr, errmsg=errmsg)
     if (ierr /= 0) then
-      if (masterproc) write (iulog, *) subname //': failed to deallocate datesec array; error = ', ierr, trim(errmsg)
-      call endrun(subname //': failed to deallocate datesec array')
+      if (masterproc) write (iulog, *) subname //': failed to deallocate datesec array; error = ', ierr
+      call endrun(subname //': failed to deallocate datesec array, error message: '//trim(errmsg))
     end if
 
     if (present(cyc_yr) .and. present(cyc_ndx_beg)) then
@@ -2249,8 +2249,8 @@ contains
     !-----------------------------------------------------------------------
     deallocate (file%curr_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) sub//': failed to deallocate file%curr_data_times array; error = ', astat, trim(errmsg)
-      call endrun(sub//': failed to deallocate file%curr_data_times array')
+      write (iulog, *) sub//': failed to deallocate file%curr_data_times array; error = ', astat
+      call endrun(sub//': failed to deallocate file%curr_data_times array, error message: '//trim(errmsg))
     end if
 
     allocate (file%curr_data_times(size(file%next_data_times)), stat=astat, errmsg=errmsg)
@@ -2266,8 +2266,8 @@ contains
 
     deallocate (file%next_data_times, stat=astat, errmsg=errmsg)
     if (astat /= 0) then
-      write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat, trim(errmsg)
-      call endrun(sub//': failed to deallocate file%next_data_times array')
+      write (iulog, *) sub//': failed to deallocate file%next_data_times array; error = ', astat
+      call endrun(sub//': failed to deallocate file%next_data_times array, error message: '//trim(errmsg))
     end if
 
   end subroutine advance_file
