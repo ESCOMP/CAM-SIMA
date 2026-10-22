@@ -216,8 +216,7 @@ CONTAINS
       call cam_thermo_init(columns_on_task, pver, pverp)
       call cam_thermo_formula_init()
 
-      !Run CCPP "init" phase (cam_init allocated the registry variables
-      !and stored the host time values the init phases read):
+      !Run CCPP "init" phase:
       call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))

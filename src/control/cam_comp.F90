@@ -262,10 +262,10 @@ contains
       ! be run before phys_init
       call rad_aer_init_all()
 
-      ! Allocate the registry variables and set their initial values. The
-      ! host values stored below must follow this call, which resets every
-      ! registry variable, scalars included, to its initial value.
+      ! Allocate the CAM-SIMA registry variables and set their initial values.
       call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
+      ! ... All registry values from the host must be set *after* the above call
+      ! because all registry variables (including scalars) are reset to their initial value.
 
       dtime_phys = 0.0_r8
       call mark_as_initialized('timestep_for_physics')
