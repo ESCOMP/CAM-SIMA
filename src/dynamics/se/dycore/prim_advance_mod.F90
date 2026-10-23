@@ -33,8 +33,9 @@ contains
 
     call initEdgeBuffer(par,edge3   ,elem,4*nlev   ,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
     ! del4_cslam_qgll operates on water vapor only -> single-tracer edge buffer
-    if (use_cslam.and.del4_cslam_qgll) &
+    if (use_cslam.and.del4_cslam_qgll) then
       call initEdgeBuffer(par,edgeQdp,elem,nlev,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
+    end if
     if (ksponge_end>0) then
        call initEdgeBuffer(par,edgeSponge,elem,4*ksponge_end,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
     end if

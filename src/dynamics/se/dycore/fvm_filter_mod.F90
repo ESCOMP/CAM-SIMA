@@ -32,7 +32,6 @@ module fvm_filter_mod
   use edgetype_mod,           only: EdgeBuffer_t
   implicit none
   private
-  save
 
   type (EdgeBuffer_t), private :: ghostBufQfilter1
   type (EdgeBuffer_t), private :: ghostBufQfilter
@@ -47,7 +46,6 @@ contains
     use bndry_mod      , only: ghost_exchange
     use physconst      , only: rearth
     use control_mod    , only: cslam_q_filter_nsub, cslam_q_filter_nu_fac, nu_p
-    implicit none
     type (fvm_struct)   , intent(inout) :: fvm(:)
     type (hybrid_t)     , intent(in)    :: hybrid
     integer             , intent(in)    :: nets, nete, kmin, kmax
@@ -397,7 +395,6 @@ contains
   subroutine cslam_q_filter_geom_init(elem, fvm, hybrid, nets, nete)
     use edge_mod  , only: initghostbuffer
     use thread_mod, only: horz_num_threads, vert_num_threads
-    implicit none
     type (element_t) , intent(in)    :: elem(:)
     type (fvm_struct), intent(inout) :: fvm(:)
     type (hybrid_t)  , intent(in)    :: hybrid
@@ -433,7 +430,6 @@ contains
   !
   subroutine compute_face_weights(f, face_num, w_ew, w_ns, &
                                   xw_ew, xt_ew, xw_ns, xt_ns)
-    implicit none
     type (fvm_struct), intent(in)  :: f
     integer          , intent(in)  :: face_num
     real (kind=r8)   , intent(out) :: w_ew(0:nc, 1:nc)
@@ -478,10 +474,10 @@ contains
     !  whose vtx_cart/flux_orient halo entries are placeholders)
     c3d = 0.0_r8
     do j = 0, nc+1
-       do i = 0, nc+1
+       iloop: do i = 0, nc+1
           if ((i==0 .or. i==nc+1) .and. (j==0 .or. j==nc+1)) then
-             if (.not. do_x) cycle
-             if (f%ifct(i,j) == 0) cycle
+             if (.not. do_x) cycle iloop
+             if (f%ifct(i,j) == 0) cycle iloop
           end if
           cx = 0.25_r8 * ( f%vtx_cart(1,1,i,j) + f%vtx_cart(2,1,i,j) &
                          + f%vtx_cart(3,1,i,j) + f%vtx_cart(4,1,i,j) )
@@ -489,7 +485,7 @@ contains
                          + f%vtx_cart(3,2,i,j) + f%vtx_cart(4,2,i,j) )
           ipanel = NINT(f%flux_orient(1,i,j))
           call tan_to_3d(cx, cy, ipanel, c3d(:, i, j))
-       end do
+       end do iloop
     end do
 
     !-- East-west face weights: index i = face between cell i and cell i+1 --
@@ -602,7 +598,6 @@ contains
   end subroutine compute_face_weights
 
   function cross3(a, b) result(c)
-    implicit none
     real(r8), intent(in) :: a(3), b(3)
     real(r8) :: c(3)
     c(1) = a(2)*b(3) - a(3)*b(2)
@@ -616,7 +611,6 @@ contains
   ! coordinate_systems_mod::unit_face_based_cube_to_unit_sphere.
   !
   subroutine tan_to_3d(X, Y, face_no, p)
-    implicit none
     real(r8), intent(in)  :: X, Y
     integer , intent(in)  :: face_no
     real(r8), intent(out) :: p(3)
@@ -639,7 +633,6 @@ contains
   ! (acos of near-unity dot product loses precision).
   !
   function arc_length(a, b) result(arc)
-    implicit none
     real(r8), intent(in) :: a(3), b(3)
     real(r8) :: arc, d
     d = sqrt( (a(1)-b(1))**2 + (a(2)-b(2))**2 + (a(3)-b(3))**2 )

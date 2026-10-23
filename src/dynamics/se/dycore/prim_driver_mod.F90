@@ -280,8 +280,9 @@ contains
       if (use_cslam.and..not.gll_advect_q.and.nsubstep==1.and.r==1) then
          call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dAF')
          call cslam2gll(elem, fvm, hybrid,nets,nete, tl%n0, n0_qdp)
-         if (del4_cslam_qgll) &
+         if (del4_cslam_qgll) then
             call hypervis_Qdp(elem, deriv, hybrid, tl%n0, n0_qdp, dt_remap, nets, nete)
+         end if
          call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBD')
       end if
       call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBL')
@@ -596,8 +597,9 @@ contains
        if (.not.gll_advect_q) then
           call TimeLevel_Qdp( tl, qsplit, n0_qdp, np1_qdp)
           call cslam2gll(elem, fvm, hybrid,nets,nete, tl%np1, np1_qdp)
-          if (del4_cslam_qgll) &
+          if (del4_cslam_qgll) then
                call hypervis_Qdp(elem, deriv, hybrid, tl%np1, np1_qdp, dt_remap, nets, nete)
+          end if
        end if
       end if
 

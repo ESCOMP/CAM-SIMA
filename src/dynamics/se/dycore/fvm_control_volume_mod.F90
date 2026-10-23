@@ -416,6 +416,7 @@ contains
 
   !Local arguments
   integer :: ie, iret
+  character(len=256) :: errmsg
 
   character(len=*), parameter :: subname = 'allocate_fvm_dims (SE)'
 
@@ -505,24 +506,24 @@ contains
      allocate(fvm(ie)%area_sphere(nc,nc), stat=iret)
      call check_allocate(iret, subname, 'fvm(ie)%area_sphere(nc,nc)', &
                          file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_w_ew(0:nc,1:nc), stat=iret)
+     allocate(fvm(ie)%qfilter_w_ew(0:nc,1:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_w_ew(0:nc,1:nc)', &
-                         file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_xw_ew(0:nc,1:nc), stat=iret)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(fvm(ie)%qfilter_xw_ew(0:nc,1:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_xw_ew(0:nc,1:nc)', &
-                         file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_xt_ew(0:nc,1:nc), stat=iret)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(fvm(ie)%qfilter_xt_ew(0:nc,1:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_xt_ew(0:nc,1:nc)', &
-                         file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_w_ns(1:nc,0:nc), stat=iret)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(fvm(ie)%qfilter_w_ns(1:nc,0:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_w_ns(1:nc,0:nc)', &
-                         file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_xw_ns(1:nc,0:nc), stat=iret)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(fvm(ie)%qfilter_xw_ns(1:nc,0:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_xw_ns(1:nc,0:nc)', &
-                         file=__FILE__, line=__LINE__)
-     allocate(fvm(ie)%qfilter_xt_ns(1:nc,0:nc), stat=iret)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(fvm(ie)%qfilter_xt_ns(1:nc,0:nc), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'fvm(ie)%qfilter_xt_ns(1:nc,0:nc)', &
-                         file=__FILE__, line=__LINE__)
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      ! centroids
      allocate(fvm(ie)%spherecentroid(irecons_tracer-1,1-nhc:nc+nhc,1-nhc:nc+nhc), stat=iret)
