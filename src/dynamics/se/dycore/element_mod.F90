@@ -403,6 +403,7 @@ contains
     ! Allocate the SE element arrays using the pre-calculated SE dimensions
 
     use dimensions_mod, only: nc, nlev, nlevp, qsize_d, ntrac, use_cslam
+      use control_mod,    only: gll_advect_q
 
     !Dummy arguments:
     type(element_t), intent(inout) :: elem(:)
@@ -442,8 +443,10 @@ contains
       ! With CSLAM the tracers are advected on the fvm grid and the GLL Qdp is
       ! only refreshed from it, so Qdp does not time-rotate and a single
       ! timelevel is allocated.
-      ! TimeLevel_Qdp pins n0/np1 to 1 when use_cslam = .true.:
-      if (use_cslam) then
+      ! TimeLevel_Qdp pins n0/np1 to 1 when use_cslam = .true. unless GLL
+      ! double advection (gll_advect_q) is on, which needs two Qdp time
+      ! levels:
+      if (use_cslam .and. .not. gll_advect_q) then
         allocate(elem(i)%state%Qdp(np,np,nlev,qsize_d,1), stat=iret, errmsg=errmsg)
         call check_allocate(iret, subname, 'elem%state%Qdp(np,np,nlev,qsize_d,1)', &
                             file=__FILE__, line=__LINE__, errmsg=errmsg)

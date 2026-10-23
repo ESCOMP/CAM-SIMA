@@ -11,7 +11,7 @@ module prim_driver_mod
 
   use element_mod,            only: element_t, timelevels
   use thread_mod ,            only: horz_num_threads, vert_num_threads, tracer_num_threads
-  use thread_mod ,            only: omp_set_nested
+  use thread_mod ,            only: omp_set_max_active_levels
   use perf_mod,               only: t_startf, t_stopf
   use prim_init,              only: gp, fvm_corners, fvm_points
 
@@ -29,11 +29,10 @@ contains
     use dimensions_mod,         only: fv_nphys, nc
     use parallel_mod,           only: syncmp
     use se_dyn_time_mod,        only: timelevel_t, tstep, phys_tscale, nsplit, TimeLevel_Qdp
-    use se_dyn_time_mod,        only: nsplit_baseline,rsplit_baseline
     use prim_state_mod,         only: prim_printstate
-    use control_mod,            only: runtype, topology, rsplit, qsplit, rk_stage_user,         &
+    use control_mod,            only: runtype, topology, rsplit, qsplit,         &
                                       nu, nu_q, nu_div, hypervis_subcycle, hypervis_subcycle_q, &
-                                      hypervis_subcycle_sponge, variable_nsplit
+                                      hypervis_subcycle_sponge
     use fvm_mod,                only: fill_halo_fvm,ghostBufQnhc_h
     use thread_mod,             only: omp_get_thread_num
     use global_norms_mod,       only: print_cfl
@@ -59,12 +58,6 @@ contains
     ! Local variables
     ! ==================================
 
-    !   variables used to calculate CFL
-!   variables used to calculate CFL
-    real (kind=r8) :: dtnu            ! timestep*viscosity parameter
-    real (kind=r8) :: dt_dyn_del2_sponge
-    real (kind=r8) :: dt_tracer_vis      ! viscosity timestep used in tracers
-    real (kind=r8) :: dt_dyn_vis      ! viscosity timestep
     real (kind=r8) :: dt_remap        ! remapping timestep
 
     real (kind=r8) :: dp,dp0,T1,T0,pmid_ref(np,np)
@@ -85,23 +78,6 @@ contains
     ! ==========================
     !call prim_advance_init(hybrid%par,elem)
 
-    ! compute most restrictive dt*nu for use by variable res viscosity:
-    ! compute timestep seen by viscosity operator:
-    dt_dyn_vis = tstep
-    dt_dyn_del2_sponge = tstep
-    dt_tracer_vis=tstep*qsplit
-    dt_remap=dt_tracer_vis*rsplit
-    ! compute most restrictive condition:
-    ! note: dtnu ignores subcycling
-    dtnu=max(dt_dyn_vis*max(nu,nu_div), dt_tracer_vis*nu_q)
-    ! compute actual viscosity timesteps with subcycling
-    dt_tracer_vis = dt_tracer_vis/hypervis_subcycle_q
-    dt_dyn_vis = dt_dyn_vis/hypervis_subcycle
-    dt_dyn_del2_sponge = dt_dyn_del2_sponge/hypervis_subcycle_sponge
-    if (variable_nsplit) then
-       nsplit_baseline=nsplit
-       rsplit_baseline=rsplit
-    end if
     ! ==================================
     ! Initialize derivative structure
     ! ==================================
@@ -124,13 +100,10 @@ contains
 
     ! CAM has set tstep based on dtime before calling prim_init2(),
     ! so only now does HOMME learn the timstep.  print them out:
-    call print_cfl(elem,hybrid,nets,nete,dtnu,&
+    call print_cfl(elem,hybrid,nets,nete,&
          !p top and p mid levels
-         hvcoord%hyai(1)*hvcoord%ps0,hvcoord%hyam(:)*hvcoord%ps0+hvcoord%hybm(:)*pstd,&
-         !dt_remap,dt_tracer_fvm,dt_tracer_se
-         tstep*qsplit*rsplit,tstep*qsplit*fvm_supercycling,tstep*qsplit,&
-         !dt_dyn,dt_dyn_visco,dt_tracer_visco, dt_phys
-         tstep,dt_dyn_vis,dt_dyn_del2_sponge,dt_tracer_vis,tstep*nsplit*qsplit*rsplit)
+         hvcoord%hyai(1)*hvcoord%ps0,hvcoord%hyam(:)*hvcoord%ps0+hvcoord%hybm(:)*pstd)
+    dt_remap = tstep*qsplit*rsplit
 
     if (hybrid%masterthread) then
        if (phys_tscale/=0) then
@@ -220,10 +193,12 @@ contains
 !
     use hybvcoord_mod, only : hvcoord_t
     use se_dyn_time_mod,        only: TimeLevel_t, timelevel_update, timelevel_qdp, nsplit
-    use control_mod,            only: statefreq,qsplit, rsplit, variable_nsplit, dribble_in_rsplit_loop
+    use control_mod,            only: statefreq,qsplit, rsplit, dribble_in_rsplit_loop
+    use control_mod,            only: del4_cslam_qgll, gll_advect_q
     use prim_advance_mod,       only: applycamforcing
     use prim_advance_mod,       only: tot_energy_dyn,compute_omega
-    use prim_state_mod,         only: prim_printstate, adjust_nsplit
+    use prim_advance_mod,       only: hypervis_Qdp
+    use prim_state_mod,         only: prim_printstate
     use prim_advection_mod,     only: vertical_remap, deriv
     use thread_mod,             only: omp_get_thread_num
     use perf_mod   ,            only: t_startf, t_stopf
@@ -267,7 +242,7 @@ contains
     !
     ! initialize variables for computing vertical Courant number
     !
-    if (variable_nsplit.or.compute_diagnostics) then
+    if (compute_diagnostics) then
       if (nsubstep==1) then
         do ie=nets,nete
           omega_cn(1,ie) = 0.0_r8
@@ -302,9 +277,11 @@ contains
       !
       ! right after physics overwrite Qdp with CSLAM values
       !
-      if (use_cslam.and.nsubstep==1.and.r==1) then
+      if (use_cslam.and..not.gll_advect_q.and.nsubstep==1.and.r==1) then
          call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dAF')
          call cslam2gll(elem, fvm, hybrid,nets,nete, tl%n0, n0_qdp)
+         if (del4_cslam_qgll) &
+            call hypervis_Qdp(elem, deriv, hybrid, tl%n0, n0_qdp, dt_remap, nets, nete)
          call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBD')
       end if
       call tot_energy_dyn(elem,fvm,nets,nete,tl%n0,n0_qdp,'dBL')
@@ -330,7 +307,7 @@ contains
 
     call tot_energy_dyn(elem,fvm,nets,nete,tl%np1,np1_qdp,'dAD')
 
-    if (variable_nsplit.or.compute_diagnostics) then
+    if (compute_diagnostics) then
       !
       ! initialize variables for computing vertical Courant number
       !
@@ -375,7 +352,7 @@ contains
     !
     ! Compute vertical Courant numbers
     !
-    if (variable_nsplit.or.compute_diagnostics) then
+    if (compute_diagnostics) then
       do ie=nets,nete
         do k=1,nlev
           do j=1,np
@@ -391,11 +368,6 @@ contains
           end do
         end do
       end do
-      if (nsubstep==nsplit.and.variable_nsplit) then
-         call t_startf('adjust_nsplit')
-         call adjust_nsplit(elem, tl, hybrid,nets,nete, fvm, omega_cn)
-         call t_stopf('adjust_nsplit')
-      end if
     end if
 
     ! ============================================================
@@ -435,15 +407,15 @@ contains
     use hybvcoord_mod,          only: hvcoord_t
     use se_dyn_time_mod,        only: TimeLevel_t, timelevel_update
     use control_mod,            only: statefreq, qsplit, nu_p
+    use control_mod,            only: del4_cslam_qgll, gll_advect_q
     use thread_mod,             only: omp_get_thread_num
     use prim_advance_mod,       only: prim_advance_exp
     use prim_advection_mod,     only: prim_advec_tracers_remap, prim_advec_tracers_fvm, deriv
     use derivative_mod,         only: subcell_integration
+    use prim_advance_mod,       only: hypervis_Qdp
     use hybrid_mod,             only: set_region_num_threads, config_thread_region, get_loop_ranges
-    use dimensions_mod,         only: use_cslam,fvm_supercycling,fvm_supercycling_jet
-    use dimensions_mod,         only: kmin_jet, kmax_jet
+    use dimensions_mod,         only: use_cslam,fvm_supercycling
     use fvm_mod,                only: ghostBufQnhc_vh,ghostBufQ1_vh, ghostBufFlux_vh
-    use fvm_mod,                only: ghostBufQ1_h,ghostBufQnhcJet_h, ghostBufFluxJet_h
     use se_dyn_time_mod,        only: timelevel_qdp
     use fvm_mapping,            only: cslam2gll
 #ifdef waccm_debug
@@ -566,23 +538,33 @@ contains
     ! special case in CAM: if CSLAM tracers are turned on , qsize=1 but this tracer should
     ! not be advected.  This will be cleaned up when the physgrid is merged into CAM trunk
     ! Currently advecting all species
-    if (.not.use_cslam) then
+    if (.not.use_cslam .or. gll_advect_q) then
       call t_startf('prim_advec_tracers_remap')
-      region_num_threads=tracer_num_threads
-      call omp_set_nested(.true.)
+      if (use_cslam) then
+        ! Deactivate threading in the tracer dimension if this is a CSLAM run
+        region_num_threads = 1
+      else
+        region_num_threads = tracer_num_threads
+      end if
+      call omp_set_max_active_levels(2)
       !$OMP PARALLEL NUM_THREADS(region_num_threads), DEFAULT(SHARED), PRIVATE(hybridnew)
-      hybridnew = config_thread_region(hybrid,'tracer')
+      if (use_cslam) then
+        hybridnew = config_thread_region(hybrid,'serial')
+      else
+        hybridnew = config_thread_region(hybrid,'tracer')
+      end if
       call Prim_Advec_Tracers_remap(elem, deriv,hvcoord,hybridnew,dt_q,tl,nets,nete)
       !$OMP END PARALLEL
-      call omp_set_nested(.false.)
+      call omp_set_max_active_levels(1)
       call t_stopf('prim_advec_tracers_remap')
-   else
+    end if
+   if (use_cslam) then
       !
       ! only run fvm transport every fvm_supercycling rstep
       !
       ! FVM transport
       !
-      if ((mod(rstep,fvm_supercycling) == 0).and.(mod(rstep,fvm_supercycling_jet) == 0)) then
+      if (mod(rstep,fvm_supercycling) == 0) then
 
 !        call omp_set_nested(.true.)
 !        !$OMP PARALLEL NUM_THREADS(vert_num_threads), DEFAULT(SHARED), PRIVATE(hybridnew2,kbeg,kend)
@@ -611,14 +593,12 @@ contains
             end do
           end do
        end do
-       call TimeLevel_Qdp( tl, qsplit, n0_qdp, np1_qdp)
-       if (.not.last_step) call cslam2gll(elem, fvm, hybrid,nets,nete, tl%np1, np1_qdp)
-      else if ((mod(rstep,fvm_supercycling_jet) == 0)) then
-        !
-        ! shorter fvm time-step in jet region
-        !
-        call Prim_Advec_Tracers_fvm(elem,fvm,hvcoord,hybrid,&
-             dt_q,tl,nets,nete,ghostBufQnhcJet_h,ghostBufQ1_h, ghostBufFluxJet_h,kmin_jet,kmax_jet)
+       if (.not.gll_advect_q) then
+          call TimeLevel_Qdp( tl, qsplit, n0_qdp, np1_qdp)
+          call cslam2gll(elem, fvm, hybrid,nets,nete, tl%np1, np1_qdp)
+          if (del4_cslam_qgll) &
+               call hypervis_Qdp(elem, deriv, hybrid, tl%np1, np1_qdp, dt_remap, nets, nete)
+       end if
       end if
 
 #ifdef waccm_debug
@@ -722,9 +702,8 @@ contains
       use element_mod,      only: element_t
       use hybvcoord_mod ,   only: hvcoord_t
       use dimensions_mod,   only: nelemd, nlev, np
-!Un-comment once constitutents are enabled -JN:
-!      use constituents,     only: cnst_type, qmin, num_advected
       use cam_constituents, only: num_advected
+      use dimensions_mod,   only: qmin_adv, cnst_is_wet_adv
       use cam_logfile,      only: iulog
       use spmd_utils,       only: masterproc
 
@@ -758,19 +737,19 @@ contains
         ! and conserve mixing ratio (not mass) of 'dry' tracers
         !
         do m_cnst = 1, num_advected
-!Un-comment once constitutents are enabled -JN:
-!          if (cnst_type(m_cnst).ne.'dry') then
+          ! Scale 'wet' constituents to conserve their mass under the dry-mass
+          ! adjustment and floor at the constituent minimum; 'dry'-type
+          ! constituents keep their mixing ratio (CAM-SIMA issue #446).
+          if (cnst_is_wet_adv(m_cnst)) then
             do k=1,nlev
               do j = 1,np
                 do i = 1,np
                   q(i,j,k,ie,m_cnst) = q(i,j,k,ie,m_cnst)*factor(i,j,k)
-!Un-comment once constitutents are enabled -JN:
-!                  q(i,j,k,ie,m_cnst) = max(qmin(m_cnst),q(i,j,k,ie,m_cnst))
-                  q(i,j,k,ie,m_cnst) = max(0._r8,q(i,j,k,ie,m_cnst))
+                  q(i,j,k,ie,m_cnst) = max(qmin_adv(m_cnst),q(i,j,k,ie,m_cnst))
                 end do
               end do
             end do
-!          end if
+          end if
         end do
       end do
       if (masterproc) then

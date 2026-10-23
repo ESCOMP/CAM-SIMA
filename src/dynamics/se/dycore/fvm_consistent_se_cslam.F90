@@ -2,7 +2,7 @@ module fvm_consistent_se_cslam
   use shr_kind_mod,           only: r8=>shr_kind_r8
   use dimensions_mod,         only: nc, nhe, nlev, ntrac, np, nhr, nhc, ngpc, ns, nht
   use dimensions_mod,         only: irecons_tracer
-  use dimensions_mod,         only: kmin_jet,kmax_jet
+  use control_mod,            only: cslam_q_filter
   use cam_abortutils,         only: endrun
   use cam_logfile,            only: iulog
 
@@ -11,6 +11,7 @@ module fvm_consistent_se_cslam
   use fvm_control_volume_mod, only: fvm_struct
   use hybrid_mod,             only: hybrid_t, config_thread_region, get_loop_ranges, threadOwnsVertLevel
   use perf_mod,               only: t_startf, t_stopf
+  use fvm_filter_mod,         only: apply_cslam_q_filter_del4
   implicit none
   private
 
@@ -43,7 +44,7 @@ contains
     use bndry_mod             , only: ghost_exchange
     use hybvcoord_mod         , only: hvcoord_t
     use dimensions_mod        , only: large_Courant_incr,irecons_tracer_lev,qmin_cslam
-    use thread_mod            , only: vert_num_threads, omp_set_nested
+    use thread_mod            , only: vert_num_threads, omp_set_max_active_levels
     implicit none
     type (element_t)      , intent(inout) :: elem(:)
     type (fvm_struct), target     , intent(inout) :: fvm(:)
@@ -88,10 +89,12 @@ contains
        region_num_threads = vert_num_threads
     endif
 
-    call omp_set_nested(.true.)
+    call omp_set_max_active_levels(2)
     !$OMP PARALLEL NUM_THREADS(region_num_threads), DEFAULT(SHARED), &
     !$OMP PRIVATE(hybridnew,kblk,ie,k,kmin,gspts,inv_dp_area,itr), &
-    !$OMP PRIVATE(kmin_jet_local,kmax,kmax_jet_local,kptr,q,ctracer,ActiveJetThread)
+    !$OMP PRIVATE(kmin_jet_local,kmax,kmax_jet_local,kptr,q,ctracer,ActiveJetThread), &
+    !$OMP PRIVATE(i,j,fcube,spherecentroid,gsweights,klev)
+
     call gauss_points(ngpc,gsweights,gspts) !set gauss points/weights
     gspts = 0.5_r8*(gspts+1.0_r8) !shift location so in [0:1] instead of [-1:1]
 
@@ -196,14 +199,12 @@ contains
     !
     if (large_Courant_incr) then
       if(FVM_TIMERS) call t_startf('fvm:fill_halo_fvm:large_Courant')
-      !if (kmin_jet<kmin.or.kmax_jet>kmax) then
-      !  call endrun('ERROR: kmax_jet must be .le. kmax passed to run_consistent_se_cslam')
-      !end if
+      ! Every thread applies the increment to its own level block (kmin:kmax), so every thread is now active.
+      ActiveJetThread = .true.
       ! Determine the extent of the JET that is owned by this thread
-      ActiveJetThread = threadOwnsVertLevel(hybridnew,kmin_jet) .or. threadOwnsVertLevel(hybridnew,kmax_jet)
-      kmin_jet_local = max(kmin_jet,kmin)
-      kmax_jet_local = min(kmax_jet,kmax)
-      klev = kmax_jet-kmin_jet+1
+      kmin_jet_local = max(1,kmin)
+      kmax_jet_local = min(nlev,kmax)
+      klev = nlev
       call fill_halo_fvm(ghostbufQ1,elem,fvm,hybridnew,nets,nete,1,kmin_jet_local,kmax_jet_local,klev,active=ActiveJetThread)
       if(FVM_TIMERS) call t_stopf('fvm:fill_halo_fvm:large_Courant')
       if(FVM_TIMERS) call t_startf('fvm:large_Courant_number_increment')
@@ -254,13 +255,18 @@ contains
       end do
     end do
     if(FVM_TIMERS) call t_stopf('fvm:end_of_reconstruct_subroutine')
+    if (cslam_q_filter) then
+      if(FVM_TIMERS) call t_startf('fvm:cslam_q_filter')
+      call apply_cslam_q_filter_del4(fvm, hybridnew, nets, nete, kmin, kmax, dt_fvm, &
+           limiter=.true., xdiff=.true.)
+      if(FVM_TIMERS) call t_stopf('fvm:cslam_q_filter')
+    end if
     !$OMP END PARALLEL
-    call omp_set_nested(.false.)
+    call omp_set_max_active_levels(1)
   end subroutine run_consistent_se_cslam
 
   subroutine swept_flux(elem,fvm,ilev,ctracer,irecons_tracer_actual,gsweights,gspts)
     use fvm_analytic_mod      , only: get_high_order_weights_over_areas
-    use dimensions_mod, only : kmin_jet,kmax_jet
     implicit none
     type (element_t) , intent(in)   :: elem
     type (fvm_struct), intent(inout):: fvm
@@ -587,13 +593,6 @@ contains
               end if
             end do
             fvm%se_flux(i,j,iside,ilev) = mass_flux_se(i,j,iside)-flux
-            if (fvm%se_flux(i,j,iside,ilev)>1.0E-13_r8.and.(ilev<kmin_jet.or.ilev>kmax_jet)) then
-              write(iulog,*) "CN excess flux outside of pre-scribed jet region"
-              write(iulog,*) "Increase jet region with kmin_jet and kmax_jet ",&
-                   ilev,fvm%se_flux(i,j,iside,ilev),mass_flux_se(i,j,iside),flux,flowcase,&
-                   kmin_jet,kmax_jet
-              call endrun('ERROR in CSLAM: local Courant number is > 1; Increase kmin_jet/kmax_jet?')
-            end if
 
             fvm%dp_fvm(i  ,j  ,ilev        ) = fvm%dp_fvm(i  ,j  ,ilev        )-flux
             fvm%     c(i  ,j  ,ilev,1:ntrac) = fvm%     c(i  ,j  ,ilev,1:ntrac)-flux_tracer(1:ntrac)
@@ -654,6 +653,7 @@ contains
                     fvm%se_flux(i,j,iside,ilev)*inv_dp_area(i,j)
             end if
 #endif
+
             do itr=1,ntrac
               flux_tracer(itr) = fvm%se_flux(i,j,iside,ilev)*c_tmp(i,j,itr)*inv_dp_area(i,j)
             end do
@@ -848,7 +848,7 @@ contains
 #ifdef waccm_debug
               fvm%CSLAM_gamma(i,j,k,iside) = gamma(iside)
 #endif
-              if (gamma(iside)>1_r8) then
+              if (gamma(iside)>1._r8) then
                  if (.not.large_Courant_incr) then
                     write(iulog,*) 'ERROR in CSLAM: local Courant number is >1: gamma=',gamma(iside),' k=',k
                     call endrun('ERROR in CSLAM: local Courant number is > 1; set namelist se_large_Courant_incr=.true. ')
@@ -1342,6 +1342,12 @@ contains
        if (ib==seast) degenerate(nc+1,1   ) = 1
     end if
 
+    !
+    ! preset =1 and only ever clear to 0 below: the sgn loop runs sgn=-1 then
+    ! sgn=+1, so an else-branch reset on the sgn=+1 pass would wipe a
+    ! circular-flow detection made at sgn=-1.  Detection for either sign sticks.
+    !
+    circular_flow = 1
     do j=1,nc+1
        do i=1,nc+1
           do sgn=-1,1,2
@@ -1349,8 +1355,6 @@ contains
                   sgn*flux_sum(i-1,j,1)<0.0_r8.and.sgn*flux_sum(i,j-1,2)>0.0_r8.and.&
                   sgn*flux_sum(i  ,j,1)>0.0_r8.and.sgn*flux_sum(i,j  ,2)<0.0_r8) then
                 circular_flow(i,j) = 0
-             else
-                circular_flow(i,j) = 1
              end if
           end do
        end do

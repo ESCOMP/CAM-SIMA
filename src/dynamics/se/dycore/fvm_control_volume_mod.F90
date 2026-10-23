@@ -76,6 +76,13 @@ module fvm_control_volume_mod
     real(kind=r8)           :: dalpha, dbeta                      ! central-angle for gnomonic coordinates
     type(spherical_polar_t), allocatable :: center_cart(:,:)      ! center of fvm cell in gnomonic coordinates
     real(kind=r8),           allocatable :: area_sphere(:,:)      ! spherical area of fvm cell
+    !
+    ! Precomputed face-metric weights for the CSLAM-grid del4 Q filter
+    ! (filled at init by cslam_q_filter_geom_init; unset when filter off)
+    !
+    real(kind=r8),           allocatable :: qfilter_w_ew (:,:), qfilter_w_ns (:,:)
+    real(kind=r8),           allocatable :: qfilter_xw_ew(:,:), qfilter_xt_ew(:,:)
+    real(kind=r8),           allocatable :: qfilter_xw_ns(:,:), qfilter_xt_ns(:,:)
     real(kind=r8),           allocatable :: spherecentroid(:,:,:) ! centroids
     !
     ! pre-computed metric terms (for efficiency)
@@ -497,6 +504,24 @@ contains
      ! spherical area of fvm cell
      allocate(fvm(ie)%area_sphere(nc,nc), stat=iret)
      call check_allocate(iret, subname, 'fvm(ie)%area_sphere(nc,nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_w_ew(0:nc,1:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_w_ew(0:nc,1:nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_xw_ew(0:nc,1:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_xw_ew(0:nc,1:nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_xt_ew(0:nc,1:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_xt_ew(0:nc,1:nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_w_ns(1:nc,0:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_w_ns(1:nc,0:nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_xw_ns(1:nc,0:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_xw_ns(1:nc,0:nc)', &
+                         file=__FILE__, line=__LINE__)
+     allocate(fvm(ie)%qfilter_xt_ns(1:nc,0:nc), stat=iret)
+     call check_allocate(iret, subname, 'fvm(ie)%qfilter_xt_ns(1:nc,0:nc)', &
                          file=__FILE__, line=__LINE__)
 
      ! centroids

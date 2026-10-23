@@ -22,6 +22,7 @@ module fvm_mod
 
   implicit none
   private
+  save
 
   type (EdgeBuffer_t) :: edgeveloc
   type (EdgeBuffer_t), public  :: ghostBufQnhc_s
@@ -30,10 +31,7 @@ module fvm_mod
   type (EdgeBuffer_t), public  :: ghostBufQnhc_h
   type (EdgeBuffer_t), public  :: ghostBufQ1_h
   type (EdgeBuffer_t), public  :: ghostBufQ1_vh
-!  type (EdgeBuffer_t), private  :: ghostBufFlux_h
   type (EdgeBuffer_t), public  :: ghostBufFlux_vh
-  type (EdgeBuffer_t), public  :: ghostBufQnhcJet_h
-  type (EdgeBuffer_t), public  :: ghostBufFluxJet_h
   type (EdgeBuffer_t), public  :: ghostBufPG_s
   type (EdgeBuffer_t), public  :: ghostBuf_cslam2gll
 
@@ -50,6 +48,7 @@ contains
   subroutine fill_halo_fvm_noprealloc(elem,fvm,hybrid,nets,nete,ndepth,kmin,kmax,ksize)
     use perf_mod, only : t_startf, t_stopf ! _EXTERNAL
     use dimensions_mod, only: nc, ntrac, nlev
+    implicit none
     type (element_t),intent(inout)            :: elem(:)
     type (fvm_struct),intent(inout)           :: fvm(:)
     type (hybrid_t),intent(in)                :: hybrid
@@ -65,10 +64,10 @@ contains
     !
     !
 
-    if(kmin /= 1 .or. kmax /= nlev) then
+    if(kmin .ne. 1 .or. kmax .ne. nlev) then
        print *,'WARNING: fill_halo_fvm_noprealloc does not support the passing of non-contigous arrays'
        print *,'WARNING:   incorrect answers are likely'
-    end if
+    endif
     if(FVM_TIMERS) call t_startf('FVM:initbuf')
     i1=1-ndepth
     i2=nc+ndepth
@@ -82,7 +81,7 @@ contains
        do q=1,ntrac
           kptr = kptr + ksize
           call ghostpack(cellghostbuf, fvm(ie)%c(i1:i2,i1:i2,kmin:kmax,q)   ,kblk,kptr,ie)
-       end do
+       enddo
     end do
     if(FVM_TIMERS) call t_stopf('FVM:pack')
     if(FVM_TIMERS) call t_startf('FVM:Communication')
@@ -95,9 +94,9 @@ contains
        call ghostunpack(cellghostbuf, fvm(ie)%dp_fvm(i1:i2,i1:i2,kmin:kmax),kblk   ,kptr,ie)
        do q=1,ntrac
           kptr = kptr + ksize
-          call ghostunpack(cellghostbuf, fvm(ie)%c(i1:i2,i1:i2,kmin:kmax,:),   kblk,kptr,ie)
-       end do
-    end do
+          call ghostunpack(cellghostbuf, fvm(ie)%c(i1:i2,i1:i2,kmin:kmax,q),   kblk,kptr,ie)
+       enddo
+    enddo
     if(FVM_TIMERS) call t_stopf('FVM:Unpack')
     if(FVM_TIMERS) call t_startf('FVM:freebuf')
     call freeghostbuffer(cellghostbuf)
@@ -107,6 +106,7 @@ contains
 subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,kmin,kmax,ksize,active)
     use perf_mod, only : t_startf, t_stopf ! _EXTERNAL
     use dimensions_mod, only: nc, ntrac, nlev
+    implicit none
     type (EdgeBuffer_t), intent(inout)       :: cellghostbuf
     type (element_t),intent(inout)            :: elem(:)
     type (fvm_struct),intent(inout)           :: fvm(:)
@@ -117,7 +117,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     integer,intent(in)                        :: ndepth     ! depth of halo
     integer,intent(in)                        :: kmin,kmax  ! min and max vertical level
     integer,intent(in)                        :: ksize      ! the total number of vertical
-    logical, optional, intent(in)             :: active     ! indicates if te current thread is active
+    logical, optional                         :: active     ! indicates if te current thread is active
     integer                                   :: ie,i1,i2,kblk,q,kptr
     !
     !
@@ -127,7 +127,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
        lactive = active
     else
        lactive = .true.
-    end if
+    endif
 !    call t_startf('FVM:initbuf')
     i1=1-ndepth
     i2=nc+ndepth
@@ -140,9 +140,9 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
        do q=1, ntrac
           kptr = kptr + ksize
           call ghostpack(cellghostbuf, fvm(ie)%c(i1:i2,i1:i2,kmin:kmax,q) ,kblk,kptr,ie)
-       end do
+       enddo
     end do
-    end if
+    endif
     if(FVM_TIMERS) call t_stopf('FVM:pack')
     if(FVM_TIMERS) call t_startf('FVM:Communication')
     call ghost_exchange(hybrid,cellghostbuf,location='fill_halo_fvm_prealloc')
@@ -156,35 +156,33 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
        do q=1, ntrac
           kptr = kptr + ksize
           call ghostunpack(cellghostbuf, fvm(ie)%c(i1:i2,i1:i2,kmin:kmax,q), kblk,kptr,ie)
-       end do
-    end do
-    end if
+       enddo
+    enddo
+    endif
     if(FVM_TIMERS) call t_stopf('FVM:Unpack')
 
   end subroutine fill_halo_fvm_prealloc
 
  subroutine PrintArray(i1,i2,array)
-   use cam_logfile, only: iulog
    ! debug routine potentially called from any MPI rank
-   integer, intent(in) :: i1
-   integer, intent(in) :: i2
-   real(kind=r8), intent(in) :: array(i1:i2,i1:i2)
+   integer :: i1,i2
+   real(kind=r8) :: array(i1:i2,i1:i2)
    integer :: sz,i,ub
 
    sz = size(array,dim=1)
 
    if (sz == 9) then
      do i=i2,i1,-1
-        write(iulog,9) array(-2,i),array(-1,i), array(0,i), &
-                   array(1,i), array(2,i), array(3,i), &
-                   array(4,i), array(5,i), array(6,i)
-     end do
-   end if
+        write(6,9) array(-2,i),array(-1,i), array(0,i), &
+                   array( 1,i), array(2,i), array(3,i), &
+                   array( 4,i), array(5,i), array(6,i)
+     enddo
+   endif
 
  9      format('|',9(f10.1,'|'))
 
 
- end subroutine PrintArray
+ end subroutine
 
 
   subroutine fill_halo_and_extend_panel(elem,fvm,fld,hybrid,nets,nete,nphys,nhcc, ndepth,numlev,num_flds,lfill_halo,lextend_panel)
@@ -209,7 +207,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     integer               :: ie,k,itr,nht_phys,nh_phys
     integer               :: iret
     type (edgeBuffer_t)   :: cellghostbuf
-    character(len=256) :: errorstring
+
     character(len=*), parameter :: subname = 'fill_halo_and_extend_panel (SE)'
 
     if (lfill_halo) then
@@ -241,16 +239,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       !*********************************************
       !
       if (nphys==fv_nphys) then
-        if (ndepth>nhr_phys) then
-          call endrun('fill_halo_and_extend_panel: ndepth>nhr_phys')
-        end if
+        if (ndepth>nhr_phys) &
+             call endrun("fill_halo_and_extend_panel: ndepth>nhr_phys")
         nht_phys = nhe_phys+nhr_phys
         nh_phys  = nhr_phys
 
-        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret, errmsg=errorstring)
+        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
         call check_allocate(iret, subname, &
                             'fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)', &
-                            file=__FILE__, line=__LINE__, errmsg=errorstring)
+                            file=__FILE__, line=__LINE__)
 
         do ie=nets,nete
           do itr=1,num_flds
@@ -266,16 +263,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         end do
         deallocate(fld_tmp)
       else if (nphys==nc) then
-        if (ndepth>nhr) then
-          call endrun('fill_halo_and_extend_panel: ndepth>nhr')
-        end if
+        if (ndepth>nhr) &
+             call endrun("fill_halo_and_extend_panel: ndepth>nhr")
         nhe_phys= 0
         nht_phys= nhe_phys+nhr
         nh_phys = nhr
-        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret, errmsg=errorstring)
+        allocate(fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys), stat=iret)
         call check_allocate(iret, subname, &
                             'fld_tmp(1-nht_phys:nphys+nht_phys,1-nht_phys:nphys+nht_phys)', &
-                            file=__FILE__, line=__LINE__, errmsg=errorstring)
+                            file=__FILE__, line=__LINE__)
 
         do ie=nets,nete
           do itr=1,num_flds
@@ -291,7 +287,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         end do
         deallocate(fld_tmp)
       else
-        call endrun('fill_halo_and_extend_panel: resolution not supported')
+        call endrun("fill_halo_and_extend_panel: resolution not supported")
       end if
     end if
   end subroutine fill_halo_and_extend_panel
@@ -304,143 +300,121 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use cam_logfile,            only: iulog
     use control_mod,            only: rsplit
     use dimensions_mod,         only: qsize, qsize_d
-    use dimensions_mod,         only: fvm_supercycling, fvm_supercycling_jet
-    use dimensions_mod,         only: nc,nhe, nhc, nlev,ntrac, ntrac,ns, nhr, use_cslam
-    use dimensions_mod,         only: large_Courant_incr
-    use dimensions_mod,         only: kmin_jet,kmax_jet
+    use dimensions_mod,         only: fvm_supercycling
+    use dimensions_mod,         only: nc,nhe, nhc, nlev,ntrac,ns, nhr, use_cslam
 
-    type (parallel_t), intent(inout) :: par
-    type (element_t),intent(inout)   :: elem(:)
+    type (parallel_t) :: par
+    type (element_t),intent(inout)            :: elem(:)
     !
     if (use_cslam) then
       if (par%masterproc) then
-        write(iulog,*) '                                           '
-        write(iulog,*) '|-----------------------------------------|'
-        write(iulog,*) '| FVM tracer transport scheme information |'
-        write(iulog,*) '|-----------------------------------------|'
-        write(iulog,*) '                                           '
-        write(iulog,*) 'Running consistent SE-CSLAM, Lauritzen et al. (2017, MWR).'
-        write(iulog,*) 'CSLAM = Conservative Semi-LAgrangian Multi-tracer scheme'
-        write(iulog,*) 'Lauritzen et al., (2010), J. Comput. Phys.'
-        write(iulog,*) '  '
+        write(iulog,*) "                                           "
+        write(iulog,*) "|-----------------------------------------|"
+        write(iulog,*) "| FVM tracer transport scheme information |"
+        write(iulog,*) "|-----------------------------------------|"
+        write(iulog,*) "                                           "
+        write(iulog,*) "Running consistent SE-CSLAM, Lauritzen et al. (2017, MWR)."
+        write(iulog,*) "CSLAM = Conservative Semi-LAgrangian Multi-tracer scheme"
+        write(iulog,*) "Lauritzen et al., (2010), J. Comput. Phys."
+        write(iulog,*) "  "
       end if
       !
       ! PARAMETER ERROR CHECKING
       !
-      if (kmin_jet>kmax_jet) then
-        call endrun('PARAMETER ERROR for fvm: kmin_jet must be < kmax_jet')
-      end if
 
-      if (qsize>0.and.mod(rsplit,fvm_supercycling)/=0) then
+      if (qsize>0.and.mod(rsplit,fvm_supercycling).ne.0) then
         if (par%masterproc) then
           write(iulog,*)'cannot supercycle fvm tracers with respect to se tracers'
           write(iulog,*)'with this choice of rsplit =',rsplit
           write(iulog,*)'rsplit must be a multiple of fvm_supercycling=',fvm_supercycling
         end if
-        call endrun('PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling)<>0')
-      end if
-
-      if (qsize>0.and.mod(rsplit,fvm_supercycling_jet)/=0) then
-        if (par%masterproc) then
-          write(iulog,*)'cannot supercycle fvm tracers with respect to se tracers'
-          write(iulog,*)'with this choice of rsplit =',rsplit
-          write(iulog,*)'rsplit must be a multiple of fvm_supercycling_jet=',fvm_supercycling_jet
-        end if
-        call endrun('PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling_jet)<>0')
-      end if
-
-      if (large_Courant_incr.and.(fvm_supercycling/=fvm_supercycling_jet)) then
-        if (par%masterproc) then
-          write(iulog,*)'Large Courant number increment requires no level dependent supercycling'
-          write(iulog,*)'i.e. fvm_supercycling must be equal to fvm_supercycling_jet'
-        end if
-        call endrun('PARAMETER ERROR for fvm: large_courant_incr requires fvm_supercycling=fvm_supercycling_jet')
-      end if
+        call endrun("PARAMETER ERROR for fvm: mod(rsplit,fvm_supercycling)<>0")
+      endif
 
       if (par%masterproc) then
-        write(iulog,*) '                                            '
-        write(iulog,*) 'Done Tracer transport scheme information    '
-        write(iulog,*) '                                            '
+        write(iulog,*) "                                            "
+        write(iulog,*) "Done Tracer transport scheme information    "
+        write(iulog,*) "                                            "
       end if
 
 
-      if (par%masterproc) write(iulog,*) 'fvm resolution is nc*nc in each element: nc = ',nc
+      if (par%masterproc) write(iulog,*) "fvm resolution is nc*nc in each element: nc = ",nc
       if (par%masterproc) write(iulog,*)'ntrac=',ntrac
       if (par%masterproc) write(iulog,*)'qsize,qsize_d=',qsize,qsize_d
 
-      if (nc/=3) then
+      if (nc.ne.3) then
         if (par%masterproc) then
-          write(iulog,*) 'Only nc==3 is supported for CSLAM'
+          write(iulog,*) "Only nc==3 is supported for CSLAM"
         end if
-        call endrun('PARAMETER ERRROR for fvm: only nc=3 supported for CSLAM')
+        call endrun("PARAMETER ERRROR for fvm: only nc=3 supported for CSLAM")
       end if
 
       if (par%masterproc) then
-        write(iulog,*) '  '
+        write(iulog,*) "  "
         if (ns==1) then
-          write(iulog,*) 'ns==1: using no interpolation for mapping cell averages values across edges'
-          write(iulog,*) 'Note: this is not a recommended setting - large errors at panel edges!'
+          write(iulog,*) "ns==1: using no interpolation for mapping cell averages values across edges"
+          write(iulog,*) "Note: this is not a recommended setting - large errors at panel edges!"
         else if (ns==2) then
-          write(iulog,*) 'ns==2: using linear interpolation for mapping cell averages values across edges'
-          write(iulog,*) 'Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)'
-          write(iulog,*) 'so this option is slightly less accurate (but the stencil is smaller near panel edges!)'
+          write(iulog,*) "ns==2: using linear interpolation for mapping cell averages values across edges"
+          write(iulog,*) "Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)"
+          write(iulog,*) "so this option is slightly less accurate (but the stencil is smaller near panel edges!)"
 
         else if (ns==3) then
-          write(iulog,*) 'ns==3: using quadratic interpolation for mapping cell averages values across edges'
-          write(iulog,*) 'Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)'
-          write(iulog,*) 'so this option is slightly less accurate (but the stencil is smaller near panel edges!)'
+          write(iulog,*) "ns==3: using quadratic interpolation for mapping cell averages values across edges"
+          write(iulog,*) "Note that ns=4 is default CSLAM setting used in Lauritzen et al. (2010)"
+          write(iulog,*) "so this option is slightly less accurate (but the stencil is smaller near panel edges!)"
         else if (ns==4) then
-          write(iulog,*) 'ns==4: using cubic interpolation for mapping cell averages values across edges'
-          write(iulog,*) 'This is default CSLAM setting used in Lauritzen et al. (2010)'
+          write(iulog,*) "ns==4: using cubic interpolation for mapping cell averages values across edges"
+          write(iulog,*) "This is default CSLAM setting used in Lauritzen et al. (2010)"
         else
-          write(iulog,*) 'Not a tested value for ns but it should work! You choose ns = ',ns
+          write(iulog,*) "Not a tested value for ns but it should work! You choose ns = ",ns
         end if
 
-        !       if (ns/=3) then
-        !         write(iulog,*) 'In fvm_reconstruction_mod function matmul_w has been hard-coded for ns=3 for performance'
-        !         write(iulog,*) 'Revert to general code - outcommented above'
-        !         call endrun('stopping')
+        !       if (ns.NE.3) then
+        !         write(*,*) "In fvm_reconstruction_mod function matmul_w has been hard-coded for ns=3 for performance"
+        !         write(*,*) "Revert to general code - outcommented above"
+        !         call endrun("stopping")
         !       end if
       end if
 
       if (MOD(ns,2)==0.and.nhr+(nhe-1)+ns/2>nc+nc) then
-        write(iulog,*) 'to run this combination of ns and nhr you need to increase nc to ',nhr+ns/2+nhe-1
-        write(iulog,*) 'You choose (ns,nhr,nc,nhe)=',ns,nhr,nc,nhe
-        call endrun('stopping')
+        write(iulog,*) "to run this combination of ns and nhr you need to increase nc to ",nhr+ns/2+nhe-1
+        write(iulog,*) "You choose (ns,nhr,nc,nhe)=",ns,nhr,nc,nhe
+        call endrun("stopping")
       end if
       if (MOD(ns,2)==1.and.nhr+(ns-1)/2+(nhe-1)>nc+nc) then
-        write(iulog,*) 'to run this combination of ns and nhr you need to increase nc to ',nhr+(ns-1)/2+nhe-1
-        write(iulog,*) 'You choose (ns,nhr,nc,nhe)=',ns,nhr,nc,nhe
-        call endrun('stopping')
+        write(iulog,*) "to run this combination of ns and nhr you need to increase nc to ",nhr+(ns-1)/2+nhe-1
+        write(iulog,*) "You choose (ns,nhr,nc,nhe)=",ns,nhr,nc,nhe
+        call endrun("stopping")
       end if
 
-      if (nc==3.and.ns/=3) then
+      if (nc==3.and.ns.ne.3) then
         if (par%masterproc) then
-          write(iulog,*) 'Recommended setting for nc=3 is ns=3 (linear interpolation in halo)'
-          write(iulog,*) 'You choose ns=',ns
-          write(iulog,*) 'Goto dimensions_mod to change value of ns'
-          write(iulog,*) 'or outcomment call haltmop below (i.e. you know what you are doing!)'
+          write(iulog,*) "Recommended setting for nc=3 is ns=3 (linear interpolation in halo)"
+          write(iulog,*) "You choose ns=",ns
+          write(iulog,*) "Goto dimensions_mod to change value of ns"
+          write(iulog,*) "or outcomment call haltmop below (i.e. you know what you are doing!)"
         end if
-        call endrun('stopping')
+        call endrun("stopping")
       end if
     end if
 
-    if (nc==4.and.ns/=4) then
+    if (nc==4.and.ns.ne.4) then
       if (par%masterproc) then
-        write(iulog,*) 'Recommended setting for nc=4 is ns=4 (cubic interpolation in halo)'
-        write(iulog,*) 'You choose ns=',ns
-        write(iulog,*) 'Goto dimensions_mod to change value of ns'
-        write(iulog,*) 'or outcomment call haltmop below (i.e. you know what you are doing!)'
-      end if
-      call endrun('stopping')
+        write(iulog,*) "Recommended setting for nc=4 is ns=4 (cubic interpolation in halo)"
+        write(iulog,*) "You choose ns=",ns
+        write(iulog,*) "Goto dimensions_mod to change value of ns"
+        write(iulog,*) "or outcomment call haltmop below (i.e. you know what you are doing!)"
+      endif
+      call endrun("stopping")
     end if
 
-    if (nhe /= 1) then
+    if (nhe .ne. 1) then
       if (par%masterproc) then
-        write(iulog,*) 'PARAMETER ERROR for fvm: Number of halo zone for the extended'
-        write(iulog,*) 'element nhe has to be 1, only this is available now! STOP!'
-      end if
-      call endrun('stopping')
+        write(iulog,*) "PARAMETER ERROR for fvm: Number of halo zone for the extended"
+        write(iulog,*) "element nhe has to be 1, only this is available now! STOP!"
+      endif
+      call endrun("stopping")
     end if
   end subroutine fvm_init1
 
@@ -454,24 +428,21 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use bndry_mod,              only: compute_ghost_corner_orientation
     use dimensions_mod,         only: nlev, nc, nhc, nhe, ntrac, np
     use dimensions_mod,         only: nhc_phys, fv_nphys
-    use dimensions_mod,         only: fvm_supercycling, fvm_supercycling_jet
-    use dimensions_mod,         only: kmin_jet,kmax_jet
+    use control_mod,            only: gll_advect_q
     use hycoef,                 only: hyai, hybi, ps0
     use derivative_mod,         only: subcell_integration
     use air_composition,        only: thermodynamic_active_species_num
 
-    type (fvm_struct), intent(inout) :: fvm(:)
-    type (element_t),  intent(inout) :: elem(:)
-    type (hybrid_t),   intent(inout) :: hybrid
-    integer, intent(in) :: nets
-    integer, intent(in) :: nete
-    integer :: k, ie, klev
-    real(kind=r8) :: one(np,np)
+    type (fvm_struct) :: fvm(:)
+    type (element_t)  :: elem(:)
+    type (hybrid_t)   :: hybrid
+    integer           :: ie,nets,nete,k,klev
+    real(kind=r8)     :: one(np,np)
 
     one = 1.0_r8
     do ie=nets,nete
       do k = 1, nlev
-        fvm(ie)%dp_ref(k)         = (hyai(k+1) - hyai(k))*ps0 + (hybi(k+1) - hybi(k))*ps0
+        fvm(ie)%dp_ref(k)         = ( hyai(k+1) - hyai(k) )*ps0 + ( hybi(k+1) - hybi(k) )*ps0
         fvm(ie)%dp_ref_inverse(k) = 1.0_r8/fvm(ie)%dp_ref(k)
       end do
     end do
@@ -494,7 +465,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       fvm(ie)%fc(:,:,:,:) = 0.0_r8
       fvm(ie)%fm(:,:,:,:) = 0.0_r8
       fvm(ie)%ft(:,:,:  ) = 0.0_r8
-    end do
+    enddo
     ! Need to allocate ghostBufQnhc after compute_ghost_corner_orientation because it
     ! changes the values for reverse
 
@@ -502,7 +473,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     call initghostbuffer(hybrid%par,ghostBufQnhc_t1,elem,nlev, nhc,nc,nthreads=1)
     call initghostbuffer(hybrid%par,ghostBufQnhc_h,elem,nlev*(ntrac+1),nhc,nc,nthreads=horz_num_threads)
     call initghostbuffer(hybrid%par,ghostBufQnhc_vh,elem,nlev*(ntrac+1),nhc,nc,nthreads=vert_num_threads*horz_num_threads)
-    klev = kmax_jet-kmin_jet+1
+    klev = nlev
     call initghostbuffer(hybrid%par,ghostBufQ1_h,elem,klev*(ntrac+1),1,nc,nthreads=horz_num_threads)
     call initghostbuffer(hybrid%par,ghostBufQ1_vh,elem,klev*(ntrac+1),1,nc,nthreads=vert_num_threads*horz_num_threads)
 !    call initghostbuffer(hybrid%par,ghostBufFlux_h,elem,4*nlev,nhe,nc,nthreads=horz_num_threads)
@@ -511,19 +482,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     !
     ! preallocate buffers for physics-dynamics coupling
     !
-    if (fv_nphys/=nc) then
+    if (fv_nphys.ne.nc) then
        call initghostbuffer(hybrid%par,ghostBufPG_s,elem,nlev*(4+ntrac),nhc_phys,fv_nphys,nthreads=1)
     else
-       call initghostbuffer(hybrid%par,ghostBufPG_s,elem,nlev*3,nhc_phys,fv_nphys,nthreads=1)
-    end if
-
-    if (fvm_supercycling/=fvm_supercycling_jet) then
-      !
-      ! buffers for running different fvm time-steps in the jet region
-      !
-      klev = kmax_jet-kmin_jet+1
-      call initghostbuffer(hybrid%par,ghostBufQnhcJet_h,elem,klev*(ntrac+1),nhc,nc,nthreads=horz_num_threads)
-      call initghostbuffer(hybrid%par,ghostBufFluxJet_h,elem,4*klev,nhe,nc,nthreads=horz_num_threads)
+       if (gll_advect_q) then
+          call initghostbuffer(hybrid%par,ghostBufPG_s,elem,nlev*(3+thermodynamic_active_species_num),&
+               nhc_phys,fv_nphys,nthreads=1)
+       else
+          call initghostbuffer(hybrid%par,ghostBufPG_s,elem,nlev*3,nhc_phys,fv_nphys,nthreads=1)
+       end if
     end if
   end subroutine fvm_init2
 
@@ -535,6 +502,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     use dimensions_mod,         only: nlev, nc, nhe, nlev, ntrac, nhc
     use coordinate_systems_mod, only: cartesian2D_t,cartesian3D_t
     use coordinate_systems_mod, only: cubedsphere2cart, cart2cubedsphere
+    implicit none
     type (element_t) ,intent(inout)  :: elem(:)
     type (fvm_struct),intent(inout)  :: fvm(:)
     type (hybrid_t)  ,intent(in)     :: hybrid
@@ -542,15 +510,15 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     !
     type (edgeBuffer_t)     :: cellghostbuf
     integer                 :: ie, ixy, ivertex, i, j,istart,itot,ishft,imin,imax
-    integer                 :: unit_vec(2,4)
-    integer                 :: rot90_matrix(2,2)
-    integer                 :: iside
+    integer, dimension(2,4) :: unit_vec
+    integer                 :: rot90_matrix(2,2), iside
+    real (kind=r8)          :: displ_ns, displ_ew
 
     type (cartesian2D_t)                :: tmpgnom
     type (cartesian2D_t)                :: gnom
     type(cartesian3D_t)                 :: tmpcart3d
 
-    if (use_cslam.and.nc/=fv_nphys) then
+    if (use_cslam.and.nc.ne.fv_nphys) then
       !
       ! fill the fvm halo for mapping in d_p_coupling if
       ! physics grid resolution is different than fvm resolution
@@ -602,7 +570,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
         istart=istart+1
         call ghostunpack(cellghostbuf, fvm(ie)%spherecentroid(ixy,:,:) ,1,istart,ie)
       end do
-    end do
+    enddo
     call freeghostbuffer(cellghostbuf)
     !
     ! indicator for non-existing cells
@@ -611,22 +579,22 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     do ie=nets,nete
        if (fvm(ie)%cubeboundary==nwest) then
          fvm(ie)%flux_orient     (:  ,1-nhc      :0     ,nc      +1 :nc      +nhc      ) = -1
-         fvm(ie)%spherecentroid  (:,    1-nhc      :0     ,nc      +1 :nc      +nhc    ) = -1.0e5_r8
+         fvm(ie)%spherecentroid  (:,    1-nhc      :0     ,nc      +1 :nc      +nhc    ) = -1e5_r8
          fvm(ie)%vtx_cart(:,1,1-nhc:0     ,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(4,1,1,nc)
          fvm(ie)%vtx_cart(:,2,1-nhc:0     ,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(4,2,1,nc)
        else if (fvm(ie)%cubeboundary==swest) then
          fvm(ie)%flux_orient     (:,1-nhc      :0     ,1-nhc      :0   ) = -1
-         fvm(ie)%spherecentroid  (:,1-nhc      :0     ,1-nhc      :0   ) = -1.0e5_r8
+         fvm(ie)%spherecentroid  (:,1-nhc      :0     ,1-nhc      :0   ) = -1e5_r8
          fvm(ie)%vtx_cart(:,1,1-nhc:0     ,1-nhc:0     ) = fvm(ie)%vtx_cart(1,1,1,1)
          fvm(ie)%vtx_cart(:,2,1-nhc:0     ,1-nhc:0     ) = fvm(ie)%vtx_cart(1,2,1,1)
        else if (fvm(ie)%cubeboundary==neast) then
          fvm(ie)%flux_orient     (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1
-         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1.0e5_r8
+         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,nc      +1 :nc      +nhc    ) = -1e5_r8
          fvm(ie)%vtx_cart(:,1,nc+1 :nc+nhc,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(3,1,nc,nc)
          fvm(ie)%vtx_cart(:,2,nc+1 :nc+nhc,nc+1 :nc+nhc) = fvm(ie)%vtx_cart(3,2,nc,nc)
        else if (fvm(ie)%cubeboundary==seast) then
          fvm(ie)%flux_orient     (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1
-         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1.0e5_r8
+         fvm(ie)%spherecentroid  (:,nc      +1 :nc      +nhc      ,1-nhc      :0   ) = -1e5_r8
          fvm(ie)%vtx_cart(:,1,nc+1 :nc+nhc,1-nhc:0     ) = fvm(ie)%vtx_cart(2,1,nc,1)
          fvm(ie)%vtx_cart(:,2,nc+1 :nc+nhc,1-nhc:0     ) = fvm(ie)%vtx_cart(2,2,nc,1)
        end if
@@ -635,10 +603,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
      !
      ! set vectors for perpendicular flux vector
      !
-     rot90_matrix(1,1) = 0 !counter-clockwise rotation matrix
-     rot90_matrix(2,1) = 1 !counter-clockwise rotation matrix
-     rot90_matrix(1,2) =-1 !counter-clockwise rotation matrix
-     rot90_matrix(2,2) = 0 !counter-clockwise rotation matrix
+     rot90_matrix(1,1) = 0; rot90_matrix(2,1) =  1 !counter-clockwise rotation matrix
+     rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix
 
      iside = 1
      unit_vec(1,iside) = 0 !x-component of displacement vector for side 1
@@ -673,20 +639,25 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              ! set flux vector to zero in non-existent cells (corner halo)
              !
              fvm(ie)%flux_vec        (ixy,i,j,1:4) = fvm(ie)%ifct(i,j)*fvm(ie)%flux_vec(ixy,i,j,1:4)
-
-             iside=1
-             fvm(ie)%displ_max(i,j,iside) = fvm(ie)%displ_max(i,j,iside)+&
-                  ABS(fvm(ie)%vtx_cart(4,ixy,i,j)-fvm(ie)%vtx_cart(1,ixy,i,j))
-             iside=2
-             fvm(ie)%displ_max(i,j,iside) = fvm(ie)%displ_max(i,j,iside)+&
-                  ABS(fvm(ie)%vtx_cart(1,ixy,i,j)-fvm(ie)%vtx_cart(2,ixy,i,j))
-             iside=3
-             fvm(ie)%displ_max(i,j,iside) = fvm(ie)%displ_max(i,j,iside)+&
-                  ABS(fvm(ie)%vtx_cart(2,ixy,i,j)-fvm(ie)%vtx_cart(3,ixy,i,j))
-             iside=4
-             fvm(ie)%displ_max(i,j,iside) = fvm(ie)%displ_max(i,j,iside)+&
-                  ABS(fvm(ie)%vtx_cart(2,ixy,i,j)-fvm(ie)%vtx_cart(1,ixy,i,j))
            end do
+           !
+           ! displacement cap per side = cell extent perpendicular to the face
+           ! (L1 length).  Use MIN of the two parallel cell edges so the cap is
+           ! mirror/rotation symmetric and conservative on trapezoidal cells.
+           ! Previously side 4 reused the side-2 (1-2) edge -- asymmetric where
+           ! cells are distorted (panel edges/corners), biasing the gamma_max
+           ! swept-area clamp when Courant ~ 1.
+           !
+           displ_ns = MIN( &
+                SUM(ABS(fvm(ie)%vtx_cart(4,:,i,j)-fvm(ie)%vtx_cart(1,:,i,j))), &
+                SUM(ABS(fvm(ie)%vtx_cart(3,:,i,j)-fvm(ie)%vtx_cart(2,:,i,j))) )
+           displ_ew = MIN( &
+                SUM(ABS(fvm(ie)%vtx_cart(2,:,i,j)-fvm(ie)%vtx_cart(1,:,i,j))), &
+                SUM(ABS(fvm(ie)%vtx_cart(3,:,i,j)-fvm(ie)%vtx_cart(4,:,i,j))) )
+           fvm(ie)%displ_max(i,j,1) = displ_ns
+           fvm(ie)%displ_max(i,j,2) = displ_ew
+           fvm(ie)%displ_max(i,j,3) = displ_ns
+           fvm(ie)%displ_max(i,j,4) = displ_ew
          end do
        end do
      end do
@@ -714,7 +685,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
              !
              ! coordinate transform only necessary for points on another panel
              !
-             if (NINT(fvm(ie)%flux_orient(1,1,1))/=NINT(fvm(ie)%flux_orient(1,i,j))) then
+             if (NINT(fvm(ie)%flux_orient(1,1,1)).NE.NINT(fvm(ie)%flux_orient(1,i,j))) then
                tmpcart3d=cubedsphere2cart(gnom,NINT(fvm(ie)%flux_orient(1,i,j)))
                tmpgnom=cart2cubedsphere(tmpcart3d,NINT(fvm(ie)%flux_orient(1,1,1)))
              else
@@ -765,9 +736,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
     ! ==================================
 
     integer                 :: ie, ixy, ivertex, i, j,istart,itot,ishft,imin,imax
-    integer                 :: unit_vec(2,4)
-    integer                 :: rot90_matrix(2,2)
-    integer                 :: iside
+    integer, dimension(2,4) :: unit_vec
+    integer                 :: rot90_matrix(2,2), iside
 
     type (edgeBuffer_t)                     :: cellghostbuf
 
@@ -822,7 +792,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
           istart=istart+1
           call ghostunpack(cellghostbuf, fvm(ie)%spherecentroid_physgrid(ixy,:,:) ,1,istart,ie)
         end do
-      end do
+      enddo
       call freeghostbuffer(cellghostbuf)
       !
       ! indicator for non-existing cells
@@ -830,32 +800,32 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       !
       do ie=nets,nete
         if (fvm(ie)%cubeboundary==nwest) then
-          fvm(ie)%flux_orient_physgrid   (:  ,1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys) = -1
-          fvm(ie)%spherecentroid_physgrid(:,  1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys) = -1.0e5_r8
+          fvm(ie)%flux_orient_physgrid   (:  ,1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys    ) = -1
+          fvm(ie)%spherecentroid_physgrid(:,  1-nhc_phys      :0     ,fv_nphys      +1 :fv_nphys      +nhc_phys    ) = -1e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,1-nhc_phys:0     ,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(4,1,1,fv_nphys)
           fvm(ie)%vtx_cart_physgrid(:,2,1-nhc_phys:0     ,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(4,2,1,fv_nphys)
         else if (fvm(ie)%cubeboundary==swest) then
-          fvm(ie)%flux_orient_physgrid   (:,1-nhc_phys      :0     ,1-nhc_phys      :0) = -1
-          fvm(ie)%spherecentroid_physgrid(:,1-nhc_phys      :0     ,1-nhc_phys      :0) = -1.0e5_r8
-          fvm(ie)%vtx_cart_physgrid(:,1,1-nhc_phys:0     ,1-nhc_phys:0) = fvm(ie)%vtx_cart_physgrid(1,1,1,1)
-          fvm(ie)%vtx_cart_physgrid(:,2,1-nhc_phys:0     ,1-nhc_phys:0) = fvm(ie)%vtx_cart_physgrid(1,2,1,1)
+          fvm(ie)%flux_orient_physgrid   (:,1-nhc_phys      :0     ,1-nhc_phys      :0   ) = -1
+          fvm(ie)%spherecentroid_physgrid(:,1-nhc_phys      :0     ,1-nhc_phys      :0   ) = -1e5_r8
+          fvm(ie)%vtx_cart_physgrid(:,1,1-nhc_phys:0     ,1-nhc_phys:0     ) = fvm(ie)%vtx_cart_physgrid(1,1,1,1)
+          fvm(ie)%vtx_cart_physgrid(:,2,1-nhc_phys:0     ,1-nhc_phys:0     ) = fvm(ie)%vtx_cart_physgrid(1,2,1,1)
         else if (fvm(ie)%cubeboundary==neast) then
           fvm(ie)%flux_orient_physgrid   (:,fv_nphys      +1 :fv_nphys      +nhc_phys      , &
                fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1
           fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      , &
-               fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1.0e5_r8
+               fv_nphys      +1 :fv_nphys      +nhc_phys      ) = -1e5_r8
           fvm(ie)%vtx_cart_physgrid(:,1,fv_nphys+1 :fv_nphys+nhc_phys,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(3,1,fv_nphys,fv_nphys)
           fvm(ie)%vtx_cart_physgrid(:,2,fv_nphys+1 :fv_nphys+nhc_phys,fv_nphys+1 :fv_nphys+nhc_phys) = &
                fvm(ie)%vtx_cart_physgrid(3,2,fv_nphys,fv_nphys)
         else if (fvm(ie)%cubeboundary==seast) then
-          fvm(ie)%flux_orient_physgrid   (:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0) = -1
-          fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0) = -1.0e5_r8
-          fvm(ie)%vtx_cart_physgrid(:,1,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0) = &
+          fvm(ie)%flux_orient_physgrid   (:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0   ) = -1
+          fvm(ie)%spherecentroid_physgrid(:,fv_nphys      +1 :fv_nphys      +nhc_phys      ,1-nhc_phys      :0   ) = -1e5_r8
+          fvm(ie)%vtx_cart_physgrid(:,1,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0     ) = &
                fvm(ie)%vtx_cart_physgrid(2,1,fv_nphys,1)
-          fvm(ie)%vtx_cart_physgrid(:,2,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0) = &
+          fvm(ie)%vtx_cart_physgrid(:,2,fv_nphys+1 :fv_nphys+nhc_phys,1-nhc_phys:0     ) = &
                fvm(ie)%vtx_cart_physgrid(2,2,fv_nphys,1)
         end if
       end do
@@ -863,10 +833,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
       !
       ! set vectors for perpendicular flux vector
       !
-      rot90_matrix(1,1) = 0 !counter-clockwise rotation matrix
-      rot90_matrix(2,1) = 1 !counter-clockwise rotation matrix
-      rot90_matrix(1,2) =-1 !counter-clockwise rotation matrix
-      rot90_matrix(2,2) = 0 !counter-clockwise rotation matrix
+      rot90_matrix(1,1) = 0; rot90_matrix(2,1) =  1 !counter-clockwise rotation matrix
+      rot90_matrix(1,2) =-1; rot90_matrix(2,2) =  0 !counter-clockwise rotation matrix
 
       iside = 1
       unit_vec(1,iside) = 0 !x-component of displacement vector for side 1
@@ -924,7 +892,7 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
               !
               ! coordinate transform only necessary for points on another panel
               !
-              if (NINT(fvm(ie)%flux_orient_physgrid(1,1,1))/=NINT(fvm(ie)%flux_orient_physgrid(1,i,j))) then
+              if (NINT(fvm(ie)%flux_orient_physgrid(1,1,1)).NE.NINT(fvm(ie)%flux_orient_physgrid(1,i,j))) then
                 tmpcart3d=cubedsphere2cart(gnom,NINT(fvm(ie)%flux_orient_physgrid(1,i,j)))
                 tmpgnom=cart2cubedsphere(tmpcart3d,NINT(fvm(ie)%flux_orient_physgrid(1,1,1)))
               else
@@ -939,8 +907,8 @@ subroutine fill_halo_fvm_prealloc(cellghostbuf,elem,fvm,hybrid,nets,nete,ndepth,
               fvm(ie)%norm_elem_coord_physgrid(2,i,j) =(tmpgnom%y-elem(ie)%corners(1)%y)/&
                    (0.5_r8*real(fv_nphys, r8)*fvm(ie)%dalpha_physgrid)-1.0_r8
             else
-              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1.0E9_r8
-              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1.0E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(1,i,j) = 1.E9_r8
+              fvm(ie)%norm_elem_coord_physgrid(2,i,j) = 1.E9_r8
             end if
           end do
         end do
