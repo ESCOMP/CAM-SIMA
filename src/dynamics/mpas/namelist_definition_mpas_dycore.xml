@@ -399,7 +399,7 @@
         <type>integer</type>
         <units>none</units>
         <values>
-            <value>2</value>
+            <value>4</value>
         </values>
     </entry>
     <entry id="mpas_number_rayleigh_damp_u_levels">

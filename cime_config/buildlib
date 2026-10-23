@@ -4,12 +4,13 @@
 create the cam library
 """
 # Python system imports
-import sys
-import os
 import filecmp
+import logging
+import os
+import re
 import shutil
 import subprocess
-import logging
+import sys
 
 from cam_config import ConfigCAM # CAM's configure structure
 from atm_musica_config import MUSICA_CCPP_SCHEME_NAME, MUSICA_CONFIG_DIR_NAME
@@ -29,9 +30,8 @@ from CIME.case import Case
 from CIME.utils import run_cmd, expect
 from CIME.utils import stop_buffering_output
 from CIME.buildlib import parse_input
-from CIME.build import get_standard_makefile_args
+from CIME.build import get_standard_makefile_args, CmakeTmpBuildDir
 from CIME.Tools.standard_script_setup import check_minimum_python_version
-from CIME.locked_files import lock_file, unlock_file
 from CIME.XML.env_build import EnvBuild
 #pylint: enable=wrong-import-position
 
@@ -159,21 +159,21 @@ def _build_cam():
             ccpp_defs_str = ' '.join(config.cpp_defs)
             cmd += f" USER_CPPDEFS='{ccpp_defs_str}'"
 
-        # If dynamical core is MPAS, prepare its build infrastructure so it can be built along with CAM-SIMA below.
+        # If the dynamical core is MPAS, stage the build tree and determine which optional features to enable.
         if dycore == "mpas":
-            _prepare_mpas(case)
+            _stage_mpas_build_tree(case, _LOGGER)
 
-            optional_mpas_features = []
+            optional_mpas_features = _get_optional_mpas_features(case, config, _LOGGER)
+            scotch = None
 
-            if case.get_value("USE_ESMF_LIB"):
-                optional_mpas_features.append("+ESMF_LIBRARY")
-                optional_mpas_features.append("+PERF_MOD_LIBRARY")
+            if optional_mpas_features:
+                cmd += f' OPTIONAL_MPAS_FEATURES="{" ".join(optional_mpas_features)}"'
 
-            if config.get_value("dyn_kind") == "REAL32":
-                optional_mpas_features.append("+SINGLE_PRECISION")
+                if "+SCOTCH_LIBRARY" in optional_mpas_features:
+                    scotch = case.get_value("SCOTCH_PATH") or _build_scotch(case, _LOGGER)
+                    cmd += f' SCOTCH="{scotch}"'
 
-            if len(optional_mpas_features) > 0:
-                cmd += " OPTIONAL_MPAS_FEATURES=\"" + " ".join(optional_mpas_features) + "\""
+            _update_scotch_linking_flags(case, scotch, _LOGGER)
 
         # If MUSICA-CCPP scheme is used in a suite, download
         # the MUSICA configuration and build the MUSICA library
@@ -209,34 +209,200 @@ def _build_cam():
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
 ###############################################################################
-def _prepare_mpas(case: Case) -> None:
+def _stage_mpas_build_tree(case: Case, logger: logging.Logger | None = None) -> None:
 ###############################################################################
     """
-    Prepare MPAS build infrastructure.
+    Stage the MPAS build tree such that it can be built alongside CAM-SIMA by CIME.
     """
 
     atm_src_root = os.path.normpath(case.get_value("COMP_ROOT_DIR_ATM"))
     atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
 
-    mpas_dycore_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "dycore", "src")
+    mpas_dycore_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas")
     mpas_dycore_bld_root = os.path.join(atm_bld_root, "mpas")
 
-    # Make sure `mpas_dycore_src_root` exists. If not, it is likely that `./bin/git-fleximod update` did not succeed.
-    if os.path.isfile(mpas_dycore_src_root):
-        raise FileExistsError(1, "Unexpected file", mpas_dycore_src_root)
+    # Make sure MPAS source tree exists. If not, it is likely that `./bin/git-fleximod update`
+    # did not succeed.
+    if not os.path.isdir(os.path.join(mpas_dycore_src_root, "dycore", "src")):
+        raise FileNotFoundError(
+            1,
+            "MPAS source tree does not exist",
+            os.path.join(mpas_dycore_src_root, "dycore", "src"))
 
-    if not os.path.isdir(mpas_dycore_src_root):
-        raise FileNotFoundError(1, "No such directory", mpas_dycore_src_root)
+    if logger is not None:
+        logger.info("Staging MPAS build tree at %s from %s", mpas_dycore_bld_root, mpas_dycore_src_root)
 
-    # MPAS supports "in-source" build only. Copy source code to `mpas_dycore_bld_root` to avoid polluting `mpas_dycore_src_root`.
-    if os.path.isfile(mpas_dycore_bld_root):
-        raise FileExistsError(1, "Unexpected file", mpas_dycore_bld_root)
+    # MPAS supports "in-source" build only. Copy source code to build tree to avoid polluting
+    # source tree.
+    shutil.copytree(
+        os.path.join(mpas_dycore_src_root, "dycore", "src"),
+        mpas_dycore_bld_root,
+        copy_function=_copy2_as_needed,
+        dirs_exist_ok=True)
+    shutil.move(
+        os.path.join(mpas_dycore_bld_root, "Makefile"),
+        os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
+    shutil.copytree(
+        os.path.join(mpas_dycore_src_root, "assets"),
+        mpas_dycore_bld_root,
+        ignore=lambda path, names: [name for name in names
+                                    if not name.startswith("Makefile") and
+                                    not name.endswith(".patch")], # Only copy build-related assets.
+        copy_function=_copy2_as_needed,
+        dirs_exist_ok=True)
+    shutil.copytree(
+        os.path.join(mpas_dycore_src_root, "driver"),
+        os.path.join(mpas_dycore_bld_root, "driver"),
+        copy_function=_copy2_as_needed,
+        dirs_exist_ok=True)
 
-    shutil.copytree(mpas_dycore_src_root, mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
-    shutil.move(os.path.join(mpas_dycore_bld_root, "Makefile"), os.path.join(mpas_dycore_bld_root, "Makefile.CESM"))
+###############################################################################
+def _get_optional_mpas_features(case: Case, config: ConfigCAM, logger: logging.Logger | None = None) -> list[str]:
+###############################################################################
+    """
+    Get the optional MPAS features to enable based on the current case and CAM-SIMA configuration.
+    """
 
-    shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "assets")), mpas_dycore_bld_root, copy_function=_copy2_as_needed, dirs_exist_ok=True)
-    shutil.copytree(os.path.normpath(os.path.join(mpas_dycore_src_root, os.pardir, os.pardir, "driver")), os.path.join(mpas_dycore_bld_root, "driver"), copy_function=_copy2_as_needed, dirs_exist_ok=True)
+    optional_mpas_features = []
+
+    if case.get_value("USE_ESMF_LIB"):
+        optional_mpas_features.append("+ESMF_LIBRARY")
+        optional_mpas_features.append("+PERF_MOD_LIBRARY")
+
+    if case.get_value("USE_SCOTCH_LIB"):
+        optional_mpas_features.append("+SCOTCH_LIBRARY")
+
+    if config.get_value("dyn_kind").strip() == "REAL32":
+        optional_mpas_features.append("+SINGLE_PRECISION")
+
+    if logger is not None:
+        logger.info("Optional MPAS features: %s", " ".join(optional_mpas_features))
+
+    return optional_mpas_features
+
+###############################################################################
+def _build_scotch(case: Case, logger: logging.Logger | None = None) -> str:
+###############################################################################
+    """
+    Build the Scotch library and return the installation path.
+    """
+
+    atm_src_root = os.path.normpath(case.get_value("COMP_ROOT_DIR_ATM"))
+    atm_bld_root = os.path.normpath(os.path.join(case.get_value("EXEROOT"), "atm", "obj"))
+
+    scotch_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "scotch")
+    scotch_bld_root = os.path.join(atm_bld_root, "scotch", "build")
+
+    # Make sure Scotch source tree exists. If not, it is likely that `./bin/git-fleximod update`
+    # did not succeed.
+    if not os.path.isdir(os.path.join(scotch_src_root, "src")):
+        raise FileNotFoundError(
+            1,
+            "Scotch source tree does not exist",
+            os.path.join(scotch_src_root, "src"))
+
+    os.makedirs(scotch_bld_root, exist_ok=True)
+
+    build_type = "Debug" if case.get_value("DEBUG") else "Release"
+    build_variables = _get_build_variables(case)
+    install_libdir = "lib"
+    install_prefix = os.path.join(atm_bld_root, "scotch")
+
+    cmd = " ".join([
+        "cmake",
+        f'-D CMAKE_C_COMPILER="{build_variables["MPICC"]}"',
+        f'-D CMAKE_Fortran_COMPILER="{build_variables["MPIFC"]}"',
+        f'-D CMAKE_BUILD_TYPE="{build_type}"',
+        f'-D CMAKE_INSTALL_LIBDIR="{install_libdir}"',
+        f'-D CMAKE_INSTALL_PREFIX="{install_prefix}"',
+        '-D BUILD_SHARED_LIBS="FALSE"',
+        '-D ENABLE_TESTS="FALSE"',
+        '-D SCOTCH_DETERMINISTIC="FULL"',
+        f'-B "{scotch_bld_root}"',
+        f'-S "{scotch_src_root}"'])
+    if logger is not None:
+        logger.info("Configuring Scotch: %s", cmd)
+    rc, out, err = run_cmd(cmd, from_dir=scotch_bld_root)
+    expect(
+        rc == 0,
+        "\n".join([f"Command {cmd} failed with rc={rc}:", "out=", out, "err=", err]))
+
+    cmd = f'cmake --build "{scotch_bld_root}"'
+    if logger is not None:
+        logger.info("Building Scotch: %s", cmd)
+    rc, out, err = run_cmd(cmd, from_dir=scotch_bld_root)
+    expect(
+        rc == 0,
+        "\n".join([f"Command {cmd} failed with rc={rc}:", "out=", out, "err=", err]))
+
+    cmd = f'cmake --install "{scotch_bld_root}"'
+    if logger is not None:
+        logger.info("Installing Scotch: %s", cmd)
+    rc, out, err = run_cmd(cmd, from_dir=scotch_bld_root)
+    expect(
+        rc == 0,
+        "\n".join([f"Command {cmd} failed with rc={rc}:", "out=", out, "err=", err]))
+
+    return install_prefix
+
+###############################################################################
+def _update_scotch_linking_flags(case: Case, scotch: None | str, logger: logging.Logger | None = None) -> None:
+###############################################################################
+    """
+    Add/remove the linking flags for the Scotch library to/from the current case as needed.
+    """
+
+    scotch_linking_flags = r" *-L[^ ]+ +-lptscotch +-lscotch +-lptscotcherr"
+
+    cam_linked_libs = case.get_value("CAM_LINKED_LIBS").strip()
+
+    if scotch is None:
+        new_cam_linked_libs = re.sub(scotch_linking_flags, "", cam_linked_libs).strip()
+
+        if new_cam_linked_libs == cam_linked_libs:
+            # Same value as `CAM_LINKED_LIBS`. No need to update.
+            return
+    else:
+        scotch_ldflags = (
+            f'-L{os.path.join(scotch, "lib64")}'
+            if os.path.isdir(os.path.join(scotch, "lib64"))
+            else f'-L{os.path.join(scotch, "lib")}'
+        )
+        scotch_libs = "-lptscotch -lscotch -lptscotcherr"
+
+        new_cam_linked_libs = re.sub(scotch_linking_flags, "", cam_linked_libs).strip()
+        new_cam_linked_libs = f"{new_cam_linked_libs} {scotch_ldflags} {scotch_libs}"
+
+        if new_cam_linked_libs == cam_linked_libs:
+            # Same value as `CAM_LINKED_LIBS`. No need to update.
+            return
+
+    cmd = f'./xmlchange CAM_LINKED_LIBS="{new_cam_linked_libs}"'
+    if logger is not None:
+        logger.info("Updating CAM_LINKED_LIBS: %s", cmd)
+    rc, out, err = run_cmd(cmd, from_dir=case.get_value("CASEROOT"))
+    expect(
+        rc == 0,
+        "\n".join([f"Command {cmd} failed with rc={rc}:", "out=", out, "err=", err]))
+
+###############################################################################
+def _get_build_variables(case: Case) -> dict[str, str]:
+###############################################################################
+    """
+    Get the build variables for the current case by querying the contents of Macros.cmake.
+    """
+
+    build_variables = {}
+
+    with CmakeTmpBuildDir(macroloc=case.get_value("CASEROOT")) as tmpdir:
+        output = tmpdir.get_makefile_vars(case=case)
+
+    for line in output.splitlines():
+        if ":=" in line:
+            key, value = line.split(":=", maxsplit=1)
+            build_variables[key.strip()] = value.strip()
+
+    return build_variables
 
 ###############################################################################
 def _copy2_as_needed(src: str, dst: str) -> None:
@@ -245,20 +411,16 @@ def _copy2_as_needed(src: str, dst: str) -> None:
     Wrapper around `shutil.copy2`. Copy the file `src` to the file or directory `dst` as needed.
     """
 
-    if os.path.isfile(src):
-        if os.path.isfile(dst):
-            if int(os.path.getmtime(src)) != int(os.path.getmtime(dst)) or os.path.getsize(src) != os.path.getsize(dst):
-                # `src` and `dst` are both files but their modification time or size differ.
-                # Example scenario: User modified some existing source code files.
-                shutil.copy2(src, dst)
-        elif os.path.isdir(dst) and os.path.isfile(os.path.join(dst, os.path.basename(src))):
-            dst = os.path.join(dst, os.path.basename(src))
-            _copy2_as_needed(src, dst)
-        else:
-            if os.path.isdir(dst) or os.path.isdir(os.path.dirname(dst)):
-                # `src` is a new file that does not exist at `dst`.
-                # Example scenario: User added some new source code files.
-                shutil.copy2(src, dst)
+    if os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
+
+    if os.path.isfile(src) and os.path.isfile(dst):
+        if int(os.path.getmtime(src)) == int(os.path.getmtime(dst)) and \
+            os.path.getsize(src) == os.path.getsize(dst):
+            # `src` and `dst` are unchanged. No need to copy.
+            return
+
+    shutil.copy2(src, dst)
 
 ###############################################################################
 def _cmake_default_args(caseroot):
