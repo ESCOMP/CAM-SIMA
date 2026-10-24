@@ -11,6 +11,7 @@
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_optical_props.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_source_functions.meta</metadata_file>
   <!-- END Metadata files provided by RRTMGP via atmospheric_physics -->
+  <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/tempo/module_mp_tempo_cfgs.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
@@ -2412,18 +2413,33 @@
       <ic_file_input_names>cnst_NUMSNO tnd_nsnow pbuf_tnd_nsnow</ic_file_input_names>
     </variable>
 
-
     <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
-    <!-- Variables for "bl_gwdo" physics scheme -->
-    <!-- TODO: `var` may be related or even equivalent to `sgh`. Should come back to investigate when
-         this suite is fully implemented. -->
-    <variable local_name="var"
-              standard_name="standard_deviation_of_subgrid_orography"
-              units="m" type="real" kind="kind_phys"
+    <!-- Variables for the TEMPO microphysics scheme (mp_tempo) -->
+    <variable local_name="nwfa2d"
+              standard_name="tendency_of_hygroscopic_aerosols_at_surface_adjacent_layer"
+              units="kg-1 s-1" type="real" kind="kind_phys"
               access="public" allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nwfa2d</ic_file_input_names>
     </variable>
+    <variable local_name="nifa2d"
+              standard_name="tendency_of_nonhygroscopic_ice_nucleating_aerosols_at_surface_adjacent_layer"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              access="public" allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_nifa2d</ic_file_input_names>
+    </variable>
+    <variable local_name="volg"
+              standard_name="graupel_volume_in_dry_air"
+              units="m3 kg-1" type="real" kind="kind_phys"
+              constituent="true" advected="true">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>mpascp_volg</ic_file_input_names>
+    </variable>
+    <!-- Variables for the YSU orographic gravity wave drag scheme (bl_gwdo) -->
     <variable local_name="oc1"
               standard_name="convexity_of_subgrid_orography"
               units="1" type="real" kind="kind_phys"
@@ -2487,38 +2503,15 @@
       <dimensions>horizontal_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
-    <!-- Variables for "sf_mynn" physics scheme -->
+    <!-- Variables for the MYNN surface layer scheme (sf_mynn) -->
     <variable local_name="mavail"
               standard_name="surface_moisture_availability"
               units="1" type="real" kind="kind_phys"
               access="public" allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
+      <initial_value>1.0_kind_phys</initial_value>
     </variable>
-    <variable local_name="tsk"
-              standard_name="skin_temperature_at_surface"
-              units="K" type="real" kind="kind_phys"
-              access="public" allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <initial_value>273.15_kind_phys</initial_value>
-    </variable>
-    <!-- Variables for "bl_mynn" physics scheme -->
-    <variable local_name="nc"
-              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_dry_air"
-              units="kg-1" type="real" kind="kind_phys"
-              constituent="true" advected="true">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>mpascp_nc</ic_file_input_names>
-    </variable>
-    <variable local_name="ni"
-              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_dry_air"
-              units="kg-1" type="real" kind="kind_phys"
-              constituent="true" advected="true">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>mpascp_ni</ic_file_input_names>
-    </variable>
+    <!-- Variables for the MYNN PBL scheme (bl_mynn) -->
     <variable local_name="nwfa"
               standard_name="mass_number_concentration_of_hygroscopic_aerosols_in_dry_air"
               units="kg-1" type="real" kind="kind_phys"

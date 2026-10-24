@@ -98,10 +98,10 @@
   <!-- ****************************** -->
 
   <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
-  <!-- Temporarily using stub land model during development, but a real one will be required -->
+  <!-- Temporarily using an aquaplanet-like compset for testing -->
   <compset>
     <alias>MPASCP</alias>
-    <lname>2000_CAM%MPASCP_SLND_SICE_SOCN_SROF_SGLC_SWAV</lname>
+    <lname>2000_CAM%MPASCP_SLND_SICE_DOCN%AQP3_SROF_SGLC_SWAV</lname>
   </compset>
 
   <!-- ENTRIES -->
