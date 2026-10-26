@@ -4,6 +4,12 @@
 [ccpp-arg-table]
   name = simple_sub
   type = host
+[ pcols ]
+  standard_name = horizontal_dimension
+  type = integer
+  units = count
+  dimensions = ()
+  protected = True
 [ col_start ]
   standard_name = horizontal_loop_begin
   type = integer

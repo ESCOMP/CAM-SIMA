@@ -1,2 +1,9 @@
-    add_library(ccpp_framework ccpp_kinds.F90)
-
+add_library(ccpp_framework)
+target_sources(ccpp_framework
+    PRIVATE
+        ccpp_kinds.F90
+)
+target_include_directories(ccpp_framework
+    INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}
+)

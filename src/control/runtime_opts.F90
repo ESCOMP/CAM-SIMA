@@ -25,7 +25,6 @@ contains
       use cam_abortutils,               only: endrun
       use cam_logfile,                  only: cam_logfile_readnl, iulog
       use cam_initfiles,                only: cam_initfiles_readnl
-      use cam_constituents,             only: cam_constituents_readnl
       use cam_ccpp_scheme_namelists,    only: cam_read_ccpp_scheme_namelists
       use runtime_obj,                  only: cam_set_runtime_opts, unset_str
       use cam_ccpp_cap,                 only: ccpp_physics_suite_schemes
@@ -41,6 +40,7 @@ contains
 
       use tropopause_climo_read,        only: tropopause_climo_readnl
       use radiation_namelist,           only: radiation_readnl
+      use radiative_aerosol,            only: rad_aer_readnl
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
 
       use dyn_comp,                     only: dyn_readnl
@@ -81,7 +81,6 @@ contains
       call cam_logfile_readnl(nlfilename)   !The log settings must always be read first
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
-      call cam_constituents_readnl(nlfilename)
       call history_readnl(nlfilename)
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
@@ -89,6 +88,7 @@ contains
       call analytic_ic_readnl(nlfilename)
       call tropopause_climo_readnl(nlfilename)
       call radiation_readnl(nlfilename)
+      call rad_aer_readnl(nlfilename)
       call gravity_wave_drag_ridge_read_readnl(nlfilename)
       call dyn_readnl(nlfilename)
       call stream_ndep_readnl(nlfilename)

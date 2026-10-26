@@ -27,13 +27,15 @@ jobs:
   # A pull request that requires those checks to be successful will be blocked from merging."
   conditional-check:
     name: Check if jobs should run
-    timeout-minutes: 1
     runs-on: ubuntu-slim
     outputs:
-      should-run: ${{ steps.conditional.outputs.result }}
+      # Encoded in base64 to preserve the matched paths exactly.
+      matched-paths: ${{ steps.conditional.outputs.matched-paths }}
+      should-run: ${{ steps.conditional.outputs.should-run }}
+    timeout-minutes: 1
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if there are changes to MPAS dynamical core
         id: conditional
@@ -41,15 +43,21 @@ jobs:
           set -euo pipefail
 
           write_result_and_exit() {
+            if [ -f matched-paths.txt ]; then
+              echo "matched-paths=$(base64 -w 0 < matched-paths.txt)" >> "$GITHUB_OUTPUT"
+            else
+              echo "matched-paths=" >> "$GITHUB_OUTPUT"
+            fi
+
             case "$1" in
               false)
                 echo "Result: Skip jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               true)
                 echo "Result: Run jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               error|*)
@@ -114,7 +122,7 @@ jobs:
           echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
           git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
 
-          if grep -E -q '(^\.github\/workflows\/mpas_dynamical_core_ci\.yml$|^src\/dynamics\/mpas\/.+$)' changed-paths.txt; then
+          if grep -E '^\.github/workflows/mpas_dynamical_core_ci\.yml$|^src/dynamics/mpas/.+$' changed-paths.txt > matched-paths.txt; then
             write_result_and_exit true
           else
             write_result_and_exit false
@@ -126,14 +134,14 @@ jobs:
   # when a matrix job is set as a required status check, skipping it due to the conditional will cause a pull request to be
   # blocked from merging.
   overall-status:
-    name: Overall status
-    timeout-minutes: 1
-    runs-on: ubuntu-slim
+    name: Overall status (MPAS Dynamical Core CI)
     needs:
       - conditional-check
       - source-code-linting
       - unit-tests
     if: ${{ always() }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
     steps:
       - name: Evaluate overall status
         run: |
@@ -195,19 +203,19 @@ jobs:
           write_result_and_exit true
   source-code-linting:
     name: Lint Fortran source code
-    timeout-minutes: 10
-    runs-on: ubuntu-slim
     needs: conditional-check
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    runs-on: ubuntu-slim
     env:
-      FORTITUDE_VERSION: 0.7.*
+      FORTITUDE_VERSION: 0.9.*
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           cache: pip
           python-version: 3.12
@@ -216,12 +224,18 @@ jobs:
         run: |
           python3 -m venv venv-fortitude
           source venv-fortitude/bin/activate
+          python3 -m pip install --upgrade pip
           python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
 
       - name: Lint Fortran source code
         run: |
           source venv-fortitude/bin/activate
-          fortitude --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" check --exit-zero --output-file "$SOURCE_CODE_PATH/source-code-linting.log" --preview "$SOURCE_CODE_PATH"
+          fortitude \
+            --config-file "$SOURCE_CODE_PATH/assets/fortitude_config.toml" \
+            check \
+            --exit-zero \
+            --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
+            "$SOURCE_CODE_PATH"
           cat "$SOURCE_CODE_PATH/source-code-linting.log"
 
       - name: Upload Fortran source code linting log
@@ -234,7 +248,15 @@ jobs:
           retention-days: 7
   unit-tests:
     name: Build and run unit tests (${{ matrix.compiler }})
-    timeout-minutes: 10
+    needs: conditional-check
+    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/kuanchihwang/atm-sci-container:2026-06-12_${{ matrix.compiler }}_${{ matrix.mpi }}
+    env:
+      CONTAINER_ENVIRONMENT: pfunit
+      UNIT_TESTS_BUILD_TYPE: Debug
+      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
     strategy:
       fail-fast: false
       matrix:
@@ -250,29 +272,31 @@ jobs:
         # Testing with a single MPI implementation is sufficient for now.
         mpi:
           - open-mpi-5
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/kuanchihwang/atm-sci-container:2026-04-12_${{ matrix.compiler }}_${{ matrix.mpi }}
-    needs: conditional-check
-    if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
-    env:
-      CONTAINER_ENVIRONMENT: pfunit
-      UNIT_TESTS_BUILD_TYPE: Debug
-      UNIT_TESTS_PATH: ${{ github.workspace }}/src/dynamics/mpas
+    timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build unit tests
         run: |
           source "$(command -v container-entrypoint-hook.sh)"
-          cmake -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" -B "$UNIT_TESTS_PATH/build" -S "$UNIT_TESTS_PATH"
-          cmake --build "$UNIT_TESTS_PATH/build" --config "$UNIT_TESTS_BUILD_TYPE"
+          cmake \
+            -D CMAKE_BUILD_TYPE="$UNIT_TESTS_BUILD_TYPE" \
+            -B "$UNIT_TESTS_PATH/build" \
+            -S "$UNIT_TESTS_PATH"
+          cmake \
+            --build "$UNIT_TESTS_PATH/build" \
+            --config "$UNIT_TESTS_BUILD_TYPE"
 
       - name: Run unit tests
         run: |
           source "$(command -v container-entrypoint-hook.sh)"
-          ctest --build-config "$UNIT_TESTS_BUILD_TYPE" --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" --output-on-failure --test-dir "$UNIT_TESTS_PATH/build" --verbose
+          ctest \
+            --build-config "$UNIT_TESTS_BUILD_TYPE" \
+            --output-log "$UNIT_TESTS_PATH/build/unit-tests.log" \
+            --output-on-failure \
+            --test-dir "$UNIT_TESTS_PATH/build" \
+            --verbose
 
       - name: Upload unit tests log
         if: ${{ always() }}

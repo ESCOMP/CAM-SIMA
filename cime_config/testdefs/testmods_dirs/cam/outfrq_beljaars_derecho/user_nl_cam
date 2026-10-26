@@ -1,0 +1,15 @@
+! CAM6 snapshot:
+ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_before_c20260614.nc'
+ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhist_beljaars_snapshot_derecho_gnu_after_c20260614.nc'
+pver = 32
+
+! tolerances for testing
+ncdata_check_err = .true.
+min_difference = 2e-15
+
+do_beljaars = .true.
+
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 1
+hist_add_inst_fields;h1:DRAGBLJ,TAUBLJX,TAUBLJY
+hist_precision;h1: REAL64

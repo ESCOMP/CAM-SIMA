@@ -17,8 +17,8 @@ jobs:
   #a PR is either opened or synced (i.e. additional commits are pushed
   #to branch involved in PR).
   python_unit_tests:
-    if: github.event_name == 'pull_request' || github.repository == 'ESCOMP/CAM-SIMA' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    if: github.repository == 'ESCOMP/CAM-SIMA'
+    runs-on: ubuntu-slim
     strategy:
       matrix:
         #All of these python versions will be used to run tests:
@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
     steps:
     # Acquire github action routines:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     # Acquire specific version of python:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6

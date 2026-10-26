@@ -21,14 +21,13 @@ module physics_grid
 !
 !------------------------------------------------------------------------------
 
-   use shr_kind_mod,        only: r8 => shr_kind_r8
+   use shr_kind_mod,        only: r8 => shr_kind_r8, shr_kind_cl
    use ccpp_kinds,          only: kind_phys
    use physics_column_type, only: physics_column_t, assignment(=)
    use perf_mod,            only: t_adj_detailf, t_startf, t_stopf
 
    implicit none
    private
-   save
 
    ! Physics grid management
    public :: phys_grid_init ! initialize the physics grid
@@ -88,7 +87,7 @@ module physics_grid
    real(kind_phys), protected, allocatable, public :: weight(:)
 
 !==============================================================================
-CONTAINS
+contains
 !==============================================================================
 
    subroutine phys_grid_init(hdim1_d_in, hdim2_d_in, dycore_name_in, &
@@ -133,6 +132,7 @@ CONTAINS
       real(r8)                            :: mem_beg, mem_end
       real(r8)                            :: temp ! For MPI
       integer                             :: ierr ! For error codes
+      character(len=shr_kind_cl)          :: errmsg
 
       character(len=*),  parameter :: subname = 'phys_grid_init'
 
@@ -149,11 +149,11 @@ CONTAINS
 
       ! Check that the physics grid is not already initialized:
       if (phys_grid_initialized) then
-         call endrun(subname//": Physics grid is already initialized.")
+         call endrun(subname//': Physics grid is already initialized.')
       end if
 
       call t_adj_detailf(-2)
-      call t_startf("phys_grid_init")
+      call t_startf('phys_grid_init')
 
       ! Set public variables:
       hdim1_d            = hdim1_d_in
@@ -169,34 +169,34 @@ CONTAINS
       col_end = columns_on_task
 
       ! Allocate phys_columns:
-      allocate(phys_columns(columns_on_task), stat=ierr)
+      allocate(phys_columns(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'phys_columns(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Allocate public physics grid variables for CCPP:
-      allocate(lat_rad(columns_on_task), stat=ierr)
+      allocate(lat_rad(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lat_rad(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(lon_rad(columns_on_task), stat=ierr)
+      allocate(lon_rad(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lon_rad(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(lat_deg(columns_on_task), stat=ierr)
+      allocate(lat_deg(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lat_deg(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(lon_deg(columns_on_task), stat=ierr)
+      allocate(lon_deg(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lon_deg(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(area(columns_on_task), stat=ierr)
+      allocate(area(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'area(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(weight(columns_on_task), stat=ierr)
+      allocate(weight(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'weight(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! Set column index bounds:
       first_dyn_column = 1
@@ -224,23 +224,23 @@ CONTAINS
       ! It's structure will depend on whether or not the physics grid is
       ! unstructured
       if (dycore_unstructured) then
-         allocate(grid_map(3, columns_on_task), stat=ierr)
+         allocate(grid_map(3, columns_on_task), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'grid_map(3, columns_on_task)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
       else
-         allocate(grid_map(4, columns_on_task), stat=ierr)
+         allocate(grid_map(4, columns_on_task), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'grid_map(4, columns_on_task)', &
-                             file=__FILE__, line=__LINE__)
+                             file=__FILE__, line=__LINE__, errmsg=errmsg)
       end if
       grid_map = 0
 
-      allocate(latvals(columns_on_task), stat=ierr)
+      allocate(latvals(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'latvals(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-      allocate(lonvals(columns_on_task), stat=ierr)
+      allocate(lonvals(columns_on_task), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'lonvals(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       lonmin = 1000.0_r8 ! Out of longitude range
       latmin = 1000.0_r8 ! Out of latitude range
@@ -278,16 +278,16 @@ CONTAINS
               'latitude', 'degrees_north', 1, size(latvals), latvals,         &
               map=grid_map(3,:))
       else
-         allocate(coord_map(columns_on_task), stat=ierr)
+         allocate(coord_map(columns_on_task), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'coord_map(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          ! We need a global minimum longitude and latitude
          temp = lonmin
-         call MPI_allreduce(temp, lonmin, 1, MPI_INTEGER, MPI_MIN,         &
+         call MPI_allreduce(temp, lonmin, 1, MPI_REAL8, MPI_MIN,         &
               mpicom, ierr)
          temp = latmin
-         call MPI_allreduce(temp, latmin, 1, MPI_INTEGER, MPI_MIN,         &
+         call MPI_allreduce(temp, latmin, 1, MPI_REAL8, MPI_MIN,         &
               mpicom, ierr)
          ! Create lon coord map which only writes from one of each unique lon
          where(latvals == latmin)
@@ -311,7 +311,7 @@ CONTAINS
          deallocate(coord_map)
       end if
       call cam_grid_register('physgrid', phys_decomp,                         &
-           lat_coord, lon_coord, grid_map, src_in=(/ 1, 0 /),                 &
+           lat_coord, lon_coord, grid_map, src_in=[1, 0],                     &
            unstruct=dycore_unstructured, block_indexed=.false.)
 
       ! Copy required attributes from the dynamics array
@@ -326,9 +326,9 @@ CONTAINS
          !   from the dycore (i.e., physics and dynamics are on different
          !   grids), create that attribute here (Note, a separate physics
          !   grid is only supported for unstructured grids).
-         allocate(area_d(columns_on_task), stat=ierr)
+         allocate(area_d(columns_on_task), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'area_d(columns_on_task)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
          do col_index = 1, columns_on_task
             area_d(col_index) = phys_columns(col_index)%area
@@ -347,7 +347,7 @@ CONTAINS
       ! Set flag indicating physics grid is now set
       phys_grid_initialized = .true.
 
-      call t_stopf("phys_grid_init")
+      call t_stopf('phys_grid_init')
       call t_adj_detailf(+2)
 
       ! Calculate memory usage stats if requested:
@@ -373,7 +373,7 @@ CONTAINS
 
    !========================================================================
 
-   real(r8) function get_dlat_p(index)
+   real(r8) function get_dlat_p(index) result(col_dlat)
       ! latitude of a physics column in degrees
 
       ! Dummy argument
@@ -385,13 +385,13 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_dlat_p = phys_columns(index)%lat_deg
+      col_dlat = phys_columns(index)%lat_deg
 
    end function get_dlat_p
 
    !========================================================================
 
-   real(r8) function get_dlon_p(index)
+   real(r8) function get_dlon_p(index) result(col_dlon)
       ! longitude of a physics column in degrees
 
       ! Dummy argument
@@ -403,13 +403,13 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_dlon_p = phys_columns(index)%lon_deg
+      col_dlon = phys_columns(index)%lon_deg
 
    end function get_dlon_p
 
    !========================================================================
 
-   real(r8) function get_rlat_p(index)
+   real(r8) function get_rlat_p(index) result(col_rlat)
       ! latitude of a physics column in radians
 
       ! Dummy argument
@@ -421,13 +421,13 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_rlat_p = phys_columns(index)%lat_rad
+      col_rlat = phys_columns(index)%lat_rad
 
    end function get_rlat_p
 
    !========================================================================
 
-   real(r8) function get_rlon_p(index)
+   real(r8) function get_rlon_p(index) result(col_rlon)
       ! longitude of a physics column in radians
 
       ! Dummy argument
@@ -439,13 +439,13 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_rlon_p = phys_columns(index)%lon_rad
+      col_rlon = phys_columns(index)%lon_rad
 
    end function get_rlon_p
 
    !========================================================================
 
-   real(r8) function get_area_p(index)
+   real(r8) function get_area_p(index) result(col_area)
       ! area of a physics column in radians squared
 
       ! Dummy argument
@@ -457,13 +457,13 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_area_p = phys_columns(index)%area
+      col_area = phys_columns(index)%area
 
    end function get_area_p
 
    !========================================================================
 
-   real(r8) function get_wght_p(index)
+   real(r8) function get_wght_p(index) result(col_wght)
       ! weight of a physics column in radians squared
 
       ! Dummy argument
@@ -475,7 +475,7 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      get_wght_p = phys_columns(index)%weight
+      col_wght = phys_columns(index)%weight
 
    end function get_wght_p
 
@@ -596,7 +596,7 @@ CONTAINS
 
    !========================================================================
 
-   integer function global_index_p(index)
+   integer function global_index_p(index) result(global_index)
       ! global column index of a physics column
 
       ! Dummy argument
@@ -608,11 +608,11 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      global_index_p = phys_columns(index)%global_col_num
+      global_index = phys_columns(index)%global_col_num
 
    end function global_index_p
 
-   integer function local_index_p(index)
+   integer function local_index_p(index) result(local_index)
       ! global column index of a physics column
 
       ! Dummy argument
@@ -624,7 +624,7 @@ CONTAINS
       ! Check that input is valid:
       call check_phys_input(subname, index)
 
-      local_index_p = phys_columns(index)%phys_chunk_index
+      local_index = phys_columns(index)%phys_chunk_index
 
    end function local_index_p
 

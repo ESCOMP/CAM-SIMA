@@ -29,7 +29,7 @@
 
   <xs:simpleType name="dycore_type">
     <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Z,]+"/>
+      <xs:pattern value="[A-Z0-9,]+"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -76,6 +76,7 @@
       <xs:pattern value="pointer"/>
       <xs:pattern value="target"/>
       <xs:pattern value="allocatable, target"/>
+      <xs:pattern value="target, allocatable"/>
     </xs:restriction>
   </xs:simpleType>
 

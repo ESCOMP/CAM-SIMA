@@ -32,6 +32,7 @@
   standard_name = kq_farr1_dimension
   type = integer | units = 1
   dimensions = ()
+  protected = True
 [ kq_farr1 ]
   standard_name = kumquat_fake_array1
   type = real | kind = kind_phys
@@ -42,10 +43,12 @@
   standard_name = kq_fake2_dimension
   type = integer | units = 1
   dimensions = ()
+  protected = True
 [ kq_fake2_dimension_2 ]
   standard_name = kq_fake2_dimension_2
   type = integer | units = 1
   dimensions = ()
+  protected = True
 [ kq_fake2 ]
   standard_name = kumquat_fake2d_array
   type = integer
@@ -56,6 +59,7 @@
   standard_name = kq_fchar3_dimension
   type = integer | units = 1
   dimensions = ()
+  protected = True
 [ kq_fchar3 ]
   standard_name = kumquat_fake_char_array
   type = character | kind = len=256
