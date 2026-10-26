@@ -56,6 +56,9 @@ contains
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
       character(len=256) :: const_diag_name
 
+      ! Initialize error fields
+      errflg = 0
+      errmsg = ''
 
       ! Allocate dimids to the number of unique dimensions
       allocate(dimids(2), stat=errflg, errmsg=errmsg)
@@ -146,6 +149,9 @@ contains
       logical                          :: advected
       real(kind=kind_phys), pointer    :: field_data_ptr(:,:,:)
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+      ! Initialize error fields
+      errflg = 0
+      errmsg = ''
       ! Grab physics grid
       grid_decomp = cam_grid_id('physgrid')
       dims(1) = columns_on_task
