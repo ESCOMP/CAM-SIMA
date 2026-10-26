@@ -122,7 +122,7 @@ CONTAINS
 
      integer :: ierr, unitn
      character(len=CL) :: rest_pfile
-     character(len=256) :: errmsg
+     character(len=CL) :: errmsg
      character(len=*), parameter :: sub='write_rest_pfile'
      !---------------------------------------------------------------------------
 
