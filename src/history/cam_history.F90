@@ -77,7 +77,7 @@ contains
       call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
       allocate(just_written(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
       if (ierr /= 0) then
-         write(errmsg,*) 'history_readnl: failed to allocate hist_configs; errmsg = ', alloc_errmsg
+         write(errmsg,*) 'history_readnl: failed to allocate just_written; errmsg = ', alloc_errmsg
          call endrun(errmsg)
       end if
       just_written = .false.

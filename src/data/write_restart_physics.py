@@ -186,6 +186,10 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
 
     outfile.blank_line()
 
+    outfile.comment("Initialize error fields", 2)
+    outfile.write("errflg = 0", 2)
+    outfile.write("errmsg = ''", 2)
+
     outfile.blank_line()
     outfile.comment("Allocate dimids to the number of unique dimensions", 2)
     outfile.write(f"allocate(dimids({num_dimensions}), stat=errflg, errmsg=errmsg)", 2)
@@ -350,6 +354,10 @@ def write_write_restart_physics(outfile, required_vars, constituent_dimmed_vars,
     outfile.write("logical                          :: advected", 2)
     outfile.write("real(kind=kind_phys), pointer    :: field_data_ptr(:,:,:)", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
+
+    outfile.comment("Initialize error fields", 2)
+    outfile.write("errflg = 0", 2)
+    outfile.write("errmsg = ''", 2)
 
     outfile.comment("Grab physics grid", 2)
     outfile.write("grid_decomp = cam_grid_id('physgrid')", 2)

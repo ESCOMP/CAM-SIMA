@@ -554,10 +554,9 @@ contains
       if (ierr /= 0) then
          call endrun('config_get_fill_values: failed to allocate fill_values; errmsg = '//errmsg)
       end if
-!      do idx = 1, size(this%field_list)
-!         fill_values(idx) = this%field_list(idx)%fill_value()
-!      end do
-      fill_values = 0._r8
+      do idx = 1, size(this%field_list)
+         fill_values(idx) = this%field_list(idx)%fill_value()
+      end do
    end function config_get_fill_values
 
    ! ========================================================================
@@ -2480,11 +2479,6 @@ contains
 
       ! Local variables
       integer :: split_file_index
-
-!      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
-!                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
-!         deallocate(this%file_varids)
-!      end if
 
       do split_file_index = 1, max_split_files
          if (pio_file_is_open(this%hist_files(split_file_index))) then

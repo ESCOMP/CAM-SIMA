@@ -33,8 +33,6 @@ module cam_hist_restart
     type(restart_variable_t)  :: restart_vars(num_restart_vars)
     type(restart_dimension_t) :: restart_dims(num_restart_dims)
 
-    integer, parameter :: max_num_fields = 1000
-
     integer, parameter :: num_configs_dim_ind         =  1
     integer, parameter :: max_string_len_dim_ind      =  2
     integer, parameter :: max_fieldname_len_dim_ind   =  3
@@ -180,7 +178,7 @@ contains
           ! Get field dimension indices
           ndims(1:num_fields(idx)) = hist_configs(idx)%get_num_dimensions()
           do jdx = 1, num_fields(idx)
-             dimensions(1:ndims(jdx), 1:num_fields(idx), idx) = hist_configs(idx)%get_dimension_indices()
+             dimensions(:, 1:num_fields(idx), idx) = hist_configs(idx)%get_dimension_indices()
           end do
           ! End field specific info ^^
       end do
