@@ -44,7 +44,7 @@ contains
       use vert_coord,   only: pver
       use physics_grid, only: columns_on_task
       type(file_desc_t), intent(inout) :: file
-      character(len=512),intent(out)   :: errmsg
+      character(len=*),  intent(out)   :: errmsg
       integer,           intent(out)   :: errflg
 
       ! Local variables

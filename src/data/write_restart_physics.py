@@ -171,7 +171,7 @@ def write_init_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
     write_use_statements(outfile, dim_use_stmts, 2)
 
     outfile.write("type(file_desc_t), intent(inout) :: file", 2)
-    outfile.write("character(len=512),intent(out)   :: errmsg", 2)
+    outfile.write("character(len=*),  intent(out)   :: errmsg", 2)
     outfile.write("integer,           intent(out)   :: errflg", 2)
     outfile.blank_line()
 
