@@ -2624,10 +2624,10 @@ CONTAINS
       ! Local variables
       integer :: split_file_index
 
-!      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
-!                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
-!         deallocate(this%file_varids)
-!      end if
+      if(pio_file_is_open(this%hist_files(accumulated_file_index)) .or. &
+                 pio_file_is_open(this%hist_files(instantaneous_file_index))) then
+         deallocate(this%file_varids)
+      end if
 
       do split_file_index = 1, max_split_files
          if (pio_file_is_open(this%hist_files(split_file_index))) then
