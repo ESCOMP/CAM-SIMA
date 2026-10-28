@@ -2023,7 +2023,9 @@ contains
         character(strkind), allocatable :: var_name_list(:)
         integer :: i
         integer :: ierr
+        integer :: var_expected_rank
         integer :: varid, varndims, vartype
+        logical :: var_has_time_dimension, var_is_character, var_is_var_array
         type(field0dchar), pointer :: field_0d_char
         type(field1dchar), pointer :: field_1d_char
         type(field0dinteger), pointer :: field_0d_integer
@@ -2052,6 +2054,8 @@ contains
         nullify(field_4d_real)
         nullify(field_5d_real)
 
+        var_is_character = (trim(adjustl(var_info % type)) == 'character')
+
         ! Extract a list of variable names to check on the file.
         ! For an ordinary variable, this list just contains its name.
         ! For a variable array, this list contains the names of its constituent parts.
@@ -2067,7 +2071,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_0d_char % isvararray .and. associated(field_0d_char % constituentnames)) then
+                        var_has_time_dimension = field_0d_char % hastimedimension
+                        var_is_var_array = field_0d_char % isvararray
+
+                        if (var_is_var_array .and. associated(field_0d_char % constituentnames)) then
                             allocate(var_name_list(size(field_0d_char % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2089,7 +2096,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_1d_char % isvararray .and. associated(field_1d_char % constituentnames)) then
+                        var_has_time_dimension = field_1d_char % hastimedimension
+                        var_is_var_array = field_1d_char % isvararray
+
+                        if (var_is_var_array .and. associated(field_1d_char % constituentnames)) then
                             allocate(var_name_list(size(field_1d_char % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2117,7 +2127,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_0d_integer % isvararray .and. associated(field_0d_integer % constituentnames)) then
+                        var_has_time_dimension = field_0d_integer % hastimedimension
+                        var_is_var_array = field_0d_integer % isvararray
+
+                        if (var_is_var_array .and. associated(field_0d_integer % constituentnames)) then
                             allocate(var_name_list(size(field_0d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2139,7 +2152,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_1d_integer % isvararray .and. associated(field_1d_integer % constituentnames)) then
+                        var_has_time_dimension = field_1d_integer % hastimedimension
+                        var_is_var_array = field_1d_integer % isvararray
+
+                        if (var_is_var_array .and. associated(field_1d_integer % constituentnames)) then
                             allocate(var_name_list(size(field_1d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2161,7 +2177,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_2d_integer % isvararray .and. associated(field_2d_integer % constituentnames)) then
+                        var_has_time_dimension = field_2d_integer % hastimedimension
+                        var_is_var_array = field_2d_integer % isvararray
+
+                        if (var_is_var_array .and. associated(field_2d_integer % constituentnames)) then
                             allocate(var_name_list(size(field_2d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2183,7 +2202,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_3d_integer % isvararray .and. associated(field_3d_integer % constituentnames)) then
+                        var_has_time_dimension = field_3d_integer % hastimedimension
+                        var_is_var_array = field_3d_integer % isvararray
+
+                        if (var_is_var_array .and. associated(field_3d_integer % constituentnames)) then
                             allocate(var_name_list(size(field_3d_integer % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2211,7 +2233,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_0d_real % isvararray .and. associated(field_0d_real % constituentnames)) then
+                        var_has_time_dimension = field_0d_real % hastimedimension
+                        var_is_var_array = field_0d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_0d_real % constituentnames)) then
                             allocate(var_name_list(size(field_0d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2233,7 +2258,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_1d_real % isvararray .and. associated(field_1d_real % constituentnames)) then
+                        var_has_time_dimension = field_1d_real % hastimedimension
+                        var_is_var_array = field_1d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_1d_real % constituentnames)) then
                             allocate(var_name_list(size(field_1d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2255,7 +2283,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_2d_real % isvararray .and. associated(field_2d_real % constituentnames)) then
+                        var_has_time_dimension = field_2d_real % hastimedimension
+                        var_is_var_array = field_2d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_2d_real % constituentnames)) then
                             allocate(var_name_list(size(field_2d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2277,7 +2308,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_3d_real % isvararray .and. associated(field_3d_real % constituentnames)) then
+                        var_has_time_dimension = field_3d_real % hastimedimension
+                        var_is_var_array = field_3d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_3d_real % constituentnames)) then
                             allocate(var_name_list(size(field_3d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2299,7 +2333,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_4d_real % isvararray .and. associated(field_4d_real % constituentnames)) then
+                        var_has_time_dimension = field_4d_real % hastimedimension
+                        var_is_var_array = field_4d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_4d_real % constituentnames)) then
                             allocate(var_name_list(size(field_4d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2321,7 +2358,10 @@ contains
                                 '"', subname, __LINE__)
                         end if
 
-                        if (field_5d_real % isvararray .and. associated(field_5d_real % constituentnames)) then
+                        var_has_time_dimension = field_5d_real % hastimedimension
+                        var_is_var_array = field_5d_real % isvararray
+
+                        if (var_is_var_array .and. associated(field_5d_real % constituentnames)) then
                             allocate(var_name_list(size(field_5d_real % constituentnames)), errmsg=cerr, stat=ierr)
 
                             if (ierr /= 0) then
@@ -2386,6 +2426,12 @@ contains
         call self % debug_print(log_level_verbose, 'Checking variable "' // trim(adjustl(var_info % name)) // &
             '" for presence and TKR compatibility')
 
+        ! Derive the expected variable rank according to the internal IO logic of MPAS.
+        var_expected_rank = var_info % rank
+        var_expected_rank = merge(var_expected_rank + 1, var_expected_rank, var_has_time_dimension)
+        var_expected_rank = merge(var_expected_rank + 1, var_expected_rank, var_is_character)
+        var_expected_rank = merge(var_expected_rank - 1, var_expected_rank, var_is_var_array)
+
         do i = 1, size(var_name_list)
             ! Check if the variable is present on the file.
             ierr = pio_inq_varid(pio_file, trim(adjustl(var_name_list(i))), varid)
@@ -2435,7 +2481,7 @@ contains
                 cycle
             end if
 
-            if (varndims /= var_info % rank) then
+            if (varndims /= var_expected_rank) then
                 cycle
             end if
 
