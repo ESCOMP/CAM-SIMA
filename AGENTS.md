@@ -55,6 +55,7 @@ The **atmospheric_physics** portable CCPP physics:
 Learn the current conventions in the following files, which may be preferred over older schemes that predate recent convention updates:
 
 * Host-side registry: `src/data/registry.xml`
+  * Besides declaring host variables, the registry specifies the `ic_file_input_names` used by snapshot tests — see [Variable persistence](#variable-persistence-registry-vs-ccpp-framework) for when to add entries.
 * Host-side metadata: `src/data/physconst.meta`, `src/physics/utils/physics_grid.meta`
 * Host-side input of gridded/decomposed files threaded to CCPP scheme: `src/physics/utils/gravity_wave_drag_ridge_read.{F90,meta}`
 * Scheme-side exemplars (minimal scheme, namelist XML, diagnostics, SDF locations): see atmospheric_physics `AGENTS.md`.
@@ -75,8 +76,12 @@ Fortran style rules (which apply to host code too) are distilled in atmospheric_
 
 ## Variable persistence: registry vs CCPP framework
 
+The registry serves a dual purpose: it declares the variables providing the initial model state for "full" (e.g., CAM4/CAM7) runs, and its `ic_file_input_names` entries map registry variables to their names in snapshot files for snapshot tests (see [Snapshot testing](#snapshot-testing-and-null-dycore)).
+
 - A quantity that must **persist across timesteps**, or be **read from an input file** (including snapshots), must be declared in `src/data/registry.xml`.
 - A quantity needed only **within a single timestep** (e.g., passed from one scheme to a later one) needs no registry entry — the CCPP framework allocates and threads it automatically, as long as the producing and consuming schemes use matching standard names.
+- **When porting a scheme, inputs produced by upstream schemes come from the registry + snapshot.** If a required input of the scheme being ported is normally produced by an upstream parameterization that is not in the test SDF (e.g., not in scope for this CCPPization), add that variable to `registry.xml` with an `ic_file_input_names` entry matching its name in the CAM snapshot file (often `pbuf_*`; check the snapshot NetCDF or CAM's snapshot code: `registry.xml` has many existing examples). Do **not** write a shim scheme to provide such inputs unless explicitly asked. These entries remain in use after conversion: snapshot tests run minimal SDFs, so upstream-provided inputs are always read from the snapshot.
+- You may also need registry additions to make a **full** (e.g., CAM7) suite resolve. First consider whether the quantity should be provided by an interstitial before adding it to the registry with an `initial_value`.
 
 ## PRs and commits
 
