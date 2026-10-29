@@ -25,13 +25,13 @@ CAM-SIMA and atmospheric_physics **requires** disclosure of AI-assisted contribu
 The **CAM-SIMA host model**:
 - Located at `ESCOMP/CAM-SIMA`. The default branch is the `development` branch. The `main` branch is empty and only contains a README to prevent users from easily inadvertently checking out unsupported development code.
 - Provides infrastructure, coupling, dynamical cores, and I/O.
-- Interfaces with CIME, PIO, MPI, CESM_share (`shr_*`) and provides CAM-specific utilities like `cam_abortutils`, `cam_history`, etc.
+- Interfaces with CIME, ESMF, CMEPS/NUOPC, PIO, MPI, CESM_share (`shr_*`) and provides CAM-specific utilities like `cam_abortutils`, `cam_history`, etc.
 - Also provides CCPP metadata information via the Registry (`src/data/registry.xml`) and host-side `.meta` files.
 
 The **atmospheric_physics** portable CCPP physics:
 - Located at `ESCOMP/atmospheric_physics` and is a submodule that would be checked out under `CAM-SIMA/src/physics/ncar_ccpp`. The default branch is `main`.
 - Contains CCPP-compliant, "portable" (i.e., free of host model code) physics parameterizations.
-- May `use` `ccpp_kinds`, `ccpp_constituent_prop_mod`, and intra-package dependencies only.
+- May `use` `ccpp_kinds`, `ccpp_constituent_prop_mod`, modules under the `phys_utils` directory, and intra-package dependencies only.
 - **Exception:** `schemes/sima_diagnostics/` is a non-portable directory centralizing CAM-SIMA-specific history output. Code outside `sima_diagnostics/` that calls `cam_history` routines is a bug.
 - If a scheme under `atmospheric_physics` depends on a CAM-SIMA host side quantity, it receives it as a subroutine argument threaded through via standard names, not via a `use` statement to a CAM module.
 - Is intended to be portable to any CCPP-enabled host model.
@@ -44,7 +44,7 @@ The **atmospheric_physics** portable CCPP physics:
 | Real kind | `r8` from `shr_kind_mod` | `kind_phys` from `ccpp_kinds` |
 | Error handling | `call endrun(msg)` | Set `errmsg`/`errflg` (or `errcode`) and return |
 | Abort utility | `cam_abortutils::endrun` | Never: return error to host |
-| Constituent lookup | `cam_constituents::const_get_index` | `ccpp_const_get_idx(const_props, ...)` |
+| Constituent lookup | `cam_constituents::const_get_index` | `ccpp_scheme_utils::ccpp_constituent_index` |
 | Physical constants | `physconst` module | Passed as arguments via CCPP standard names |
 | History output | `cam_history::history_add_field` / `history_out_field` | Only in dedicated `schemes/sima_diagnostics/*` schemes |
 | Dimensions in dummy args | `(pcols, pver)` acceptable in host code | Assumed-shape `(:,:)` only |
@@ -94,7 +94,7 @@ CAM-SIMA compiles every `.F90` file in every directory listed in a generated `Fi
 
 ## Auto-generated code by the CAM-SIMA host model or CCPP framework
 
-These files live under `$CASE/bld/atm/obj/` and are regenerated every build and should not be edited directly, and may not be present in a development copy:
+These files live in the location specified by the `EXEROOT` CIME variable, which can be found in the relevant case directory, and are regenerated every build and should not be edited directly.  They may also not be present in a development copy:
 
 | Generated file | Generator | Modify instead |
 |-|-|-|
