@@ -743,9 +743,12 @@ CONTAINS
       ! Purpose: Accumulate active fields - 3d fields
       !
       !-----------------------------------------------------------------------
-      use hist_api,       only: hist_field_accumulate
-      use cam_abortutils, only: endrun
-      use shr_kind_mod,   only: r8 => shr_kind_r8
+      use hist_api,         only: hist_field_accumulate
+      use cam_abortutils,   only: endrun
+      use hist_msg_handler, only: hist_log_messages
+      use spmd_utils,       only: masterproc
+      use cam_logfile,      only: iulog
+      use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       real(r8),         intent(in) :: field_values(:,:,:)
@@ -755,9 +758,9 @@ CONTAINS
       character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'history_out_field_3d: '
       class(hist_field_info_t), pointer :: field_info
+      type(hist_log_messages) :: logger
 
       errmsg = ''
-      call endrun('ERROR: '//subname//'3d history fields not implemented', file=__FILE__, line=__LINE__)
 
       do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
@@ -769,17 +772,15 @@ CONTAINS
             ! field is not active on this tape - do nothing!
             cycle
          end if
-         ! peverwhee - TODO - need to enable 3D accumulation in modular history
          ! Field is active on this file - accumulate!
-         !call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
-         !if (masterproc) then
-         !   call logger%output(iulog)
-         !   if (logger%num_errors() > 0) then
-         !      write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
-         !      call endrun(errmsg)
-         !   end if
-         !end if
-
+         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (masterproc) then
+            call logger%output(iulog)
+            if (logger%num_errors() > 0) then
+               write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
+               call endrun(errmsg)
+            end if
+         end if
       end do
 
    end subroutine history_out_field_3d
