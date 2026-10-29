@@ -384,7 +384,7 @@ CONTAINS
 !===========================================================================
 
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
-      avgflag, units, gridname, flag_xyfill, fill_value, mixing_ratio)
+      avgflag, units, gridname, flag_xyfill, fill_value, mixing_ratio, sampled_on_subcycle)
       use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
       use cam_abortutils,      only: endrun, check_allocate
       use shr_kind_mod,        only: r8 => shr_kind_r8
@@ -410,6 +410,7 @@ CONTAINS
       logical,          optional, intent(in) :: flag_xyfill
       real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
+      logical,          optional, intent(in) :: sampled_on_subcycle
 
       !
       ! Local workspace
@@ -434,13 +435,14 @@ CONTAINS
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
-            gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio)
+            gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio, &
+            sampled_on_subcycle=sampled_on_subcycle)
    end subroutine history_add_field_1d
 
 !===========================================================================
 
    subroutine history_add_field_nd(diagnostic_name, standard_name, dimnames, avgflag, &
-      units, gridname, flag_xyfill, fill_value, mixing_ratio)
+      units, gridname, flag_xyfill, fill_value, mixing_ratio, sampled_on_subcycle)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list - generic; called from
@@ -475,6 +477,7 @@ CONTAINS
       logical,          optional, intent(in) :: flag_xyfill
       real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
+      logical,          optional, intent(in) :: sampled_on_subcycle
 
       ! Local variables
       class(hist_field_info_t), pointer :: field_ptr
@@ -614,7 +617,7 @@ CONTAINS
                   mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
                   mixing_ratio=mixing_ratio_loc, &
                   dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
-                  flag_xyfill=flag_xyfill)
+                  flag_xyfill=flag_xyfill, sampled_on_subcycle=sampled_on_subcycle)
                exit
             end if
          end do
@@ -624,7 +627,7 @@ CONTAINS
             mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
             mixing_ratio=mixing_ratio_loc, &
             dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
-            flag_xyfill=flag_xyfill)
+            flag_xyfill=flag_xyfill, sampled_on_subcycle=sampled_on_subcycle)
       end if
 
       num_possible_fields = num_possible_fields + 1

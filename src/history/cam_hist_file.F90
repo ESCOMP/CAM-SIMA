@@ -767,6 +767,14 @@ CONTAINS
          field_shape = field_ptr%shape()
          beg_dim = field_ptr%beg_dims()
          end_dim = field_ptr%end_dims()
+
+         ! Override frequency = 1*step to instantaneous if not sampled_on_subcycle
+         if (this%output_freq_type == 'step' .and. this%output_freq_mult == 1) then
+            if (.not. field_ptr%sampled_on_subcycle()) then
+               this%accumulate_types(idx) = 'lst'
+            end if
+         end if
+
          field_info => hist_new_field(this%field_names(idx),     &
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
@@ -775,7 +783,8 @@ CONTAINS
             field_ptr%fill_value(), beg_dims=beg_dim,            &
             end_dims=end_dim, mixing_ratio=field_ptr%mixing_ratio(), &
             flag_xyfill=field_ptr%flag_xyfill(),                 &
-            sampling_seq=field_ptr%sampling_sequence())
+            sampling_seq=field_ptr%sampling_sequence(),          &
+            sampled_on_subcycle=field_ptr%sampled_on_subcycle())
          call hist_new_buffer(field_info, field_shape, &
             1, this%accumulate_types(idx), 1, errors=errors)
          if (masterproc .and. errors%num_errors() > 0) then
