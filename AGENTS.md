@@ -117,6 +117,7 @@ These files live in the location specified by the `EXEROOT` CIME variable, which
 |-|-|-|
 | CAM-SIMA Python unit tests | `pytest test/unit/` | Fast; covers build scripts |
 | CAM-SIMA pylint | `pylint --rcfile=test/.pylintrc <files>` | Must score ≥ 9.5 |
+| CAM-SIMA fortitude | `fortitude --config-file test/fortitude.toml check <file>` | Error codes that cause CI to fail can be found in `test/fortitude-errors.txt`|
 | CAM-SIMA Fortran unit tests | `cmake -S test/unit/fortran -B build/unit-tests -DCAM_SIMA_ENABLE_TESTS=ON -DCMAKE_PREFIX_PATH=<pfunit>/build/installed && cd build/unit-tests && make && ctest` | Requires pFUnit and OpenMP C support (Linux/HPC; macOS default clang lacks OpenMP C) |
 
 atmospheric_physics scheme unit tests (pFUnit) run from that repo — see its `AGENTS.md`.
