@@ -35,7 +35,7 @@ use element_mod,            only: element_t
 use fvm_control_volume_mod, only: fvm_struct
 use hybvcoord_mod,          only: hvcoord_t
 use edgetype_mod,           only: EdgeBuffer_t
-use se_dyn_time_mod,        only: TimeLevel_t
+use se_dyn_time_mod,        only: TimeLevel_t, ptimelevels
 
 implicit none
 private
@@ -49,8 +49,6 @@ integer, parameter :: ini_decomp_scm = 205 ! alternate dynamics grid for reading
                                            ! in single colum (SCAM) mode.
 
 character(len=3), protected :: ini_grid_name
-
-integer, parameter :: ptimelevels = 2
 
 type (TimeLevel_t)         :: TimeLevel     ! main time level struct (used by tracers)
 type (hvcoord_t)           :: hvcoord
@@ -129,10 +127,14 @@ subroutine model_grid_init()
                                   get_loop_ranges, config_thread_region
    use control_mod,         only: qsplit, rsplit
    use se_dyn_time_mod,     only: tstep, nsplit
+   use dimensions_mod,      only: fvm_supercycling
+   use global_norms_mod,    only: auto_rsplit, set_global_max_normDinv
    use fvm_mod,             only: fvm_init2, fvm_init3, fvm_pg_init
+   use fvm_filter_mod,      only: cslam_q_filter_geom_init
    use dimensions_mod,      only: nelem, nelemd, nelemdmax, globaluniquecols
    use dimensions_mod,      only: irecons_tracer, dimensions_mod_init, qsize
    use dimensions_mod,      only: fv_nphys, npsq, use_cslam, nlev, nlevp
+   use control_mod,         only: gll_advect_q, del4_cslam_qgll
    use comp_gll_ctr_vol,    only: gll_grid_write
 
    ! Local variables
@@ -146,6 +148,8 @@ subroutine model_grid_init()
    integer                     :: ierr
    character(len=shr_kind_cl)  :: errmsg
    integer                     :: dtime
+   integer                     :: ie
+   real(r8)                    :: max_normDinv_loc ! task-local max of the mesh metric
 
    real(r8), allocatable       :: clat(:), clon(:), areaa(:)
    integer                     :: nets, nete
@@ -169,6 +173,16 @@ subroutine model_grid_init()
    ! Initialize SE-dycore specific variables,
    ! note that this must be done before "nlev" can be used:
    call dimensions_mod_init()
+
+   ! Resolve GLL double advection now that use_cslam is known
+   ! (cam6_4_215 sync; se_gll_advect_q read in dyn_readnl):
+   gll_advect_q = gll_advect_q .and. use_cslam
+   if (gll_advect_q) then
+      del4_cslam_qgll = .false.
+      if (masterproc) then
+         write(iulog, '(a)') 'model_grid_init: se_gll_advect_q=.true. -> forcing del4_cslam_qgll = .false.'
+      end if
+   end if
 
    if (use_cslam) then
       ! Use CSLAM for tracer advection
@@ -250,7 +264,12 @@ subroutine model_grid_init()
       end if
 
       if (use_cslam) then
-         qsize_local = thermodynamic_active_species_num + 3
+         if (gll_advect_q) then
+            ! FM, FT + FQ for the GLL-advected thermodynamic tracers
+            qsize_local = thermodynamic_active_species_num + 3
+         else
+            qsize_local = 3
+         end if
       else
          qsize_local = num_advected + 3
       end if
@@ -275,11 +294,30 @@ subroutine model_grid_init()
    ! nelemd (# of elements on this task) is set by prim_init1
    call init_loop_ranges(nelemd)
 
+   ! Global max of the mesh metric normDinv, used for CFL-based "automatic"
+   ! (se_*=-1) subcycling below and reused by print_cfl (the reduction moved
+   ! here from print_cfl; none is added)
+   max_normDinv_loc = 0.0_r8
+   do ie = 1, nelemd
+      max_normDinv_loc = max(max_normDinv_loc, elem(ie)%normDinv)
+   end do
+   call set_global_max_normDinv(max_normDinv_loc, mpicom)
+
    ! Dynamics timestep
    !
    !  Note: dtime = timestep for physics/dynamics coupling
    !        tstep = the dynamics timestep:
    dtime = get_step_size()
+   if (rsplit == -1) then
+      ! "automatic" rsplit: smallest value keeping the dynamics timestep within
+      ! the advective/gravity-wave stability limit. Resolved here, before tstep
+      ! and TimeLevel%nstep are set, so restart reading and all downstream
+      ! initialization see the final timestep.
+      rsplit = auto_rsplit(dtime/real(nsplit,r8), hvcoord%hyai(1)*hvcoord%ps0)
+      if (masterproc) write(iulog,'(a,i0)') 'dyn_grid_init: automatic (se_rsplit=-1) rsplit = ', rsplit
+   end if
+   ! default (se_fvm_supercycling < 0): inherit rsplit
+   if (fvm_supercycling     < 0) fvm_supercycling     = rsplit
    tstep = dtime / real(nsplit*qsplit*rsplit, r8)
    TimeLevel%nstep = get_nstep()*nsplit*qsplit*rsplit
 
@@ -307,6 +345,9 @@ subroutine model_grid_init()
          call fvm_init2(elem, fvm, hybrid, nets, nete)
          call fvm_pg_init(elem, fvm, hybrid, nets, nete, irecons_tracer)
          call fvm_init3(elem, fvm, hybrid, nets, nete, irecons_tracer)
+         ! precompute face-metric weights for the CSLAM-grid del4 Q filter
+         ! (no-op when cslam_q_filter = .false.)
+         call cslam_q_filter_geom_init(elem, fvm, hybrid, nets, nete)
       end if
 
    end if
