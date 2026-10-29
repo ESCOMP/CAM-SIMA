@@ -271,7 +271,7 @@ CONTAINS
           tmp_fvm(:,:,q,ie) = SUM(fvm(ie)%c(1:nc,1:nc,:,q)*fvm(ie)%dp_fvm(1:nc,1:nc,:),DIM=3)
         end do
         q=statediag_numtrac+1
-        tmp_fvm(:,:,q,ie) = SUM(fvm(ie)%dp_fvm(1:nc,1:nc,:),DIM=3)
+        tmp_fvm(:,:,q,ie) = SUM(fvm(ie)%dp_fvm(1:nc,1:nc,:),DIM=3)+hyai(1)*ps0
         q=statediag_numtrac+2
         tmp_fvm(:,:,q,ie) = moist_ps_fvm(:,:,ie)
       end do
