@@ -9,16 +9,7 @@ Full conversion and usage documentation is hosted at https://escomp.github.io/CA
 1. **Never hand-edit generated files**. Modify the generator inputs instead (see [the table below](#auto-generated-code-by-the-cam-sima-host-model-or-ccpp-framework)).
 2. **Code under `src/physics/ncar_ccpp` stays portable**: no host-model `use` statements in schemes.
 3. **Every PR states its answer impact.** The default for ports, refactors, and cleanups is bit-for-bit: do not reorder floating-point arithmetic, change parenthesization, or "simplify" expressions as a side effect of other work.
-4. **Never invent CCPP standard names silently** — reuse blessed names and flag any new name in the PR (see [Standard names](#ccpp-standard-names)).
-5. **Full builds and regression tests run only on NCAR clusters** (Derecho/Izumi). Unless the user says they are on one, verify with unit tests and hand off.
-
-## AI disclosure
-
-CAM-SIMA and atmospheric_physics **requires** disclosure of AI-assisted contributions:
-
-- In PR descriptions: state which model(s) were used and how.
-- In commits made by agents or incorporating AI-assisted code: use `Assisted-by: model:version` (e.g., `Assisted-by: claude-opus:4.8`)
-- The human contributor remains responsible for all committed code at all times.
+4. **Full builds and regression tests run only on NCAR clusters** (Derecho/Izumi). Verify with unit tests and hand off, unless the user explicitly authorizes and requests running them.
 
 ## Boundary between CAM-SIMA host model and atmospheric_physics (portable CCPP physics)
 
@@ -26,7 +17,7 @@ The **CAM-SIMA host model**:
 - Located at `ESCOMP/CAM-SIMA`. The default branch is the `development` branch. The `main` branch is empty and only contains a README to prevent users from easily inadvertently checking out unsupported development code.
 - Provides infrastructure, coupling, dynamical cores, and I/O.
 - Interfaces with CIME, ESMF, CMEPS/NUOPC, PIO, MPI, CESM_share (`shr_*`) and provides CAM-specific utilities like `cam_abortutils`, `cam_history`, etc.
-- Also provides CCPP metadata information via the Registry (`src/data/registry.xml`) and host-side `.meta` files.
+- Also provides CCPP metadata information via the registry (`src/data/registry.xml`) and host-side `.meta` files. Some registry variables are populated from the host at runtime (see an example at `src/control/cam_comp.F90`).
 
 The **atmospheric_physics** portable CCPP physics:
 - Located at `ESCOMP/atmospheric_physics` and is a submodule that would be checked out under `CAM-SIMA/src/physics/ncar_ccpp`. The default branch is `main`.
@@ -60,19 +51,9 @@ Learn the current conventions in the following files, which may be preferred ove
 * Host-side input of gridded/decomposed files threaded to CCPP scheme: `src/physics/utils/gravity_wave_drag_ridge_read.{F90,meta}`
 * Scheme-side exemplars (minimal scheme, namelist XML, diagnostics, SDF locations): see atmospheric_physics `AGENTS.md`.
 
-## CCPP standard names
-
-The standard name is the interface: the CCPP framework connects host variables and scheme arguments by exact standard-name match, and every entry in a `.meta` file (host or scheme) requires one.
-
-- **Reuse before coining.** Search `src/data/registry.xml` and recently converted schemes under `src/physics/ncar_ccpp` for current, blessed usage. The official dictionary ([ESCOMP/CCPPStandardNames](https://github.com/ESCOMP/CCPPStandardNames)) is authoritative but lags current usage.
-- If a new name is unavoidable, follow the naming patterns of existing names and **flag it explicitly in the PR description** for CAM SE review. Units must be consistent with existing usage.
-- The horizontal dimension standard name depends on phase: `horizontal_dimension` in non-`run` phases (and in host-side metadata), `horizontal_loop_extent` in the `run` phase.
-- Vertical dimensions: `vertical_layer_dimension` (layers) and `vertical_interface_dimension` (interfaces).
-- `errmsg`/`errflg` are `ccpp_error_message`/`ccpp_error_code`.
-
 ## Code style
 
-Fortran style rules (which apply to host code too) are distilled in atmospheric_physics `Code-style.md`; the full standards are at https://escomp.github.io/CAM-SIMA-docs/development/cam-coding-standards/. Python must pass pylint (see [Testing](#testing)) and follow the black code style.
+Fortran style rules are enforced by Fortitude in CI (with mandatory rules enforced as fatal). The full standards are at https://escomp.github.io/CAM-SIMA-docs/development/cam-coding-standards/. Python must pass pylint (see [Testing](#testing)) and follow the black code style.
 
 ## Variable persistence: registry vs CCPP framework
 
@@ -85,9 +66,11 @@ The registry serves a dual purpose: it declares the variables providing the init
 
 ## PRs and commits
 
-- **CAM-SIMA** PRs target `development`; **atmospheric_physics** PRs target `main` (its `development` branch is deprecated). Branch from a personal fork — never push branches under `ESCOMP`.
+- **CAM-SIMA** PRs target `development`; **atmospheric_physics** PRs target `main` (its `development` branch is deprecated). Branch from a personal fork: never push branches under `ESCOMP`.
 - Feature branches are squash-merged into the target branch. Do not add `simaX_YY_ZZZ` version tags to commit subjects (as seen in `git log`); those are applied only at release time, and only when regression tests change answers.
-- **Every PR states whether it changes answers.** Bit-for-bit is the default expectation for ports, refactors, and cleanups — and it is what snapshot and regression testing verify. An intentional answer change needs scientific justification in the PR; an accidental one (reordered arithmetic, changed parenthesization, a "simplified" expression) is a bug.
+- **Every PR states whether it changes answers.** Bit-for-bit is the default expectation for ports, refactors, and cleanups. It is what snapshot and regression testing verify. An intentional answer change needs scientific justification in the PR; an accidental one (reordered arithmetic, changed parenthesization, a "simplified" expression) is a bug.
+- Unless explicitly authorized by the user, do NOT commit, post issues, or open pull requests on the user's behalf. You may provide a draft for the user's reference if requested.
+- The human contributor remains responsible for all committed code and posted content at all times. If you are commiting or posting at a user's explicit request, you must disclose AI contribution using an `Assisted-by:` trailer or in the message body.
 
 ## CIME build system, not CMake
 
@@ -95,7 +78,9 @@ CAM-SIMA uses **CIME** (not CMake, not plain Make). A full build requires an NCA
 
 If the user tells you they are running on Derecho or Izumi, a full `./case.build` is available; otherwise assume it is not.
 
-CAM-SIMA compiles every `.F90` file in every directory listed in a generated `Filepath` text file. **Adding a new Fortran file in an existing source directory compiles it automatically** — no build-system file to update. New scheme directories under `schemes/` are discovered by capgen via `.meta` files.
+CAM-SIMA compiles every `.F90` file in every directory listed in a generated `Filepath` text file. **Adding a new Fortran file in an existing source directory compiles it automatically**: there is no build-system file to update. New scheme directories under `schemes/` and `test/test_schemes` are discovered by capgen via `.meta` files.
+
+If a new source directory is added, the directory must be added to `cime_config/buildlib`.
 
 ## Auto-generated code by the CAM-SIMA host model or CCPP framework
 
