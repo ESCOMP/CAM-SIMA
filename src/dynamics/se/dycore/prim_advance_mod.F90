@@ -1,5 +1,5 @@
 module prim_advance_mod
-  use shr_kind_mod,   only: r8=>shr_kind_r8
+  use shr_kind_mod,   only: r8=>shr_kind_r8, shr_kind_cl
   use edgetype_mod,   only: EdgeBuffer_t
   use perf_mod,       only: t_startf, t_stopf, t_adj_detailf !, t_barrierf _EXTERNAL
   use cam_abortutils, only: endrun, check_allocate
@@ -26,6 +26,7 @@ contains
     type (element_t), target, intent(inout) :: elem(:)
     integer                                 :: i
     integer                                 :: iret
+    character(len=shr_kind_cl)              :: errmsg
 
     character(len=*), parameter :: subname = 'prim_advance_init (SE)'
 
@@ -36,13 +37,13 @@ contains
     call initEdgeBuffer(par,edgeOmega ,elem,nlev         ,bndry_type=HME_BNDRY_P2P, nthreads=horz_num_threads)
 
     if(.not. allocated(ur_weights)) then
-      allocate(ur_weights(qsplit), stat=iret)
+      allocate(ur_weights(qsplit), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'ur_weights(qsplit)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
     end if
     ur_weights(:)=0.0_r8
 
-    if(mod(qsplit,2).NE.0)then
+    if(mod(qsplit,2)/=0)then
       ur_weights(1)=1.0_r8/qsplit
       do i=3,qsplit,2
         ur_weights(i)=2.0_r8/qsplit
@@ -70,8 +71,6 @@ contains
     use hybrid_mod,        only: hybrid_t
     use se_dyn_time_mod,   only: TimeLevel_t,  timelevel_qdp, tevolve
     use fvm_control_volume_mod, only: fvm_struct
-
-    implicit none
 
     type (element_t), intent(inout), target   :: elem(:)
     type(fvm_struct)     , intent(inout) :: fvm(:)
@@ -325,14 +324,15 @@ contains
     real (kind=r8) :: ftmp(np,np,nlev,qsize,nets:nete) !diagnostics
     real (kind=r8) :: pdel(np,np,nlev)
     real (kind=r8), allocatable :: ftmp_fvm(:,:,:,:,:) !diagnostics
+    character(len=shr_kind_cl) :: errmsg
 
     character(len=*), parameter :: subname = 'applyCAMforcing (SE)'
 
     call t_startf('applyCAMforc')
     if (use_cslam) then
-      allocate(ftmp_fvm(nc,nc,nlev,ntrac,nets:nete), stat=iret)
+      allocate(ftmp_fvm(nc,nc,nlev,ntrac,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'ftmp_fvm(nc,nc,nlev,ntrac,nets:nete)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
     end if
 
     if (ftype==0) then
@@ -352,7 +352,7 @@ contains
       dt_local            = dt_phys
       dt_local_tracer     = dt_phys
       dt_local_tracer_fvm = dt_phys
-      if (nsubstep.ne.1) then
+      if (nsubstep/=1) then
         !
         ! do nothing
         !
@@ -368,13 +368,13 @@ contains
       if (use_cslam) then
         dt_local_tracer     = dt_dribble
         dt_local_tracer_fvm = dt_phys
-        if (nsubstep.ne.1) then
+        if (nsubstep/=1) then
           dt_local_tracer_fvm = 0.0_r8
         end if
       else
         dt_local_tracer     = dt_phys
         dt_local_tracer_fvm = dt_phys
-        if (nsubstep.ne.1) then
+        if (nsubstep/=1) then
           dt_local_tracer     = 0.0_r8
           dt_local_tracer_fvm = 0.0_r8
         end if
@@ -777,7 +777,7 @@ contains
           do k=1,ksponge_end
             tmp_kmvis(:,:,k) = kmvis(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call history_out_field('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), (/npsq,nlev/)))
+          call history_out_field('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), [npsq,nlev]))
         end do
       end if
       if (is_history_field_active('nu_kmcnd')) then
@@ -786,7 +786,7 @@ contains
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)*inv_cp_full(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call history_out_field('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)))
+          call history_out_field('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]))
         end do
       end if
       if (is_history_field_active('nu_kmcnd_dp')) then
@@ -795,7 +795,7 @@ contains
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)/(cpair*rho_ref(k))
           end do
-          call history_out_field('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), (/npsq,nlev/)))
+          call history_out_field('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]))
         end do
       end if
 
@@ -1040,7 +1040,6 @@ contains
      use air_composition, only: get_cp_dry, get_R_dry
      use physconst,       only: tref,cpair,rga,lapse_rate
 
-     implicit none
      integer,        intent(in) :: np1,nm1,n0,nets,nete
      real (kind=r8), intent(in) :: dt2
 
@@ -1312,7 +1311,7 @@ contains
          end do
 
 
-         if (use_cslam.and.eta_ave_w.ne.0._r8) then
+         if (use_cslam.and.eta_ave_w/=0._r8) then
            !OMP_COLLAPSE_SIMD
            !DIR_VECTOR_ALIGNED
            do j=1,np
@@ -1355,7 +1354,7 @@ contains
        kptr=nlev
        call edgeVunpack(edge3, elem(ie)%state%v(:,:,:,:,np1), 2*nlev, kptr, ie)
 
-       if (use_cslam.and.eta_ave_w.ne.0._r8) then
+       if (use_cslam.and.eta_ave_w/=0._r8) then
          do k=1,nlev
            stashdp3d(:,:,k) = elem(ie)%state%dp3d(:,:,k,np1)/elem(ie)%spheremp(:,:)
          end do
@@ -1366,7 +1365,7 @@ contains
        kptr=kptr+2*nlev
        call edgeVunpack(edge3, elem(ie)%state%dp3d(:,:,:,np1),nlev,kptr,ie)
 
-       if  (use_cslam.and.eta_ave_w.ne.0._r8) then
+       if  (use_cslam.and.eta_ave_w/=0._r8) then
          desc = elem(ie)%desc
 
          call edgeDGVunpack(edge3, corners, nlev, kptr, ie)
@@ -1732,7 +1731,7 @@ contains
 
       call const_get_index('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldliq, abort=.false.)
       call const_get_index('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water', ixcldice, abort=.false.)
-      call const_get_index('TT_LW' , ixtt    , abort=.false.)
+      call const_get_index('TT_LW' , ixtt    , abort=.false., warning=.false.)
 
       do ie=nets,nete
         call util_function(qdp(:,:,:,1,ie),nx,nlev,name_out1,ie)
@@ -1785,7 +1784,6 @@ contains
      use air_composition,only: thermodynamic_active_species_idx_dycore
      use dyn_thermo,     only: get_dp
      use cam_thermo,     only: MASS_MIXING_RATIO
-     implicit none
      type (hybrid_t)      , intent(in)            :: hybrid
      type (element_t)     , intent(inout), target :: elem(:)
      type (derivative_t)  , intent(in)            :: deriv
