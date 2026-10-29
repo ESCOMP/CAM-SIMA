@@ -1,6 +1,6 @@
 # CAM-SIMA and atmospheric_physics AI agent guidance
 
-This file applies to work in the **CAM-SIMA** ("host model") and **atmospheric_physics** (CCPP-compliant physics schemes, submoduled at `src/physics/ncar_ccpp`). atmospheric_physics is submoduled into CAM-SIMA but must remain portable — it contains the science codebase for physics parameterizations and is also shared with **CAM**, the production atmospheric component of CESM.
+This file applies to work in **CAM-SIMA** ("host model") and **atmospheric_physics** (CCPP-compliant physics schemes, submoduled at `src/physics/ncar_ccpp`). atmospheric_physics is submoduled into CAM-SIMA but must remain portable — it contains the science codebase for physics parameterizations and is also shared with **CAM**, the production atmospheric component of CESM.
 
 Full conversion and usage documentation is hosted at https://escomp.github.io/CAM-SIMA-docs/ (separate `CAM-SIMA-docs` repo; not checked out alongside the code). Scheme-side conventions and portability rules live in atmospheric_physics' own `AGENTS.md` (at `src/physics/ncar_ccpp/AGENTS.md` when the submodule is checked out).
 
@@ -102,6 +102,7 @@ These files live in the location specified by the `EXEROOT` CIME variable, which
 |-|-|-|
 | CAM-SIMA Python unit tests | `pytest test/unit/` | Fast; covers build scripts |
 | CAM-SIMA pylint | `pylint --rcfile=test/.pylintrc <files>` | Must score ≥ 9.5 |
+| CAM-SIMA fortitude | `fortitude --config-file test/fortitude.toml check <file>` | Error codes that cause CI to fail can be found in `test/fortitude-errors.txt`|
 | CAM-SIMA Fortran unit tests | `cmake -S test/unit/fortran -B build/unit-tests -DCAM_SIMA_ENABLE_TESTS=ON -DCMAKE_PREFIX_PATH=<pfunit>/build/installed && cd build/unit-tests && make && ctest` | Requires pFUnit and OpenMP C support (Linux/HPC; macOS default clang lacks OpenMP C) |
 
 atmospheric_physics scheme unit tests (pFUnit) run from that repo — see its `AGENTS.md`.
