@@ -30,4 +30,8 @@ Good luck, and have a great day!
 
 ## Acknowledgements
 
+This work is supported by NSF under Cooperative Agreement No. 1852977.
+
+This work is supported in part by the NSF NCAR Community Software Facility.
+
 The refactoring of the CAM4 and CAM5 physics routines into the CAM-SIMA codebase was supported by [NSF award 2311276](https://www.nsf.gov/awardsearch/show-award/?AWD_ID=2311376).
