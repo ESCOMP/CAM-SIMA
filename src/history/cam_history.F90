@@ -51,7 +51,7 @@ module cam_history
    type(hist_hash_table_t)          :: possible_field_list
    integer                          :: num_possible_fields
 
-CONTAINS
+contains
 
    subroutine history_readnl(nlfile)
       !-----------------------------------------------------------------------
@@ -276,7 +276,7 @@ CONTAINS
          logname = ' '
          call shr_sys_getenv ('LOGNAME', logname, rcode)
          if (rcode == -1) then
-            write(iulog,*) subname//'WARNING: user logname has been truncated to '//stringify((/len(logname)/))//' characters'
+            write(iulog,*) subname//'WARNING: user logname has been truncated to '//stringify([len(logname)])//' characters'
          else if (rcode == 1) then
             write(iulog,*) subname//'WARNING: user logname not found; defaulting to empty string'
             logname = ' '
@@ -284,7 +284,7 @@ CONTAINS
          host = ' '
          call shr_sys_getenv ('HOST', host, rcode)
          if (rcode == -1) then
-            write(iulog,*) subname//'WARNING: machine host name has been truncated to '//stringify((/len(host)/))//' characters'
+            write(iulog,*) subname//'WARNING: machine host name has been truncated to '//stringify([len(host)])//' characters'
          else if (rcode == 1) then
             write(iulog,*) subname//'WARNING: machine host name not found; defaulting to empty string'
             host = ' '
@@ -418,20 +418,21 @@ CONTAINS
       character(len=max_chars), allocatable :: dimnames(:)
       integer                               :: index
       integer                               :: ierr
+      character(len=cl)                     :: errmsg
       character(len=*), parameter           :: subname = 'history_add_field_1d'
 
       if (trim(vdim_name) == trim(horiz_only)) then
-         allocate(dimnames(0), stat=ierr)
+         allocate(dimnames(0), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'dimnames', &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       else
          index = get_hist_coord_index(trim(vdim_name))
          if (index < 1) then
            call endrun('history_add_field_1d: Invalid coordinate, '//trim(vdim_name))
          end if
-         allocate(dimnames(1), stat=ierr)
+         allocate(dimnames(1), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'dimnames', &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
@@ -524,8 +525,8 @@ CONTAINS
             write(iulog,*)'Field name:  ',diagnostic_name
          end if
          write(errmsg, *) 'Field name, "', trim(diagnostic_name), '" is too long ', '(len=', &
-                 stringify((/len_trim(fname_tmp)/)), ' longer than max length of ',          &
-                 stringify((/fieldname_len/)), ')'
+                 stringify([len_trim(fname_tmp)]), ' longer than max length of ',          &
+                 stringify([fieldname_len]), ')'
          call endrun('history_add_field_nd: '//trim(errmsg))
       end if
 
@@ -574,8 +575,8 @@ CONTAINS
       ! config_define_file (cam_hist_file.F90).
       ! TODO: fill-aware accumulation for averaged output.
 
-      allocate(mdim_indices(size(dimnames)), stat=ierr)
-      call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1)
+      allocate(mdim_indices(size(dimnames)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'mdim_indices', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
 
       call lookup_hist_coord_indices(dimnames, mdim_indices)
 
@@ -592,10 +593,10 @@ CONTAINS
       if (size(mdim_indices) > 0) then
          rank = rank + size(mdim_indices)
       end if
-      allocate(field_shape(rank), stat=ierr)
-      call check_allocate(ierr, subname, 'field_shape', file=__FILE__, line=__LINE__-1)
-      allocate(mdim_sizes(size(mdim_indices)), stat=ierr)
-      call check_allocate(ierr, subname, 'mdim_sizes', file=__FILE__, line=__LINE__-1)
+      allocate(field_shape(rank), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'field_shape', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+      allocate(mdim_sizes(size(mdim_indices)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'mdim_sizes', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       field_shape(1:pos) = grid_dims(1:pos)
       if (rank > pos) then
          do idx = 1, size(mdim_indices)
@@ -893,7 +894,7 @@ CONTAINS
      type(hist_field_info_t), pointer :: entry
 
      if(associated(listentry)) then
-        if(listentry%diag_name() .eq. name) then
+        if(listentry%diag_name() == name) then
            entry => listentry
         else
            entry=>get_entry_by_name(listentry%next, name)
