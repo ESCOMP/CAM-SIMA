@@ -13,7 +13,6 @@ module cam_history
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
-   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -66,12 +65,13 @@ contains
       !-----------------------------------------------------------------------
       use cam_hist_file,  only: hist_read_namelist_config
       use cam_abortutils, only: endrun
+      use shr_kind_mod,   only: cx=>shr_kind_cx
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
       integer :: ierr
-      character(len=256) :: alloc_errmsg
-      character(len=512) :: errmsg
+      character(len=cl) :: alloc_errmsg
+      character(len=cx) :: errmsg
 
       ! Read in CAM history configuration
       call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
@@ -436,7 +436,7 @@ contains
       character(len=max_chars), allocatable :: dimnames(:)
       integer                               :: index
       integer                               :: ierr
-      character(len=256) :: errmsg
+      character(len=cl) :: errmsg
       character(len=*), parameter           :: subname = 'history_add_field_1d'
 
       if (trim(vdim_name) == trim(horiz_only)) then
@@ -484,7 +484,7 @@ contains
       use cam_abortutils,      only: endrun, check_allocate
       use spmd_utils,          only: masterproc
       use string_utils,        only: stringify
-      use shr_kind_mod,        only: r8 => shr_kind_r8
+      use shr_kind_mod,        only: r8 => shr_kind_r8, cx => shr_kind_cx
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name
@@ -507,7 +507,7 @@ contains
       integer,          allocatable     :: field_shape(:)
       integer                           :: ierr, idx
       integer                           :: dimbounds(2,2)
-      character(len=512)                :: errmsg
+      character(len=cx)                 :: errmsg
       character(len=max_fldlen)         :: fname_tmp ! local copy of fname
       character(len=max_fldlen)         :: coord_name ! for cell_methods
       character(len=max_fldlen)         :: cell_methods

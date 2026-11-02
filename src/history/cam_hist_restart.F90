@@ -29,7 +29,7 @@ module cam_hist_restart
     !   The size of these parameters should match the assignments in restart_vars_setnames and restart_dims_setnames below
     !
     integer, parameter :: num_restart_vars = 21
-    integer, parameter :: num_restart_dims =  9
+    integer, parameter :: num_restart_dims = 10
     type(restart_variable_t)  :: restart_vars(num_restart_vars)
     type(restart_dimension_t) :: restart_dims(num_restart_dims)
 
@@ -38,10 +38,11 @@ module cam_hist_restart
     integer, parameter :: max_fieldname_len_dim_ind   =  3
     integer, parameter :: max_num_fields_dim_ind      =  4
     integer, parameter :: max_chars_dim_ind           =  5
-    integer, parameter :: max_dims_dim_ind            =  6
-    integer, parameter :: registeredmdims_dim_ind     =  7
-    integer, parameter :: max_hcoordname_len_dim_ind  =  8
-    integer, parameter :: max_num_split_files_dim_ind =  9
+    integer, parameter :: max_avgflag_len_dim_ind     =  6
+    integer, parameter :: max_dims_dim_ind            =  7
+    integer, parameter :: registeredmdims_dim_ind     =  8
+    integer, parameter :: max_hcoordname_len_dim_ind  =  9
+    integer, parameter :: max_num_split_files_dim_ind = 10
 
     private :: set_restart_variable_names
     private :: set_restart_dimension_names
@@ -60,7 +61,7 @@ contains
 
       ! Local variables
       integer :: idx, ndims, kdx, ierr
-      integer :: dimids(4)
+      integer :: dimids(max_dimensions)
 
       ! Set the restart dimensions and variables for writing to the file
       call set_restart_variable_names()
@@ -88,9 +89,10 @@ contains
    subroutine hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
       use pio,                 only: file_desc_t, pio_put_var
       use cam_hist_file,       only: hist_file_t
-      use cam_history_support, only: max_chars, max_string_len, get_hist_coord_names, registeredmdims
+      use cam_history_support, only: get_hist_coord_names, registeredmdims
+      use cam_history_support, only: max_avgflag_len, max_chars, max_string_len
       use cam_grid_support,    only: max_split_files, max_hcoordname_len
-      use cam_abortutils,      only: endrun
+      use cam_abortutils,      only: safe_endrun
       type(file_desc_t), intent(inout) :: restart_file
       type(hist_file_t), intent(in)    :: hist_configs(:)
       integer,           intent(in)    :: max_num_fields
@@ -112,7 +114,7 @@ contains
       character(len=max_chars) :: output_freq(size(hist_configs))
       character(len=max_string_len) :: current_files(size(hist_configs), max_split_files)
       character(len=max_chars) :: hist_precision(size(hist_configs))
-      character(len=max_chars) :: avg_flag(max_num_fields, size(hist_configs))
+      character(len=max_avgflag_len) :: avg_flag(max_num_fields, size(hist_configs))
       character(len=max_chars) :: long_name(max_num_fields, size(hist_configs))
       character(len=max_chars) :: cell_methods(max_num_fields, size(hist_configs))
       character(len=max_chars) :: units(max_num_fields, size(hist_configs))
@@ -234,7 +236,7 @@ contains
          case default
          end select
          if (ierr /= 0) then
-            call endrun('hist_restart_write: failed to write variable '//restart_vars(idx)%var_name)
+            call safe_endrun('hist_restart_write: failed to write variable '//restart_vars(idx)%var_name)
          end if
       end do
    end subroutine hist_restart_write
@@ -314,7 +316,7 @@ contains
       restart_vars(rvar_index)%var_name = 'field_average_flag'
       restart_vars(rvar_index)%var_type = pio_char
       restart_vars(rvar_index)%number_of_dimensions = 3
-      restart_vars(rvar_index)%dimension_ids(1) = max_chars_dim_ind
+      restart_vars(rvar_index)%dimension_ids(1) = max_avgflag_len_dim_ind
       restart_vars(rvar_index)%dimension_ids(2) = max_num_fields_dim_ind
       restart_vars(rvar_index)%dimension_ids(3) = num_configs_dim_ind
 
@@ -420,6 +422,9 @@ contains
 
       restart_dims(max_chars_dim_ind)%dimension_name = 'max_chars'
       restart_dims(max_chars_dim_ind)%dimension_length = max_chars
+
+      restart_dims(max_avgflag_len_dim_ind)%dimension_name = 'max_avgflag_len'
+      restart_dims(max_avgflag_len_dim_ind)%dimension_length = max_avgflag_len
 
       restart_dims(max_dims_dim_ind)%dimension_name = 'max_variable_mdims'
       restart_dims(max_dims_dim_ind)%dimension_length = max_dimensions

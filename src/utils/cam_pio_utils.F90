@@ -330,7 +330,7 @@ CONTAINS
 
    !===========================================================================
    subroutine cam_pio_handle_error(ierr, errorstr)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: safe_endrun
       use pio,            only: pio_noerr
 
       ! Dummy arguments
@@ -342,7 +342,7 @@ CONTAINS
 
       if (ierr /= PIO_NOERR) then
          write(errormsg, '(a,i6,2a)') '(PIO:', ierr, ') ', trim(errorstr)
-         call endrun(errormsg)
+         call safe_endrun(errormsg)
       end if
 
    end subroutine cam_pio_handle_error

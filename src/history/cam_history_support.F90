@@ -9,7 +9,6 @@ module cam_history_support
 
    use shr_kind_mod,     only: r8=>shr_kind_r8, shr_kind_cl, shr_kind_cxx
    use cam_grid_support, only: max_hcoordname_len
-   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -24,6 +23,7 @@ module cam_history_support
    integer, parameter, public :: max_chars = shr_kind_cl  ! max chars for char variables
    integer, parameter, public :: max_string_len = shr_kind_cxx
    integer, parameter, public :: max_dimensions = 4
+   integer, parameter, public :: max_avgflag_len = 3
    real(r8), parameter, public :: fillvalue = 1.e36_r8    ! default fill value for netcdf fields
    ! A special symbol for declaring a field which has no vertical or
    ! non-grid dimensions. It is here (rather than cam_history) so that it
@@ -166,8 +166,9 @@ module cam_history_support
 
   function get_hist_coord_names() result(mdimnames)
      use cam_abortutils, only: endrun
+     use shr_kind_mod,   only: cx => shr_kind_cx
      character(len=max_hcoordname_len), allocatable :: mdimnames(:)
-     character(len=512) :: errmsg
+     character(len=cx) :: errmsg
      integer :: ierr, idx
 
      allocate(mdimnames(registeredmdims), stat=ierr, errmsg=errmsg)
@@ -362,7 +363,7 @@ module cam_history_support
     type(formula_terms_t), intent(in)            :: formula_terms
 
     ! Local variables
-    character(len=256)                           :: errormsg
+    character(len=cl)                            :: errormsg
     integer                                      :: i
 
     i = get_hist_coord_index(trim(name))
@@ -1137,7 +1138,7 @@ module cam_history_support
     integer                          :: ierr
     logical                          :: writemdims     ! Define an mdim variable
     type(var_desc_t)                 :: vardesc        ! PIO variable descriptor
-    character(len=256) :: errmsg
+    character(len=cl) :: errmsg
     character(len=max_hcoordname_len), allocatable :: mdimnames(:)
     character(len=*),    parameter                 :: subname = 'write_hist_coord_vars'
 

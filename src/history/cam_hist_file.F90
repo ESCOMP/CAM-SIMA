@@ -7,6 +7,7 @@ module cam_hist_file
    use cam_history_support, only: max_fldlen=>max_fieldname_len
    use cam_history_support, only: fieldname_suffix_len
    use cam_history_support, only: interp_info_t
+   use cam_history_support, only: max_avgflag_len
    use shr_kind_mod,        only: r8 => shr_kind_r8, CL => SHR_KIND_CL
    use hist_field,          only: hist_field_info_t
    use hist_hash_table,     only: hist_hash_table_t
@@ -14,7 +15,6 @@ module cam_hist_file
    use runtime_obj,         only: UNSET_I => unset_int
    use runtime_obj,         only: UNSET_C => unset_str
    use runtime_obj,         only: UNSET_R8 => unset_real
-   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -59,7 +59,7 @@ module cam_hist_file
       real(r8),                      private :: end_time = UNSET_R8
       character(len=:), allocatable, private :: filename_spec
       character(len=max_fldlen), allocatable, private :: field_names(:)
-      character(len=3), allocatable, private :: accumulate_types(:)
+      character(len=max_avgflag_len), allocatable, private :: accumulate_types(:)
       type(var_desc_t), allocatable, private :: file_varids(:,:)
       type(var_desc_t), allocatable, private :: nacs_varids(:,:)
       type(var_desc_t), allocatable, private :: varbuff_varids(:,:)
@@ -180,7 +180,7 @@ contains
 
       character(len=1) :: accum_types(max_split_files)
       integer :: file_idx, ierr
-      character(len=256) :: errmsg
+      character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'config_filename: '
 
       accum_types(instantaneous_file_index) = 'i'
@@ -207,7 +207,7 @@ contains
 
       character(len=1) :: accum_types(max_split_files)
       integer          :: file_idx, ierr
-      character(len=256) :: errmsg
+      character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'config_set_filenames: '
 
       if (allocated(this%file_names)) then
@@ -277,8 +277,7 @@ contains
 
    ! ========================================================================
 
-   function config_get_restart_filename(this) result(rhfile)
-      use cam_filenames,  only: interpret_filename_spec
+   pure function config_get_restart_filename(this) result(rhfile)
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=CL)              :: rhfile
@@ -381,18 +380,17 @@ contains
    ! ========================================================================
 
    function config_get_field_list(this) result(field_list)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=max_fldlen), allocatable :: field_list(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
 
       allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'field_list',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          field_list(idx) = this%field_list(idx)%diag_name()
       end do
@@ -402,19 +400,18 @@ contains
    ! ========================================================================
 
    function config_get_averaging_flags(this) result(avgflags)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       use cam_history_support, only: max_chars
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
-      character(len=max_chars), allocatable :: avgflags(:)
+      character(len=max_avgflag_len), allocatable :: avgflags(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
 
       allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'avgflags',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          avgflags(idx) = this%field_list(idx)%accumulate_type()
       end do
@@ -423,17 +420,16 @@ contains
    ! ========================================================================
 
    function config_get_decompositions(this) result(decomps)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: decomps(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(decomps(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_decompositions: failed to allocate decomps; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'decomps',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          decomps(idx) = this%field_list(idx)%decomp()
       end do
@@ -442,17 +438,16 @@ contains
    ! ========================================================================
 
    function config_get_num_levels(this) result(numlevs)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: numlevs(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(numlevs(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_num_levels: failed to allocate numlevs; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'numlevs',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          numlevs(idx) = this%field_list(idx)%num_levels()
       end do
@@ -461,18 +456,17 @@ contains
    ! ========================================================================
 
    function config_get_cell_methods(this) result(cell_methods)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       use cam_history_support, only: max_chars
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=max_chars), allocatable :: cell_methods(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(cell_methods(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_cell_methods: failed to allocate cell_methods; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'cell_methods',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          cell_methods(idx) = this%field_list(idx)%cell_methods()
       end do
@@ -481,18 +475,17 @@ contains
    ! ========================================================================
 
    function config_get_long_names(this) result(long_names)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       use cam_history_support, only: max_chars
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=max_chars), allocatable :: long_names(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(long_names(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_long_names: failed to allocate long_names; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'long_names',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          long_names(idx) = this%field_list(idx)%long_name()
       end do
@@ -501,18 +494,17 @@ contains
    ! ========================================================================
 
    function config_get_units(this) result(units)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       use cam_history_support, only: max_chars
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=max_chars), allocatable :: units(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(units(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_units: failed to allocate units; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'units',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          units(idx) = this%field_list(idx)%units()
       end do
@@ -521,17 +513,16 @@ contains
    ! ========================================================================
 
    function config_get_fill_flags(this) result(flags)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: flags(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(flags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_fill_flags: failed to allocate flags; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'flags',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       flags = 0
       do idx = 1, size(this%field_list)
          if (this%field_list(idx)%flag_xyfill()) then
@@ -543,17 +534,16 @@ contains
    ! ========================================================================
 
    function config_get_fill_values(this) result(fill_values)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       real(r8),          allocatable :: fill_values(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(fill_values(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_fill_values: failed to allocate fill_values; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'fill_values',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          fill_values(idx) = this%field_list(idx)%fill_value()
       end do
@@ -562,18 +552,17 @@ contains
    ! ========================================================================
 
    function config_get_dimension_indices(this) result(dimids)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       use cam_history_support, only: max_dimensions
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: dimids(:,:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(dimids(max_dimensions, size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_dimension_indices: failed to allocate dimids; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'dimids',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       dimids = 0
       do idx = 1, size(this%field_list)
          if (size(this%field_list(idx)%dimensions()) > 0) then
@@ -585,17 +574,16 @@ contains
    ! ========================================================================
 
    function config_get_num_dimensions(this) result (ndims)
-      use cam_abortutils, only: endrun
+      use cam_abortutils, only: check_allocate
       class(hist_file_t), intent(in) :: this
       integer,           allocatable :: ndims(:)
       ! Local variables
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       integer :: ierr, idx
 
       allocate(ndims(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      if (ierr /= 0) then
-         call endrun('config_get_num_dimensions: failed to allocate ndims; errmsg = '//errmsg)
-      end if
+      call check_allocate(ierr, subname, 'ndims',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          ndims(idx) = size(this%field_list(idx)%dimensions())
       end do
@@ -1176,8 +1164,8 @@ contains
       use cam_history_support, only: max_chars
       use cam_abortutils,      only: endrun
       ! Dummy arguments
-       character(len=3),           intent(in)  :: avgflag ! averaging flag
-       character(len=max_chars),   intent(out) :: time_op ! time op (e.g. max)
+       character(len=max_avgflag_len), intent(in)  :: avgflag ! averaging flag
+       character(len=max_chars),       intent(out) :: time_op ! time op (e.g. max)
 
        ! Local variable
        character(len=*), parameter             :: subname = 'AvgflagToString'
@@ -1245,6 +1233,7 @@ contains
       logical                  :: varid_set
       logical                  :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
+      character(len=cl)        :: errmsg
       ! NetCDF dimensions
       integer :: timdim             ! unlimited dimension id
       integer :: bnddim             ! bounds dimension id
@@ -1299,7 +1288,9 @@ contains
 
       call this%set_up_dimensions(num_patches, restart, header_info, dimindex, varid_set)
 
-      allocate(fdims(size(this%field_list)))
+      allocate(fdims(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'fdims',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do split_file_index = 1, max_split_files
          if (.not. pio_file_is_open(this%hist_files(split_file_index))) then
             cycle
@@ -1326,10 +1317,11 @@ contains
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
          if (ierr /= PIO_NOERR) then
-            call endrun('config_define_file: ERROR exiting define mode in PIO', file=__FILE__, line=__LINE__)
+            call endrun(sub//'ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
+                    file=__FILE__, line=__LINE__)
          end if
          if(masterproc) then
-            write(iulog,*)'config_define_file: Successfully opened netcdf file '//trim(this%file_names(split_file_index))
+            write(iulog,*) sub//'Successfully opened netcdf file '//trim(this%file_names(split_file_index))
          end if
 
          ! Write time-invariant portion of history header
@@ -1363,7 +1355,7 @@ contains
       use cam_pio_utils,       only: cam_pio_createfile
       use pio,                 only: pio_clobber, pio_noerr, pio_enddef
       use cam_grid_support,    only: cam_grid_header_info_t
-      use cam_abortutils,      only: endrun
+      use cam_abortutils,      only: endrun, check_allocate
       ! Define the metadata for the history restart file (rhX)
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
@@ -1381,6 +1373,7 @@ contains
       logical :: varid_set
       logical :: restart, split_file
       character(len=max_chars) :: calendar  ! Calendar type
+      character(len=cl)        :: errmsg
       integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
@@ -1431,7 +1424,9 @@ contains
       ! End header definition
 
       ! Create variables and attributes for field list
-      allocate(fdims(size(this%field_list)))
+      allocate(fdims(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'fdims',             &
+           file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       call this%define_fields(this%restart_file, 1, split_file, restart, mdimids, &
                 dimindex, timdim, num_patches, header_info, varid_set, num_hdims, fdims)
 
@@ -1441,7 +1436,8 @@ contains
       deallocate(mdimids)
       ierr = pio_enddef(this%restart_file)
       if (ierr /= PIO_NOERR) then
-         call endrun('config_define_restart_file: ERROR exiting define mode in PIO', file=__FILE__, line=__LINE__)
+         call endrun('config_define_restart_file: ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
+                 file=__FILE__, line=__LINE__)
       end if
       if(masterproc) then
          write(iulog,*)'config_define_restart_file: Successfully opened netcdf file '//trim(this%restart_file_name)
@@ -1477,7 +1473,7 @@ contains
       integer :: ierr
       integer :: grid_index, field_index, split_file_index
       integer :: max_hdims, max_mdims
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'config_set_up_dimensions: '
 
       allocate(header_info(size(this%grids)), stat=ierr, errmsg=errmsg)
@@ -1511,6 +1507,7 @@ contains
       allocate(dimindex(max_hdims + max_mdims + 1), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'dimindex', file=__FILE__, line=__LINE__-1, &
               errmsg=errmsg)
+      dimindex = -1
 
       varid_set = .true.
       ! Allocate the varid array
@@ -1577,8 +1574,7 @@ contains
       character(len=16)        :: time_per_freq
 
       ! Format frequency
-      write(time_per_freq,999) trim(this%output_freq_type), '_', this%output_freq_mult
-999   format(2a,i0)
+      write(time_per_freq,'(2a,i0)') trim(this%output_freq_type), '_', this%output_freq_mult
 
       ! Define time variable
       ierr=pio_def_var (hist_file,'time',pio_double,[timdim],this%timeid)
@@ -1718,35 +1714,35 @@ contains
       ! Integer header
       !
       ! Define base day variables
-      ierr=pio_def_var (hist_file,'ndbase',PIO_INT,this%ndbaseid)
+      ierr=pio_def_var (hist_file,'ndbase',pio_int,this%ndbaseid)
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "ndbase" variable')
       str = 'base day'
       ierr=pio_put_att (hist_file, this%ndbaseid, 'long_name', trim(str))
       call cam_pio_handle_error(ierr, &
               'config_define_additional_header_info: failed to add "long_name" attribute to "ndbase" variable')
 
-      ierr=pio_def_var (hist_file,'nsbase',PIO_INT,this%nsbaseid)
+      ierr=pio_def_var (hist_file,'nsbase',pio_int,this%nsbaseid)
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nsbase" variable')
       str = 'seconds of base day'
       ierr=pio_put_att (hist_file, this%nsbaseid, 'long_name', trim(str))
       call cam_pio_handle_error(ierr, &
               'config_define_additional_header_info: failed to add "long_name" attribute to "nsbase" variable')
 
-      ierr=pio_def_var (hist_file,'nbdate',PIO_INT,this%nbdateid)
+      ierr=pio_def_var (hist_file,'nbdate',pio_int,this%nbdateid)
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nbdate" variable')
       str = 'base date (YYYYMMDD)'
       ierr=pio_put_att (hist_file, this%nbdateid, 'long_name', trim(str))
       call cam_pio_handle_error(ierr, &
               'config_define_additional_header_info: failed to add "long_name" attribtue to "nbdate" variable')
 
-      ierr=pio_def_var (hist_file,'nbsec',PIO_INT,this%nbsecid)
+      ierr=pio_def_var (hist_file,'nbsec',pio_int,this%nbsecid)
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "nbsec" variable')
       str = 'seconds of base date'
       ierr=pio_put_att (hist_file, this%nbsecid, 'long_name', trim(str))
       call cam_pio_handle_error(ierr, &
               'config_define_additional_header_info: failed to add "long_name" attribute to "nbsec" variable')
 
-      ierr=pio_def_var (hist_file,'mdt',PIO_INT,this%mdtid)
+      ierr=pio_def_var (hist_file,'mdt',pio_int,this%mdtid)
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to define "mdt" variable')
       ierr=pio_put_att (hist_file, this%mdtid, 'long_name', 'timestep')
       call cam_pio_handle_error(ierr, 'config_define_additional_header_info: failed to add "long_name" attribute to "mdt" variable')
@@ -1793,7 +1789,7 @@ contains
       integer,   parameter :: max_netcdf_len = 256
       integer              :: nacsdims(2)   ! dimension ids for nacs (used in restart file)
       character(len=max_chars) :: str       ! character temporary
-      character(len=512)       :: errmsg
+      character(len=cl)        :: errmsg
       character(len=max_chars) :: fname_tmp ! local copy of field name
       character(len=max_chars) :: cell_methods
 
@@ -1960,7 +1956,7 @@ contains
       ! Local variables
       integer :: ierr, field_index, idx
       integer :: nstdev, stdev_index
-      character(len=512) :: errmsg
+      character(len=cl) :: errmsg
       character(len=max_chars) :: str
       type(var_desc_t) :: varid
 
@@ -2066,6 +2062,7 @@ contains
       use cam_logfile,   only: iulog
       use perf_mod,      only: t_startf, t_stopf
       use cam_pio_utils, only: cam_pio_handle_error
+      use phys_const,    only: cday
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
       ! Local variables
@@ -2092,7 +2089,7 @@ contains
       call get_curr_date(yr, mon, day, ncsec)
       ncdate = yr*10000 + mon*100 + day
       call get_curr_time(ndcur, nscur)
-      time = ndcur + nscur/86400._r8
+      time = ndcur + nscur/cday
       time_interval(1) = this%beg_time
       time_interval(2) = time
 
@@ -2109,16 +2106,17 @@ contains
       ierr = pio_put_var (this%restart_file,this%nscurid,[start],[count1],[nscur])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "nscur" variable')
       ierr = pio_put_var (this%restart_file,this%nstephid,[start],[count1],[nstep])
-      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "nstephid" variable')
+      call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "nsteph" variable')
 
       ierr = pio_put_var (this%restart_file,this%dateid,[start],[count1],[ncdate])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncdate" variable')
       ierr = pio_put_var (this%restart_file,this%datesecid,[start],[count1],[ncsec])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncsec" variable')
-      countc(1) = 2
 
       ierr=pio_put_var (this%restart_file, this%timeid, [start],[count1],[time])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write instantaneous "time" variable')
+
+      countc(1) = 2
       ierr=pio_put_var (this%restart_file, this%tbndid, startc, countc, time_interval)
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "time_bounds" variable')
       countc(1) = 8
@@ -2414,7 +2412,7 @@ contains
       integer              :: idx, patch_index
       integer              :: field_decomp
       integer              :: num_patches, ierr, rank
-      character(len=512)   :: errmsg
+      character(len=cl)    :: errmsg
       character(len=*), parameter :: subname = 'config_write_restart_fields: '
 
       beg_dims = field%beg_dims()

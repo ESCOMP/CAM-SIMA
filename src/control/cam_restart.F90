@@ -14,7 +14,8 @@ CONTAINS
     use cam_history,      only: init_restart_history, write_restart_history
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
-    use pio,              only: pio_put_att, pio_enddef
+    use pio,              only: pio_put_att, pio_enddef, pio_seterrorhandling
+    use pio,              only: PIO_BCAST_ERROR
     use cam_grid_support, only: cam_grid_write_attr, cam_grid_id
     use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_var
     use cam_grid_support, only: cam_grid_dimensions, cam_grid_get_decomp
@@ -52,6 +53,9 @@ CONTAINS
 
     call cam_pio_createfile(fh, trim(fname))
     ierr = cam_pio_set_fill(fh)
+
+    !Force PIO to send an error code instead of dying:
+    call pio_seterrorhandling(fh, PIO_BCAST_ERROR)
 
     call init_restart_dynamics(fh, dyn_out)
 
