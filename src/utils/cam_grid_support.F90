@@ -379,7 +379,7 @@ contains
    !!
    !!#######################################################################
 
-   integer function horiz_coord_find_size(this, dimname) result(dimsize)
+   pure integer function horiz_coord_find_size(this, dimname) result(dimsize)
       ! Dummy arguments
       class(horiz_coord_t), intent(in)    :: this
       character(len=*),     intent(in)    :: dimname
@@ -397,7 +397,7 @@ contains
 
    end function horiz_coord_find_size
 
-   integer function horiz_coord_num_elem(this) result(num_elem)
+   pure integer function horiz_coord_num_elem(this) result(num_elem)
       ! Dummy arguments
       class(horiz_coord_t), intent(in)    :: this
 
@@ -788,7 +788,7 @@ contains
    !!
    !!#######################################################################
 
-   integer function get_cam_grid_index_char(gridname) result(grid_index)
+   pure integer function get_cam_grid_index_char(gridname) result(grid_index)
       ! Dummy arguments
       character(len=*), intent(in)  :: gridname
       ! Local variables
@@ -804,7 +804,7 @@ contains
 
    end function get_cam_grid_index_char
 
-   integer function get_cam_grid_index_int(gridid) result(grid_index)
+   pure integer function get_cam_grid_index_int(gridid) result(grid_index)
       ! Dummy arguments
       integer, intent(in) :: gridid
       ! Local variables
@@ -843,7 +843,6 @@ contains
             nullify(attr)
          end if
       end do
-      return ! attr should be null if not found
    end subroutine find_cam_grid_attr
 
    logical function cam_grid_attr_exists(gridname, name) result(attr_exists)
@@ -864,7 +863,7 @@ contains
       end if
    end function cam_grid_attr_exists
 
-   integer function num_cam_grid_attrs(gridind) result(num_attrs)
+   pure integer function num_cam_grid_attrs(gridind) result(num_attrs)
       ! Dummy arguments
       integer,                             intent(in)     :: gridind
 
@@ -1010,12 +1009,12 @@ contains
       end if
    end subroutine print_cam_grid
 
-   integer function cam_grid_num_grids() result(num_grids)
+   pure integer function cam_grid_num_grids() result(num_grids)
       num_grids = registeredhgrids
    end function cam_grid_num_grids
 
    ! Return .true. iff id represents a valid CAM grid
-   logical function cam_grid_check(id) result(valid)
+   pure logical function cam_grid_check(id) result(valid)
       ! Dummy argument
       integer, intent(in)    :: id
 
@@ -1023,7 +1022,7 @@ contains
            (get_cam_grid_index(id) <= cam_grid_num_grids()))
    end function cam_grid_check
 
-   integer function cam_grid_id(name) result(id)
+   pure integer function cam_grid_id(name) result(id)
       ! Dummy argument
       character(len=*),   intent(in)    :: name
 
@@ -1340,6 +1339,7 @@ contains
    subroutine cam_grid_write_dist_array_1d_int(File, id, adims, fdims,        &
         hbuf, varid)
       use pio, only: file_desc_t
+      use cam_abortutils, only: safe_endrun
 
       ! Dummy arguments
       type(file_desc_t),         intent(inout) :: File ! PIO file handle
@@ -1360,7 +1360,7 @@ contains
       else
          write(errormsg, *)                                                   &
               'cam_grid_write_dist_array_1d_int: Bad grid ID, ', id
-         call endrun(errormsg)
+         call safe_endrun(errormsg)
       end if
 
    end subroutine cam_grid_write_dist_array_1d_int
