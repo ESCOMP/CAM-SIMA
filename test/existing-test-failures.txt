@@ -15,3 +15,6 @@ SMS_Ln9.ne3pg3_ne3pg3_mg37.F2000_C7.derecho_gnu.cam-outfrq_se_cslam_analy_ic (Ov
 SMS_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_gnu.cam-outfrq_gw_cam7_derecho (Overall: FAIL) details:
   - Known SETUP failure that will continue until ESCOMP/CAM-SIMA PR #557 has been merged.
 
+SMS_D_Ln2.ne3pg3_ne3pg3_mg37.FPHYStest.derecho_intel.cam-outfrq_pumas_derecho (Overall: FAIL) details:
+  - Known RUN failure because REL is now being ncdata_check'd after atmos_phys#444
+    and PUMAS REL does not match physics snapshot due to a post-interstitial gap atmos_phys#469
