@@ -1291,15 +1291,10 @@ subroutine dyn_run(dyn_state)
    end do
 
    if (ldiag) then
-      ! ABS_dPSdt is written on the deduplicated GLL_hist grid (like FU/FV/FT).
-      ! Normalize per element, then emit the full local column array in a SINGLE
-      ! history_out_field call. The raw 'GLL' dynamics decomposition is not a
-      ! valid history-output grid (it left ~93% of columns at the fill value).
       do ie=nets,nete
          abs_ps_tend(:,:,ie)=abs_ps_tend(:,:,ie)/DBLE(nsplit)
+         call history_out_field('ABS_dPSdt',RESHAPE(abs_ps_tend(:,:,ie),[npsq]), element_index=ie)
       end do
-      call history_out_field('ABS_dPSdt', &
-           RESHAPE(abs_ps_tend(:,:,nets:nete),(/npsq*(nete-nets+1)/)))
    end if
 
    !$OMP END PARALLEL
