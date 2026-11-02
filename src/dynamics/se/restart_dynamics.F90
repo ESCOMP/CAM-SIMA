@@ -11,7 +11,7 @@ module restart_dynamics
 ! adjustments into the run.  The restart file containing the unstructured
 ! grid format may also be used for an initial run.
 
-use pio,              only: var_desc_t
+use pio,              only: var_desc_t, io_desc_t
 
 implicit none
 private
@@ -28,6 +28,10 @@ type(var_desc_t)              :: dp_fvm_desc
 type(var_desc_t), pointer     :: c_fvm_desc(:)
 
 integer, private :: nelem_tot = -1 ! Correct total number of elements
+
+! PIO decompositions for the element-layout ('nenpnp') restart fields.
+type(io_desc_t)  :: iodesc2d, iodesc3d
+logical :: decomps_initialized = .false.
 
 !=========================================================================================
 contains
@@ -54,12 +58,12 @@ subroutine init_restart_dynamics(file, dyn_out)
    use dyn_comp, only: dyn_export_t, write_restart_unstruct, advected_constituent_index
    use cam_grid_support, only: cam_grid_header_info_t, cam_grid_id
    use cam_grid_support, only: cam_grid_write_attr
-   use dimensions_mod,   only: np, npsq, ne, nelemd, fv_nphys
+   use dimensions_mod,   only: np, npsq, ne, use_cslam
    use cam_abortutils,   only: check_allocate
    ! Define dimensions, variables, attributes for restart file.
 
    ! This is not really an "init" routine.  It is called before
-   ! write_restart_dynamics every time an restart is written.
+   ! write_restart_dynamics every time a restart is written.
 
    ! arguments
    type(file_desc_t),  intent(inout) :: file
@@ -92,7 +96,7 @@ subroutine init_restart_dynamics(file, dyn_out)
 
    call pio_seterrorhandling(File, pio_bcast_error, err_handling)
 
-   ierr = PIO_Def_Dim(File, 'time', PIO_UNLIMITED, time_dimid)
+   ierr = pio_def_dim(File, 'time', pio_unlimited, time_dimid)
 
    ! GLL restart fields
 
@@ -103,15 +107,15 @@ subroutine init_restart_dynamics(file, dyn_out)
       call cam_grid_write_attr(File, grid_id, info)
       ncol_dimid = info%get_hdimid(1)
    else
-      ierr = PIO_Def_Dim(File,'nenpnp', nelem_tot*np*np, ncol_dimid)
-      ierr = PIO_Put_Att(File, PIO_GLOBAL, 'ne', ne)
-      ierr = PIO_Put_Att(File, PIO_GLOBAL, 'np', np)
+      ierr = pio_def_dim(File,'nenpnp', nelem_tot*npsq, ncol_dimid)
+      ierr = pio_put_att(File, pio_global, 'ne', ne)
+      ierr = pio_put_att(File, pio_global, 'np', np)
    end if
 
-   ierr = PIO_Def_Var(File, 'PSDRY', pio_double, [ncol_dimid, time_dimid], psdry_desc)
-   ierr = PIO_Def_Var(File, 'U', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Udesc)
-   ierr = PIO_Def_Var(File, 'V', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Vdesc)
-   ierr = PIO_Def_Var(File, 'T', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Tdesc)
+   ierr = pio_def_var(File, 'PSDRY', pio_double, [ncol_dimid, time_dimid], psdry_desc)
+   ierr = pio_def_var(File, 'U', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Udesc)
+   ierr = pio_def_var(File, 'V', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Vdesc)
+   ierr = pio_def_var(File, 'T', pio_double, [ncol_dimid, nlev_dimid, time_dimid], Tdesc)
 
    const_props => cam_model_const_properties()
    num_advected_const = size(advected_constituent_index)
@@ -121,19 +125,19 @@ subroutine init_restart_dynamics(file, dyn_out)
    do m_index = 1, num_advected_const
       ! Grab constituent diagnostic name:
       call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
-      ierr = PIO_Def_Var(File,'dp'//trim(const_diag_name), pio_double, &
+      ierr = pio_def_var(File,'dp'//trim(const_diag_name), pio_double, &
                          [ncol_dimid, nlev_dimid, time_dimid], Qdesc_dp(m_index))
    end do
 
    ! CSLAM restart fields
 
-   if (fv_nphys > 0) then
+   if (use_cslam) then
 
       grid_id = cam_grid_id('FVM')
       call cam_grid_write_attr(File, grid_id, info)
       ncol_fvm_dimid = info%get_hdimid(1)
 
-      ierr = PIO_Def_Var(File, 'dp_fvm', pio_double, &
+      ierr = pio_def_var(File, 'dp_fvm', pio_double, &
          [ncol_fvm_dimid, nlev_dimid, time_dimid], dp_fvm_desc)
 
       allocate(c_fvm_desc(num_advected_const), stat=ierr, errmsg=errmsg)
@@ -141,7 +145,7 @@ subroutine init_restart_dynamics(file, dyn_out)
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
       do m_index = 1, num_advected_const
          call const_props(advected_constituent_index(m_index))%diagnostic_name(const_diag_name)
-         ierr = PIO_Def_Var(File, trim(const_diag_name)//'_fvm', pio_double, &
+         ierr = pio_def_var(File, trim(const_diag_name)//'_fvm', pio_double, &
             [ncol_fvm_dimid, nlev_dimid, time_dimid], c_fvm_desc(m_index))
       end do
 
@@ -156,7 +160,7 @@ end subroutine init_restart_dynamics
 subroutine write_restart_dynamics(File, dyn_out)
    use control_mod,               only: qsplit
    use pio,                       only: file_desc_t, pio_offset_kind, io_desc_t, pio_double
-   use pio,                       only: pio_initdecomp, pio_freedecomp, pio_setframe, pio_write_darray
+   use pio,                       only: pio_initdecomp, pio_setframe, pio_write_darray
    use dyn_comp,                  only: dyn_export_t, write_restart_unstruct, advected_constituent_index
    use dyn_grid,                  only: timelevel
    use cam_grid_support,          only: cam_grid_id, cam_grid_write_var, cam_grid_get_decomp, cam_grid_dimensions
@@ -165,11 +169,12 @@ subroutine write_restart_dynamics(File, dyn_out)
    use hycoef,                    only: write_restart_hycoef
    use se_dyn_time_mod,           only: TimeLevel_Qdp
    use parallel_mod,              only: par
-   use dimensions_mod,            only: nc, np, npsq, ne, nelemd, fv_nphys, nlev
+   use dimensions_mod,            only: nc, np, npsq, ne, nelemd, use_cslam, nlev
    use cam_pio_utils,             only: pio_subsystem
    use thread_mod,                only: horz_num_threads
    use spmd_utils,                only: iam
    use shr_kind_mod,              only: r8 => shr_kind_r8
+   use cam_abortutils,            only: check_allocate
 
    type(file_desc_t), intent(inout) :: File
    type(dyn_export_t), intent(in)   :: dyn_out
@@ -188,12 +193,11 @@ subroutine write_restart_dynamics(File, dyn_out)
    integer :: grid_id
    integer :: grid_dimlens(2)
 
-
-
    integer :: array_lens(3)
    integer :: file_lens(2)
    type(io_desc_t), pointer :: iodesc3d_fvm
    real(r8),    allocatable :: buf3d(:,:,:)
+   character(len=256)       :: errmsg
 
    character(len=*), parameter :: sub = 'write_restart_dynamics'
    !----------------------------------------------------------------------------
@@ -220,7 +224,7 @@ subroutine write_restart_dynamics(File, dyn_out)
 
    ! write CSLAM fields
 
-   if (fv_nphys > 0) then
+   if (use_cslam) then
 
       grid_id = cam_grid_id('FVM')
 
@@ -228,7 +232,9 @@ subroutine write_restart_dynamics(File, dyn_out)
       call cam_grid_write_var(File, grid_id)
 
       call cam_grid_dimensions(grid_id, grid_dimlens)
-      allocate(buf3d(nc*nc,nlev,nelemd))
+      allocate(buf3d(nc*nc,nlev,nelemd), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, sub, 'buf3d', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
       array_lens = [nc*nc, nlev, nelemd]
       file_lens  = [grid_dimlens(1), nlev]
       call cam_grid_get_decomp(grid_id, array_lens, file_lens, pio_double, iodesc3d_fvm)
@@ -244,8 +250,8 @@ subroutine write_restart_dynamics(File, dyn_out)
             end do
          end do
       end do
-      call PIO_Setframe(file, dp_fvm_desc, t_idx)
-      call PIO_Write_Darray(file, dp_fvm_desc, iodesc3d_fvm, buf3d, ierr)
+      call pio_setframe(file, dp_fvm_desc, t_idx)
+      call pio_write_darray(file, dp_fvm_desc, iodesc3d_fvm, buf3d, ierr)
 
       do m_index = 1, size(advected_constituent_index)
          do ie = 1, nelemd
@@ -259,14 +265,12 @@ subroutine write_restart_dynamics(File, dyn_out)
                end do
             end do
          end do
-         call PIO_Setframe(file, c_fvm_desc(m_index), t_idx)
-         call PIO_Write_Darray(file, c_fvm_desc(m_index), iodesc3d_fvm, buf3d, ierr)
+         call pio_setframe(file, c_fvm_desc(m_index), t_idx)
+         call pio_write_darray(file, c_fvm_desc(m_index), iodesc3d_fvm, buf3d, ierr)
       end do
 
       deallocate(c_fvm_desc)
       deallocate(buf3d)
-      ! should this call be made on a pointer?
-      !call pio_freedecomp(File, iodesc3d_fvm)
 
    end if
 
@@ -285,21 +289,27 @@ subroutine write_elem()
    integer          :: ierr
    integer, pointer :: ldof(:)
 
-   type(io_desc_t)  :: iodesc2d, iodesc3d
-
    real(kind=r8), pointer :: var3d(:,:,:,:), var2d(:,:,:)
    !----------------------------------------------------------------------------
 
-   ldof => get_restart_decomp(elem, 1)
-   call PIO_InitDecomp(pio_subsystem, pio_double, [nelem_tot*np*np], ldof, iodesc2d)
-   deallocate(ldof)
+   if (.not. decomps_initialized) then
+      ldof => get_restart_decomp(elem, 1)
+      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*np*np], ldof, iodesc2d)
+      deallocate(ldof)
 
-   ldof => get_restart_decomp(elem, nlev)
-   call PIO_InitDecomp(pio_subsystem, pio_double, [nelem_tot*np*np,nlev], ldof, iodesc3d)
-   deallocate(ldof)
+      ldof => get_restart_decomp(elem, nlev)
+      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*np*np,nlev], ldof, iodesc3d)
+      deallocate(ldof)
 
-   allocate(var2d(np,np,nelemd))
-   allocate(var3d(np,np,nelemd,nlev))
+      decomps_initialized = .true.
+   end if
+
+   allocate(var2d(np,np,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'var2d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+   allocate(var3d(np,np,nelemd,nlev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'var3d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    !$omp parallel do num_threads(horz_num_threads) private(ie, j, i)
    do ie = 1, nelemd
@@ -309,8 +319,8 @@ subroutine write_elem()
          end do
       end do
    end do
-   call PIO_Setframe(File, psdry_desc, t_idx)
-   call PIO_Write_Darray(File, psdry_desc, iodesc2d, var2d, ierr)
+   call pio_setframe(File, psdry_desc, t_idx)
+   call pio_write_darray(File, psdry_desc, iodesc2d, var2d, ierr)
 
    !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
    do ie = 1, nelemd
@@ -322,8 +332,8 @@ subroutine write_elem()
          end do
       end do
    end do
-   call PIO_Setframe(File, Udesc, t_idx)
-   call PIO_Write_Darray(File, Udesc, iodesc3d, var3d, ierr)
+   call pio_setframe(File, Udesc, t_idx)
+   call pio_write_darray(File, Udesc, iodesc3d, var3d, ierr)
 
    !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
    do ie = 1, nelemd
@@ -335,8 +345,8 @@ subroutine write_elem()
          end do
       end do
    end do
-   call PIO_Setframe(File, Vdesc, t_idx)
-   call PIO_Write_Darray(File, Vdesc, iodesc3d, var3d, ierr)
+   call pio_setframe(File, Vdesc, t_idx)
+   call pio_write_darray(File, Vdesc, iodesc3d, var3d, ierr)
 
    !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
    do ie = 1, nelemd
@@ -348,8 +358,8 @@ subroutine write_elem()
          end do
       end do
    end do
-   call PIO_Setframe(File, Tdesc, t_idx)
-   call PIO_Write_Darray(File, Tdesc, iodesc3d, var3d, ierr)
+   call pio_setframe(File, Tdesc, t_idx)
+   call pio_write_darray(File, Tdesc, iodesc3d, var3d, ierr)
 
    do m_index = 1, size(advected_constituent_index)
       !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
@@ -362,16 +372,13 @@ subroutine write_elem()
             end do
          end do
       end do
-      call PIO_Setframe(File, Qdesc_dp(m_index), t_idx)
-      call PIO_Write_Darray(File, Qdesc_dp(m_index), iodesc3d, var3d, ierr)
+      call pio_setframe(File, Qdesc_dp(m_index), t_idx)
+      call pio_write_darray(File, Qdesc_dp(m_index), iodesc3d, var3d, ierr)
    end do
 
    deallocate(var2d)
    deallocate(var3d)
    deallocate(qdesc_dp)
-
-   call pio_freedecomp(File, iodesc2d)
-   call pio_freedecomp(File, iodesc3d)
 
 end subroutine write_elem
 
@@ -403,7 +410,9 @@ subroutine write_unstruct()
    file_lens_1d  = [grid_dimlens(1)]
    call cam_grid_get_decomp(grid_id, array_lens_2d, file_lens_1d, pio_double, iodesc)
 
-   allocate(var2d(npsq,nelemd))
+   allocate(var2d(npsq,nelemd), stat=ierr, errmsg=ermsg)
+   call check_allocate(ierr, sub, 'var2d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    do ie = 1, nelemd
       ii = 1
@@ -414,8 +423,8 @@ subroutine write_unstruct()
          end do
       end do
    end do
-   call PIO_Setframe(File, psdry_desc, t_idx)
-   call PIO_Write_Darray(File, psdry_desc, iodesc, var2d, ierr)
+   call pio_setframe(File, psdry_desc, t_idx)
+   call pio_write_darray(File, psdry_desc, iodesc, var2d, ierr)
 
    nullify(iodesc)
    deallocate(var2d)
@@ -425,7 +434,9 @@ subroutine write_unstruct()
    file_lens_2d  = [grid_dimlens(1), nlev]
    call cam_grid_get_decomp(grid_id, array_lens_3d, file_lens_2d, pio_double, iodesc)
 
-   allocate(var3d(npsq,nlev,nelemd))
+   allocate(var3d(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'var3d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    do ie = 1, nelemd
       do k = 1, nlev
@@ -438,8 +449,8 @@ subroutine write_unstruct()
          end do
       end do
    end do
-   call PIO_Setframe(File, Udesc, t_idx)
-   call PIO_Write_Darray(File, Udesc, iodesc, var3d, ierr)
+   call pio_setframe(File, Udesc, t_idx)
+   call pio_write_darray(File, Udesc, iodesc, var3d, ierr)
 
    do ie = 1, nelemd
       do k = 1, nlev
@@ -452,8 +463,8 @@ subroutine write_unstruct()
          end do
       end do
    end do
-   call PIO_Setframe(File, Vdesc, t_idx)
-   call PIO_Write_Darray(File, Vdesc, iodesc, var3d, ierr)
+   call pio_setframe(File, Vdesc, t_idx)
+   call pio_write_darray(File, Vdesc, iodesc, var3d, ierr)
 
    do ie = 1, nelemd
       do k = 1, nlev
@@ -466,8 +477,8 @@ subroutine write_unstruct()
          end do
       end do
    end do
-   call PIO_Setframe(File, Tdesc, t_idx)
-   call PIO_Write_Darray(File, Tdesc, iodesc, var3d, ierr)
+   call pio_setframe(File, Tdesc, t_idx)
+   call pio_write_darray(File, Tdesc, iodesc, var3d, ierr)
 
    do m_index = 1, size(advected_constituent_index)
       !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
@@ -482,8 +493,8 @@ subroutine write_unstruct()
             end do
          end do
       end do
-      call PIO_Setframe(File, Qdesc_dp(m_index), t_idx)
-      call PIO_Write_Darray(File, Qdesc_dp(m_index), iodesc, var3d, ierr)
+      call pio_setframe(File, Qdesc_dp(m_index), t_idx)
+      call pio_write_darray(File, Qdesc_dp(m_index), iodesc, var3d, ierr)
    end do
 
    deallocate(var3d)
@@ -502,8 +513,9 @@ end subroutine write_restart_dynamics
 !=========================================================================================
 
 function get_restart_decomp(elem, lev) result(ldof)
-   use dimensions_mod, only: nelemd, np
+   use dimensions_mod, only: nelemd, npsq
    use element_mod,    only: element_t
+   use cam_abortutils, only: check_allocate
 
    ! Get the integer mapping of a variable in the dynamics decomp in memory.
    ! The canonical ordering is as on the file. A 0 value indicates that the
@@ -513,16 +525,19 @@ function get_restart_decomp(elem, lev) result(ldof)
    integer,         intent(in) :: lev
    integer,         pointer    :: ldof(:)
 
-   integer :: i, j, k, ie
+   integer :: i, j, k, ie, ierr
+   character(len=256) :: errmsg
    !----------------------------------------------------------------------------
 
-   allocate(ldof(nelemd*np*np*lev))
+   allocate(ldof(nelemd*npsq*lev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'ldof', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    j = 1
    do k = 1, lev
       do ie = 1, nelemd
-         do i = 1, np*np
-            ldof(j) = (elem(ie)%GlobalID-1)*np*np + (k-1)*nelem_tot*np*np + i
+         do i = 1, npsq
+            ldof(j) = (elem(ie)%GlobalID-1)*npsq + (k-1)*nelem_tot*npsq + i
             j = j + 1
          end do
       end do
@@ -540,10 +555,13 @@ function get_restart_decomp_fvm(elem, lev) result(ldof)
    integer,         intent(in) :: lev
    integer,         pointer    :: ldof(:)
 
-   integer :: i, j, k, ie
+   integer :: i, j, k, ie, ierr
+   character(len=256) :: errmsg
    !----------------------------------------------------------------------------
 
-   allocate(ldof(nelemd*nc*nc*lev))
+   allocate(ldof(nelemd*nc*nc*lev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'ldof', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    j = 1
    do k = 1, lev
