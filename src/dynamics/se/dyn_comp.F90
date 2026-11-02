@@ -954,15 +954,15 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 #ifdef waccm_debug
      call history_add_field ('CSLAM_gamma',  'Courant number from CSLAM', 'lev', 'avg', '1', gridname='FVM')
 #endif
-     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
-     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
-     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='FVM')
-     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM')
+     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM_hist')
+     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM_hist')
+     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='FVM_hist')
+     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='FVM_hist')
    else
-     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
-     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
-     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='GLL')
-     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL')
+     call history_add_field ('WV_PDC',   'Total column water vapor lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL_hist')
+     call history_add_field ('WL_PDC',   'Total column cloud water lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL_hist')
+     call history_add_field ('WI_PDC',   'Total column cloud ice lost in physics-dynamics coupling'  , horiz_only, 'avg', 'kg m-2', gridname='GLL_hist')
+     call history_add_field ('TT_PDC',   'Total column test tracer lost in physics-dynamics coupling', horiz_only, 'avg', 'kg m-2', gridname='GLL_hist')
    end if
 
 #ifdef energy_budget_code
