@@ -2888,7 +2888,7 @@ contains
       use shr_kind_mod,   only: max_str =>SHR_KIND_CXX, CM => shr_kind_cm
       use shr_nl_mod,     only: shr_nl_find_group_name
       use spmd_utils,     only: masterproc, masterprocid, mpicom
-      use cam_abortutils, only: check_allocate, endrun
+      use cam_abortutils, only: check_allocate, endrun, safe_endrun
       ! Read all the history configuration namelist groups from  <filename>
       !    and return an array of config objects
       ! Note: File operations are done on the root task with results
@@ -2936,6 +2936,7 @@ contains
             if (ierr /= 0) then
                write(errmsg, '(a,i0,4a)') ': Error ', ierr, ' opening ',      &
                      trim(filename), ' message: ', trim(io_errmsg)
+               call safe_endrun(errmsg)
             end if
             line_num = 0
          end if
@@ -2972,8 +2973,7 @@ contains
       ! All tasks allocate the history config file objects
       call MPI_bcast(num_configs, 1, MPI_INTEGER, masterprocid, mpicom, ierr)
       allocate(config_arr(num_configs), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'config_arr',                        &
-           file=__FILE__, line=__LINE__-1)
+      call check_allocate(ierr, subname, 'config_arr', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       ! Allocate the config field name arrays
       call allocate_field_arrays(unitn, hist_inst_fields, hist_avg_fields,    &
            hist_min_fields, hist_max_fields, hist_var_fields)
