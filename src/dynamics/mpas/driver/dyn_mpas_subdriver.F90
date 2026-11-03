@@ -3532,17 +3532,15 @@ contains
         integer, intent(in) :: constituent_index
         character(:), allocatable :: constituent_name
 
+        constituent_name = ''
+
         ! Catch segmentation fault.
         if (.not. allocated(self % constituent_name)) then
-            constituent_name = ''
-
             return
         end if
 
         if (constituent_index < lbound(self % constituent_name, 1) .or. &
             constituent_index > ubound(self % constituent_name, 1)) then
-            constituent_name = ''
-
             return
         end if
 
@@ -3567,10 +3565,10 @@ contains
 
         integer :: i
 
+        constituent_index = 0
+
         ! Catch segmentation fault.
         if (.not. allocated(self % constituent_name)) then
-            constituent_index = 0
-
             return
         end if
 
@@ -3581,8 +3579,6 @@ contains
                 return
             end if
         end do
-
-        constituent_index = 0
     end function dyn_mpas_get_constituent_index
 
     !-------------------------------------------------------------------------------
