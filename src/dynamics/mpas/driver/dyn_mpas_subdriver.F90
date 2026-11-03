@@ -93,6 +93,7 @@ module dyn_mpas_subdriver
         character(strkind), allocatable :: input_alias(:)
         integer, allocatable :: index_constituent_to_mpas_scalar(:)
         integer, allocatable :: index_mpas_scalar_to_constituent(:)
+        logical, allocatable :: input_status(:)
         logical, allocatable :: is_water_species(:)
 
         ! Initialized by `dyn_mpas_init_phase4`.
@@ -123,6 +124,7 @@ module dyn_mpas_subdriver
 
         procedure, pass, public :: get_constituent_name => dyn_mpas_get_constituent_name
         procedure, pass, public :: get_constituent_index => dyn_mpas_get_constituent_index
+        procedure, pass, public :: get_constituent_status => dyn_mpas_get_constituent_status
 
         procedure, pass, public :: map_mpas_scalar_index => dyn_mpas_map_mpas_scalar_index
         procedure, pass, public :: map_constituent_index => dyn_mpas_map_constituent_index
@@ -929,6 +931,16 @@ contains
                 subname, __LINE__)
         end if
 
+        allocate(self % input_status(self % number_of_constituents), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate input_status' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
+
+        self % input_status(:) = .false.
+
         allocate(self % is_water_species(self % number_of_constituents), errmsg=cerr, stat=ierr)
 
         if (ierr /= 0) then
@@ -1339,14 +1351,16 @@ contains
         use mpas_pool_routines, only: mpas_pool_destroy_pool
         use mpas_stream_manager, only: postread_reindex, prewrite_reindex, postwrite_reindex
 
-        class(mpas_dynamical_core_type), intent(in) :: self
+        class(mpas_dynamical_core_type), intent(inout) :: self
         type(file_desc_t), pointer, intent(in) :: pio_file
         character(*), intent(in) :: stream_mode
         character(*), intent(in) :: stream_name
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_read_write_stream'
-        integer :: i
+        integer :: i, j
         integer :: ierr
+        logical, allocatable :: var_is_present(:)
+        logical, allocatable :: var_is_tkr_compatible(:)
         type(mpas_pool_type), pointer :: mpas_pool
         type(mpas_stream_type), pointer :: mpas_stream
         type(var_info_type), allocatable :: var_info_list(:)
@@ -1358,13 +1372,11 @@ contains
 
         call self % debug_print(log_level_info, 'Initializing stream "' // trim(adjustl(stream_name)) // '"')
 
-        call self % init_stream_with_pool(mpas_pool, mpas_stream, pio_file, stream_mode, stream_name)
+        call self % init_stream_with_pool(mpas_pool, mpas_stream, var_info_list, pio_file, stream_mode, stream_name)
 
-        if (.not. associated(mpas_pool)) then
-            call self % model_error('Failed to initialize stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
-        end if
-
-        if (.not. associated(mpas_stream)) then
+        if (.not. associated(mpas_pool) .or. &
+            .not. associated(mpas_stream) .or. &
+            .not. allocated(var_info_list)) then
             call self % model_error('Failed to initialize stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
         end if
 
@@ -1378,9 +1390,24 @@ contains
                     call self % model_error('Failed to read stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
                 end if
 
-                ! Exchange halo layers because new data have just been read.
-                var_info_list = parse_stream_name(stream_name)
+                ! For constituents that have just been read, update their input status accordingly.
+                do i = 1, size(var_info_list)
+                    if (trim(adjustl(var_info_list(i) % name)) == 'scalars' .or. &
+                        trim(adjustl(var_info_list(i) % name)) == 'scalars_alias') then
 
+                        call self % check_variable_status(var_is_present, var_is_tkr_compatible, pio_file, var_info_list(i))
+
+                        ! Note that when `self % les_model` is `.true.`, `size(var_is_present)` is 1
+                        ! greater than `self % number_of_constituents` due to the presence of `tke`.
+                        do j = 1, self % number_of_constituents
+                            if (var_is_present(j) .and. var_is_tkr_compatible(j)) then
+                                self % input_status(self % index_mpas_scalar_to_constituent(j)) = .true.
+                            end if
+                        end do
+                    end if
+                end do
+
+                ! Exchange halo layers because new data have just been read.
                 do i = 1, size(var_info_list)
                     call self % exchange_halo(var_info_list(i) % name)
                 end do
@@ -1440,12 +1467,13 @@ contains
     !> (related) variables, while the concept of a "stream" resembles a file.
     !> This subroutine initializes an MPAS stream with an accompanying MPAS pool by
     !> adding variable and attribute information to them. After that, MPAS is ready
-    !> to perform IO on them.
+    !> to perform IO on them. For convenience, the returned `var_info_list` contains
+    !> only the variables that are actually in `mpas_pool` and `mpas_stream`.
     !> Analogous to the `build_stream` and `mpas_stream_mgr_add_field`
     !> subroutines in MPAS stream manager.
     !
     !-------------------------------------------------------------------------------
-    subroutine dyn_mpas_init_stream_with_pool(self, mpas_pool, mpas_stream, pio_file, stream_mode, stream_name)
+    subroutine dyn_mpas_init_stream_with_pool(self, mpas_pool, mpas_stream, var_info_list, pio_file, stream_mode, stream_name)
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
@@ -1461,6 +1489,7 @@ contains
         class(mpas_dynamical_core_type), intent(in) :: self
         type(mpas_pool_type), pointer, intent(out) :: mpas_pool
         type(mpas_stream_type), pointer, intent(out) :: mpas_stream
+        type(var_info_type), allocatable, intent(out) :: var_info_list(:)
         type(file_desc_t), pointer, intent(in) :: pio_file
         character(*), intent(in) :: stream_mode
         character(*), intent(in) :: stream_name
@@ -1476,6 +1505,7 @@ contains
         integer :: i
         integer :: ierr
         integer :: stream_format
+        logical, allocatable :: var_info_mask(:)
         !> Whether a variable is present on the file (i.e., `pio_file`).
         logical, allocatable :: var_is_present(:)
         !> Whether a variable is type, kind, and rank compatible with what MPAS expects on the file (i.e., `pio_file`).
@@ -1492,7 +1522,6 @@ contains
         type(field3dreal), pointer :: field_3d_real
         type(field4dreal), pointer :: field_4d_real
         type(field5dreal), pointer :: field_5d_real
-        type(var_info_type), allocatable :: var_info_list(:)
 
         call self % debug_print(log_level_debug, subname // ' entered')
 
@@ -1558,6 +1587,16 @@ contains
 
         var_info_list = parse_stream_name(stream_name)
 
+        allocate(var_info_mask(size(var_info_list)), errmsg=cerr, stat=ierr)
+
+        if (ierr /= 0) then
+            call self % model_error('Failed to allocate var_info_mask' // new_line('') // &
+                'Allocation returned with ' // stringify([ierr]) // ': ' // trim(adjustl(cerr)), &
+                subname, __LINE__)
+        end if
+
+        var_info_mask(:) = .true.
+
         ! Add variables contained in `var_info_list` to stream.
         do i = 1, size(var_info_list)
             call self % debug_print(log_level_debug, 'var_info_list(' // stringify([i]) // ') % name = ' // &
@@ -1577,12 +1616,16 @@ contains
                     call self % debug_print(log_level_verbose, 'Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
                         '" due to not present')
 
+                    var_info_mask(i) = .false.
+
                     cycle
                 end if
 
                 if (any(var_is_present .and. .not. var_is_tkr_compatible)) then
                     call self % debug_print(log_level_verbose, 'Skipping variable "' // trim(adjustl(var_info_list(i) % name)) // &
                         '" due to not TKR compatible')
+
+                    var_info_mask(i) = .false.
 
                     cycle
                 end if
@@ -1772,6 +1815,10 @@ contains
                     '" to stream "' // trim(adjustl(stream_name)) // '"', subname, __LINE__)
             end if
         end do
+
+        var_info_list = pack(var_info_list, var_info_mask)
+
+        deallocate(var_info_mask)
 
         if (trim(adjustl(stream_mode)) == 'w' .or. trim(adjustl(stream_mode)) == 'write') then
             ! Add MPAS-specific attributes to stream.
@@ -3495,6 +3542,7 @@ contains
         deallocate(self % input_alias)
         deallocate(self % index_constituent_to_mpas_scalar)
         deallocate(self % index_mpas_scalar_to_constituent)
+        deallocate(self % input_status)
         deallocate(self % is_water_species)
 
         ! Initialized by `dyn_mpas_init_phase3`.
@@ -3580,6 +3628,53 @@ contains
             end if
         end do
     end function dyn_mpas_get_constituent_index
+
+    !-------------------------------------------------------------------------------
+    ! function dyn_mpas_get_constituent_status
+    !
+    !> summary: Query constituent status by its index.
+    !> author: Kuan-Chih Wang
+    !> date: 2026-11-02
+    !>
+    !> This function returns the constituent status that corresponds to the given
+    !> constituent index. The constituent status is one of the following:
+    !> * "unallocated": Constituents have not been allocated yet.
+    !> * "allocated": Constituents have been allocated by `dyn_mpas_init_phase3`,
+    !>   but have not been defined yet.
+    !> * "defined": Constituents have been defined by `dyn_mpas_define_scalar`,
+    !>   but this constituent has not been read from an input stream yet.
+    !> * "initialized": This constituent has been read from an input stream by
+    !>   `dyn_mpas_read_write_stream`.
+    !> In case of errors, an empty character string is produced.
+    !
+    !-------------------------------------------------------------------------------
+    pure function dyn_mpas_get_constituent_status(self, constituent_index) result(constituent_status)
+        class(mpas_dynamical_core_type), intent(in) :: self
+        integer, intent(in) :: constituent_index
+        character(:), allocatable :: constituent_status
+
+        constituent_status = 'unallocated'
+
+        if (self % number_of_constituents > 0) then
+            ! Catch segmentation fault.
+            if (constituent_index < 1 .or. &
+                constituent_index > self % number_of_constituents) then
+                constituent_status = ''
+
+                return
+            end if
+
+            constituent_status = 'allocated'
+
+            if (allocated(self % input_status)) then
+                constituent_status = 'defined'
+
+                if (self % input_status(constituent_index)) then
+                    constituent_status = 'initialized'
+                end if
+            end if
+        end if
+    end function dyn_mpas_get_constituent_status
 
     !-------------------------------------------------------------------------------
     ! function dyn_mpas_map_mpas_scalar_index
