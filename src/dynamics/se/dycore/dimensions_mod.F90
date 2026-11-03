@@ -29,6 +29,7 @@ module dimensions_mod
   logical, public            :: use_cslam = .false. !logical for CSLAM
   integer, public, protected :: ntrac = 0 !FVM tracer dimension size
   integer, public            :: qsize = 0 !qsize is set in dyn_comp
+  integer, public :: wv_idx_dycore = -1  !water vapor index in dycore Qdp; set in dyn_comp
   !
   ! fvm dimensions:
   logical, public :: lprint!for debugging
@@ -46,9 +47,7 @@ module dimensions_mod
   integer, parameter, public :: ubc = nc+nhc
   logical, public            :: large_Courant_incr
 
-  integer, public :: kmin_jet,kmax_jet !min and max level index for the jet
   integer, public :: fvm_supercycling
-  integer, public :: fvm_supercycling_jet
 
   integer, allocatable, public :: kord_tr(:), kord_tr_cslam(:)
 
@@ -57,9 +56,15 @@ module dimensions_mod
   ! The mapping is done in dyn_comp from the host constituent index space.
   real(r8), allocatable, public :: qmin_cslam(:)
 
+  ! Advected-constituent metadata in dense advected index space (1:num_advected),
+  ! mapped from the host constituent object in dyn_comp (CAM-SIMA issue #446):
+  real(r8), allocatable, public :: qmin_adv(:)     ! minimum mixing ratio
+  logical,  allocatable, public :: cnst_is_wet_adv(:) ! wet (moist-mass) constituent
+
   real(r8), allocatable, public :: nu_scale_top(:) ! scaling of del2 viscosity in sponge layer (initialized in dyn_comp)
   real(r8), allocatable, public :: nu_lev(:)       ! level dependent del4 (u,v) damping
   real(r8), allocatable, public :: nu_t_lev(:)     ! level dependent del4 T damping
+  real(r8), allocatable, public :: nu_p_lev(:)     ! level dependent del4 dp damping
   integer,               public :: ksponge_end     ! sponge is active k=1,ksponge_end
   real(r8), allocatable, public :: nu_div_lev(:)   ! scaling of viscosity in sponge layer
 
@@ -157,6 +162,9 @@ contains
 
      allocate(nu_t_lev(nlev), stat=iret, errmsg=errmsg)
      call check_allocate(iret, subname, 'nu_t_lev(nlev)', &
+                         file=__FILE__, line=__LINE__, errmsg=errmsg)
+     allocate(nu_p_lev(nlev), stat=iret, errmsg=errmsg)
+     call check_allocate(iret, subname, 'nu_p_lev(nlev)', &
                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
      allocate(nu_div_lev(nlev), stat=iret, errmsg=errmsg)
