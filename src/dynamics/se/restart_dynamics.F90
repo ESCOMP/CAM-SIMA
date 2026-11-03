@@ -410,7 +410,7 @@ subroutine write_unstruct()
    file_lens_1d  = [grid_dimlens(1)]
    call cam_grid_get_decomp(grid_id, array_lens_2d, file_lens_1d, pio_double, iodesc)
 
-   allocate(var2d(npsq,nelemd), stat=ierr, errmsg=ermsg)
+   allocate(var2d(npsq,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, sub, 'var2d', &
                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
@@ -530,7 +530,7 @@ function get_restart_decomp(elem, lev) result(ldof)
    !----------------------------------------------------------------------------
 
    allocate(ldof(nelemd*npsq*lev), stat=ierr, errmsg=errmsg)
-   call check_allocate(ierr, sub, 'ldof', &
+   call check_allocate(ierr, 'get_restart_decomp', 'ldof', &
                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    j = 1
@@ -550,6 +550,7 @@ end function get_restart_decomp
 function get_restart_decomp_fvm(elem, lev) result(ldof)
    use dimensions_mod, only: nc, nelemd
    use element_mod,    only: element_t
+   use cam_abortutils, only: check_allocate
 
    type(element_t), intent(in) :: elem(:)
    integer,         intent(in) :: lev
@@ -560,7 +561,7 @@ function get_restart_decomp_fvm(elem, lev) result(ldof)
    !----------------------------------------------------------------------------
 
    allocate(ldof(nelemd*nc*nc*lev), stat=ierr, errmsg=errmsg)
-   call check_allocate(ierr, sub, 'ldof', &
+   call check_allocate(ierr, 'get_restart_decomp_fvm', 'ldof', &
                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    j = 1

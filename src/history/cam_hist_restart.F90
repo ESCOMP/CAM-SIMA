@@ -403,7 +403,8 @@ contains
    end subroutine set_restart_variable_names
 
    subroutine set_restart_dimension_names(num_hist_configs, max_fields)
-      use cam_history_support, only: max_string_len, max_chars, max_fieldname_len, registeredmdims
+      use cam_history_support, only: max_string_len, max_chars, max_fieldname_len
+      use cam_history_support, only: max_avgflag_len, registeredmdims
       use cam_grid_support,    only: max_hcoordname_len, max_split_files
       integer, intent(in) :: num_hist_configs
       integer, intent(in) :: max_fields

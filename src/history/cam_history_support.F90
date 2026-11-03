@@ -166,9 +166,8 @@ module cam_history_support
 
   function get_hist_coord_names() result(mdimnames)
      use cam_abortutils, only: endrun
-     use shr_kind_mod,   only: cx => shr_kind_cx
      character(len=max_hcoordname_len), allocatable :: mdimnames(:)
-     character(len=cx) :: errmsg
+     character(len=shr_kind_cl) :: errmsg
      integer :: ierr, idx
 
      allocate(mdimnames(registeredmdims), stat=ierr, errmsg=errmsg)
@@ -363,7 +362,7 @@ module cam_history_support
     type(formula_terms_t), intent(in)            :: formula_terms
 
     ! Local variables
-    character(len=cl)                            :: errormsg
+    character(len=shr_kind_cl)                   :: errormsg
     integer                                      :: i
 
     i = get_hist_coord_index(trim(name))
@@ -1138,7 +1137,7 @@ module cam_history_support
     integer                          :: ierr
     logical                          :: writemdims     ! Define an mdim variable
     type(var_desc_t)                 :: vardesc        ! PIO variable descriptor
-    character(len=cl) :: errmsg
+    character(len=shr_kind_cl)       :: errmsg
     character(len=max_hcoordname_len), allocatable :: mdimnames(:)
     character(len=*),    parameter                 :: subname = 'write_hist_coord_vars'
 

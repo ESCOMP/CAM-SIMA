@@ -389,7 +389,7 @@ contains
       integer :: ierr, idx
 
       allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'field_list',             &
+      call check_allocate(ierr, 'config_get_field_list', 'field_list', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          field_list(idx) = this%field_list(idx)%diag_name()
@@ -410,7 +410,7 @@ contains
       integer :: ierr, idx
 
       allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'avgflags',             &
+      call check_allocate(ierr, 'config_get_averaging_flags', 'avgflags', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          avgflags(idx) = this%field_list(idx)%accumulate_type()
@@ -428,7 +428,7 @@ contains
       character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(decomps(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'decomps',             &
+      call check_allocate(ierr, 'config_get_decompositions', 'decomps', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          decomps(idx) = this%field_list(idx)%decomp()
@@ -446,7 +446,7 @@ contains
       character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(numlevs(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'numlevs',             &
+      call check_allocate(ierr, 'config_get_num_levels', 'numlevs', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          numlevs(idx) = this%field_list(idx)%num_levels()
@@ -465,7 +465,7 @@ contains
       character(len=cl) :: errmsg
       integer :: ierr, idx
       allocate(cell_methods(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'cell_methods',             &
+      call check_allocate(ierr, 'config_get_cell_methods', 'cell_methods', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          cell_methods(idx) = this%field_list(idx)%cell_methods()
@@ -484,7 +484,7 @@ contains
       character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(long_names(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'long_names',             &
+      call check_allocate(ierr, 'config_get_long_names', 'long_names', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          long_names(idx) = this%field_list(idx)%long_name()
@@ -503,7 +503,7 @@ contains
       character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(units(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'units',             &
+      call check_allocate(ierr, 'config_get_units', 'units', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          units(idx) = this%field_list(idx)%units()
@@ -521,7 +521,7 @@ contains
       character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(flags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'flags',             &
+      call check_allocate(ierr, 'config_get_fill_flags', 'flags', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       flags = 0
       do idx = 1, size(this%field_list)
@@ -542,7 +542,7 @@ contains
       character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(fill_values(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'fill_values',             &
+      call check_allocate(ierr, 'config_get_fill_values', 'fill_values', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          fill_values(idx) = this%field_list(idx)%fill_value()
@@ -561,7 +561,7 @@ contains
       character(len=cl) :: errmsg
       integer :: idx, ierr
       allocate(dimids(max_dimensions, size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'dimids',             &
+      call check_allocate(ierr, 'config_get_dimension_indices', 'dimids', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       dimids = 0
       do idx = 1, size(this%field_list)
@@ -582,7 +582,7 @@ contains
       integer :: ierr, idx
 
       allocate(ndims(size(this%field_list)), stat=ierr, errmsg=errmsg)
-      call check_allocate(ierr, subname, 'ndims',             &
+      call check_allocate(ierr, 'config_get_num_dimensions', 'ndims', &
            file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       do idx = 1, size(this%field_list)
          ndims(idx) = size(this%field_list(idx)%dimensions())
@@ -1219,6 +1219,7 @@ contains
       use cam_logfile,         only: iulog
       use spmd_utils,          only: masterproc
       use shr_kind_mod,        only: CM => shr_kind_cm
+      use string_utils,        only: stringify
       ! Define the metadata for the file(s) for this volume
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
@@ -1328,11 +1329,11 @@ contains
          deallocate(mdimids)
          ierr = pio_enddef(this%hist_files(split_file_index))
          if (ierr /= PIO_NOERR) then
-            call endrun(sub//'ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
+            call endrun(subname//'ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
                     file=__FILE__, line=__LINE__)
          end if
          if(masterproc) then
-            write(iulog,*) sub//'Successfully opened netcdf file '//trim(this%file_names(split_file_index))
+            write(iulog,*) subname//'Successfully opened netcdf file '//trim(this%file_names(split_file_index))
          end if
 
          ! Write time-invariant portion of history header
@@ -1367,6 +1368,7 @@ contains
       use pio,                 only: pio_clobber, pio_noerr, pio_enddef
       use cam_grid_support,    only: cam_grid_header_info_t
       use cam_abortutils,      only: endrun, check_allocate
+      use string_utils,        only: stringify
       ! Define the metadata for the history restart file (rhX)
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
@@ -1389,6 +1391,7 @@ contains
       ! A structure to hold the horizontal dimension and coordinate info
       type(cam_grid_header_info_t), allocatable :: header_info(:)
       integer,        allocatable :: mdimids(:)
+      character(len=*), parameter :: subname = 'config_define_restart_file: '
 
       ! Set the restart filename using current timestamp
       call this%set_restart_filename()
@@ -1447,11 +1450,11 @@ contains
       deallocate(mdimids)
       ierr = pio_enddef(this%restart_file)
       if (ierr /= PIO_NOERR) then
-         call endrun('config_define_restart_file: ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
+         call endrun(subname//'ERROR exiting define mode in PIO with error code = '//stringify([ierr]), &
                  file=__FILE__, line=__LINE__)
       end if
       if(masterproc) then
-         write(iulog,*)'config_define_restart_file: Successfully opened netcdf file '//trim(this%restart_file_name)
+         write(iulog,*) subname//'Successfully opened netcdf file '//trim(this%restart_file_name)
       end if
 
       ! Write time-invariant header info
@@ -2073,7 +2076,7 @@ contains
       use cam_logfile,   only: iulog
       use perf_mod,      only: t_startf, t_stopf
       use cam_pio_utils, only: cam_pio_handle_error
-      use phys_const,    only: cday
+      use physconst,     only: cday
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
       ! Local variables
@@ -2386,10 +2389,10 @@ contains
                call endrun(errmsg)
             end if
             if (trim(field_precision) == 'REAL32') then
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
                     field_shape, real(field_data(:,:,1), r4), varid)
             else
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+               call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data(:,:,1), varid)
             end if
          else

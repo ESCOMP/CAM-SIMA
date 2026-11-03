@@ -863,7 +863,7 @@ contains
       end if
    end function cam_grid_attr_exists
 
-   pure integer function num_cam_grid_attrs(gridind) result(num_attrs)
+   integer function num_cam_grid_attrs(gridind) result(num_attrs)
       ! Dummy arguments
       integer,                             intent(in)     :: gridind
 
