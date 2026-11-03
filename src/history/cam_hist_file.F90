@@ -2,7 +2,7 @@ module cam_hist_file
    ! Module to define and read CAM history configuration namelist entries
    !    and associated history files
 
-   use, intrinsic :: iso_fortran_env, only: real64
+   use, intrinsic :: ISO_FORTRAN_ENV, only: REAL64
    use pio,                 only: file_desc_t, var_desc_t
    use cam_history_support, only: max_fldlen=>max_fieldname_len
    use cam_history_support, only: fieldname_suffix_len
@@ -180,7 +180,7 @@ contains
 
       character(len=1) :: accum_types(max_split_files)
       integer :: file_idx, ierr
-      character(len=cl) :: errmsg
+      character(len=CL) :: errmsg
       character(len=*), parameter :: subname = 'config_filename: '
 
       accum_types(instantaneous_file_index) = 'i'
@@ -207,7 +207,7 @@ contains
 
       character(len=1) :: accum_types(max_split_files)
       integer          :: file_idx, ierr
-      character(len=cl) :: errmsg
+      character(len=CL) :: errmsg
       character(len=*), parameter :: subname = 'config_set_filenames: '
 
       if (allocated(this%file_names)) then
@@ -322,7 +322,7 @@ contains
    ! ========================================================================
 
    pure function config_precision(this) result(cprec)
-       use, intrinsic :: iso_fortran_env, only: real32
+      use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
       character(len=vlen)                   :: cprec
@@ -931,7 +931,7 @@ contains
       use spmd_utils,     only: masterproc
       use cam_logfile,    only: iulog
       use cam_abortutils, only: endrun
-      use, intrinsic :: iso_fortran_env, only: real32
+      use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32
       ! Dummy argument
       class(hist_file_t), intent(in) :: this
 
@@ -1062,6 +1062,14 @@ contains
          field_shape = field_ptr%shape()
          beg_dim = field_ptr%beg_dims()
          end_dim = field_ptr%end_dims()
+
+         ! Override frequency = 1*step to instantaneous if not sampled_on_subcycle
+         if (this%output_freq_type == 'step' .and. this%output_freq_mult == 1) then
+            if (.not. field_ptr%sampled_on_subcycle()) then
+               this%accumulate_types(idx) = 'lst'
+            end if
+         end if
+
          field_info => hist_new_field(this%field_names(idx),     &
             field_ptr%standard_name(), field_ptr%long_name(),    &
             field_ptr%units(), field_ptr%type(), field_ptr%decomp(), &
@@ -1070,7 +1078,8 @@ contains
             field_ptr%fill_value(), beg_dims=beg_dim,            &
             end_dims=end_dim, mixing_ratio=field_ptr%mixing_ratio(), &
             flag_xyfill=field_ptr%flag_xyfill(),                 &
-            sampling_seq=field_ptr%sampling_sequence())
+            sampling_seq=field_ptr%sampling_sequence(),          &
+            sampled_on_subcycle=field_ptr%sampled_on_subcycle())
          call hist_new_buffer(field_info, field_shape, &
             1, this%accumulate_types(idx), 1, errors=errors)
          if (masterproc .and. errors%num_errors() > 0) then
@@ -1227,6 +1236,8 @@ contains
       integer, allocatable :: fdims(:)
       integer :: num_patches
       integer, allocatable :: mdims(:)
+      integer, parameter :: nsbase = 0 ! seconds component of base time
+      integer, parameter :: ndbase = 0 ! days component of base time
 
       logical                  :: is_satfile
       logical                  :: is_initfile
@@ -2254,22 +2265,22 @@ contains
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "cdate" variable')
          ierr = pio_put_var (this%hist_files(split_file_index), this%time_writtenid, startc, countc, [ctime])
          call cam_pio_handle_error(ierr, 'config_write_time_dependent_variables: cannot write "ctime" variable')
-         field_loop:do field_idx = 1, size(this%field_list)
+         fields:do field_idx = 1, size(this%field_list)
             ! we may have a history split, conditionally skip fields that are
             ! for the other file
             if ((this%field_list(field_idx)%accumulate_type() == 'lst') .and. &
                split_file_index == accumulated_file_index) then
-               cycle field_loop
+               cycle fields
             end if
             if ((this%field_list(field_idx)%accumulate_type() /= 'lst') .and. &
                split_file_index == instantaneous_file_index) then
-               cycle field_loop
+               cycle fields
             end if
             call this%write_field(this%hist_files(split_file_index), this%field_list(field_idx), start, field_idx, &
                this%precision(), accumulate)
             ! Clear the buffers
             call this%field_list(field_idx)%clear_buffers()
-         end do field_loop
+         end do fields
       end do
       call t_stopf  ('write_field')
 
@@ -2309,7 +2320,7 @@ contains
       type(var_desc_t)               :: varid
       integer                        :: field_decomp
       integer                        :: idx
-      real(r8), allocatable          :: field_data(:,:)
+      real(r8), allocatable          :: field_data(:,:,:)
       type(hist_log_messages)        :: errors
       character(len=CL)              :: errmsg
       character(len=*), parameter    :: subname = 'config_write_field: '
@@ -2321,10 +2332,13 @@ contains
       end_dims = field%end_dims()
       frank = size(field_shape)
       if (frank == 1) then
-         allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1, 1), stat=ierr, errmsg=errmsg)
+         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+      else if (frank == 2) then
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2), 1), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       else
-         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2), field_shape(3)), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       end if
       ! Shape of array
@@ -2344,9 +2358,9 @@ contains
          call pio_setframe(hist_file, varid, int(sample_index,kind=PIO_OFFSET_KIND))
          if (frank == 1) then
             if (accumulate) then
-               call hist_field_norm_value(field, field_data(:,1), logger=errors)
+               call hist_field_norm_value(field, field_data(:,1,1), logger=errors)
             else
-               call hist_field_value(field, field_data(:,1), logger=errors)
+               call hist_field_value(field, field_data(:,1,1), logger=errors)
             end if
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
@@ -2355,16 +2369,34 @@ contains
             end if
             if (trim(field_precision) == 'REAL32') then
                call cam_grid_write_dist_array(hist_file, field_decomp, [dim_sizes(1)], &
-                    field_shape, real(field_data(:,1), r4), varid)
+                    field_shape, real(field_data(:,1,1), r4), varid)
             else
                call cam_grid_write_dist_array(hist_file, field_decomp, [dim_sizes(1)], &
-                    field_shape, field_data(:,1), varid)
+                    field_shape, field_data(:,1,1), varid)
+            end if
+         else if (frank == 2) then
+            if (accumulate) then
+               call hist_field_norm_value(field, field_data(:,:,1), logger=errors)
+            else
+               call hist_field_value(field, field_data(:,:,1), logger=errors)
+            end if
+            if (errors%num_errors() > 0) then
+               call errors%output(iulog)
+               write(errmsg, *) subname, 'ERROR writing field "', trim(field%diag_name()), '"'
+               call endrun(errmsg)
+            end if
+            if (trim(field_precision) == 'REAL32') then
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+                    field_shape, real(field_data(:,:,1), r4), varid)
+            else
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
+                    field_shape, field_data(:,:,1), varid)
             end if
          else
             if (accumulate) then
-               call hist_field_norm_value(field, field_data, logger=errors)
+               call hist_field_norm_value(field, field_data(:,:,:), logger=errors)
             else
-               call hist_field_value(field, field_data, logger=errors)
+               call hist_field_value(field, field_data(:,:,:), logger=errors)
             end if
             if (errors%num_errors() > 0) then
                call errors%output(iulog)
@@ -2373,10 +2405,10 @@ contains
             end if
             if (trim(field_precision) == 'REAL32') then
                call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
-                    field_shape, real(field_data, r4), varid)
+                    field_shape, real(field_data(:,:,:), r4), varid)
             else
                call cam_grid_write_dist_array(hist_file, field_decomp, dim_sizes(1:frank), &
-                    field_shape, field_data, varid)
+                    field_shape, field_data(:,:,:), varid)
             end if
          end if
       end do
@@ -2576,7 +2608,7 @@ contains
       use shr_nl_mod,     only: shr_nl_find_group_name
       use cam_abortutils, only: endrun
       use shr_kind_mod,   only: CM => shr_kind_cm
-      use, intrinsic :: iso_fortran_env, only: real32
+      use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32
       ! Read a history file configuration from <unitn> and process it into
       ! <hfile_config>.
       ! <hist_inst_fields>, <avg_fields>, <min_fields>, <max_fields>, & <var_fields>

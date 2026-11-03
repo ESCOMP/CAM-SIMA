@@ -403,7 +403,7 @@ contains
 !===========================================================================
 
    subroutine history_add_field_1d(diagnostic_name, standard_name, vdim_name, &
-      avgflag, units, gridname, flag_xyfill, fill_value, mixing_ratio)
+      avgflag, units, gridname, flag_xyfill, fill_value, mixing_ratio, sampled_on_subcycle)
       use cam_history_support, only: get_hist_coord_index, max_chars, horiz_only
       use cam_abortutils,      only: endrun, check_allocate
       use shr_kind_mod,        only: r8 => shr_kind_r8
@@ -429,6 +429,7 @@ contains
       logical,          optional, intent(in) :: flag_xyfill
       real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
+      logical,          optional, intent(in) :: sampled_on_subcycle
 
       !
       ! Local workspace
@@ -436,7 +437,7 @@ contains
       character(len=max_chars), allocatable :: dimnames(:)
       integer                               :: index
       integer                               :: ierr
-      character(len=cl) :: errmsg
+      character(len=cl)                     :: errmsg
       character(len=*), parameter           :: subname = 'history_add_field_1d'
 
       if (trim(vdim_name) == trim(horiz_only)) then
@@ -454,13 +455,14 @@ contains
          dimnames(1) = trim(vdim_name)
        end if
        call history_add_field(diagnostic_name, standard_name, dimnames, avgflag, units, &
-            gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio)
+            gridname=gridname, flag_xyfill=flag_xyfill, fill_value=fill_value, mixing_ratio=mixing_ratio, &
+            sampled_on_subcycle=sampled_on_subcycle)
    end subroutine history_add_field_1d
 
 !===========================================================================
 
    subroutine history_add_field_nd(diagnostic_name, standard_name, dimnames, avgflag, &
-      units, gridname, flag_xyfill, fill_value, mixing_ratio)
+      units, gridname, flag_xyfill, fill_value, mixing_ratio, sampled_on_subcycle)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Add a field to the master field list - generic; called from
@@ -495,6 +497,7 @@ contains
       logical,          optional, intent(in) :: flag_xyfill
       real(r8),         optional, intent(in) :: fill_value
       character(len=*), optional, intent(in) :: mixing_ratio
+      logical,          optional, intent(in) :: sampled_on_subcycle
 
       ! Local variables
       class(hist_field_info_t), pointer :: field_ptr
@@ -634,7 +637,7 @@ contains
                   mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
                   mixing_ratio=mixing_ratio_loc, &
                   dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
-                  flag_xyfill=flag_xyfill)
+                  flag_xyfill=flag_xyfill, sampled_on_subcycle=sampled_on_subcycle)
                exit
             end if
          end do
@@ -644,7 +647,7 @@ contains
             mdim_indices, avgflag, num_levels, field_shape, fill_value_local, &
             mixing_ratio=mixing_ratio_loc, &
             dim_bounds=dimbounds, mdim_sizes=mdim_sizes, cell_methods=cell_methods,    &
-            flag_xyfill=flag_xyfill)
+            flag_xyfill=flag_xyfill, sampled_on_subcycle=sampled_on_subcycle)
       end if
 
       num_possible_fields = num_possible_fields + 1
@@ -760,9 +763,12 @@ contains
       ! Purpose: Accumulate active fields - 3d fields
       !
       !-----------------------------------------------------------------------
-      use hist_api,       only: hist_field_accumulate
-      use cam_abortutils, only: endrun
-      use shr_kind_mod,   only: r8 => shr_kind_r8
+      use hist_api,         only: hist_field_accumulate
+      use cam_abortutils,   only: endrun
+      use hist_msg_handler, only: hist_log_messages
+      use spmd_utils,       only: masterproc
+      use cam_logfile,      only: iulog
+      use shr_kind_mod,     only: r8 => shr_kind_r8
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       real(r8),         intent(in) :: field_values(:,:,:)
@@ -772,9 +778,9 @@ contains
       character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'history_out_field_3d: '
       class(hist_field_info_t), pointer :: field_info
+      type(hist_log_messages) :: logger
 
       errmsg = ''
-      call endrun('ERROR: '//subname//'3d history fields not implemented', file=__FILE__, line=__LINE__)
 
       do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
@@ -786,17 +792,15 @@ contains
             ! field is not active on this tape - do nothing!
             cycle
          end if
-         ! peverwhee - TODO - need to enable 3D accumulation in modular history
          ! Field is active on this file - accumulate!
-         !call hist_field_accumulate(field_info, real(field_values, REAL64), 1)
-         !if (masterproc) then
-         !   call logger%output(iulog)
-         !   if (logger%num_errors() > 0) then
-         !      write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
-         !      call endrun(errmsg)
-         !   end if
-         !end if
-
+         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (masterproc) then
+            call logger%output(iulog)
+            if (logger%num_errors() > 0) then
+               write(errmsg, *) subname, 'Error during hist_field_accumulate for "', trim(diagnostic_name), '"'
+               call endrun(errmsg)
+            end if
+         end if
       end do
 
    end subroutine history_out_field_3d

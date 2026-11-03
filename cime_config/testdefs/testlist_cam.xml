@@ -341,6 +341,21 @@
     </options>
   </test>
 
+  <test compset="FHIST_C4" grid="ne3pg3_ne3pg3_mt233" name="SMS_D_Ln9" testmods="cam/outfrq_se_cam4">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:30:00</option>
+      <option name="comment">
+        CAM4 AMIP-style test with SE-CSLAM dycore at ne3 (ultra-low) resolution with transient historical
+        forcings (time-varying GHG, ozone, aerosol, volcanic, and solar datasets; time-varying SSTs)
+        in debug mode
+      </option>
+    </options>
+  </test>
+
   <!-- Restart tests -->
   <test compset="QPC4" grid="mpasa120_mpasa120" name="ERS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>
@@ -387,4 +402,5 @@
       <option name="comment">Restart CAM7 test with SE-CSLAM dycore</option>
     </options>
   </test>
+
 </testlist>
