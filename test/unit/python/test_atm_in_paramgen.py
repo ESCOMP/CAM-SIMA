@@ -433,9 +433,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         """
         Check that using multiple XML namelist
-        definition files that have the same
-        namelist group throws an error and
-        that the error message is correct.
+        definition files that share a namelist
+        group succeeds and merges the variables
+        from both files into the shared group.
         """
 
         # Get XML file paths:
@@ -446,16 +446,17 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
         pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
-        # Append the extra PG object to the other:
-        with self.assertRaises(AtmInParamGenError) as cerr:
-            pg_test.append_atm_in_pg(pg_ext)
+        # Append should succeed:
+        pg_test.append_atm_in_pg(pg_ext)
 
-        # Check exception message:
-        emsg = f"Cannot append:\n'{extra_xml_fil}'\n"
-        emsg += " The following namelist groups conflict with those in"
-        emsg += f"\n'{xml_test_fil} :'\n"
-        emsg += "bird_sounds_nl"
-        self.assertEqual(emsg, str(cerr.exception))
+        # Check that the shared group contains variables from both files:
+        shared_group = pg_test.data["bird_sounds_nl"]
+        self.assertIn("duck_quack", shared_group)
+        self.assertIn("turkey_leg", shared_group)
+        self.assertIn("laser_beam", shared_group)
+
+        # Check that a group unique to the extra file is also present:
+        self.assertIn("sci_fi_sounds_nl", pg_test.data)
 
     #++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -482,7 +483,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check exception message:
         emsg = f"Cannot append:\n'{extra_xml_fil}'\n"
-        emsg += " The following namelist variablesconflict with those in"
+        emsg += " The following namelist variables conflict with those in"
         emsg += f"\n'{xml_test_fil} :'\n"
         emsg += "duck_quack"
         self.assertEqual(emsg, str(cerr.exception))
