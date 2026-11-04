@@ -640,6 +640,17 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
       testargs="${testargs} --xml-driver ${xml_driver}"
     fi
 
+    ## Command to regenerate the cs.status.<test_id> script so that it
+    ## labels the known failures listed in expected_failures.xml.
+    ## This must run after create_test, which creates the default cs.status file.
+    xfail_file="${CAM_ROOT}/cime_config/testdefs/expected_failures.xml"
+    cs_status_cmd="python3 -c \"import sys; "
+    cs_status_cmd+="sys.path.insert(0, '${CIME_ROOT}'); "
+    cs_status_cmd+="from CIME.cs_status_creator import create_cs_status; "
+    cs_status_cmd+="create_cs_status(test_root='${cesm_testdir}', "
+    cs_status_cmd+="test_id='${test_id}', "
+    cs_status_cmd+="extra_args='--expected-fails-file ${xfail_file}')\""
+
     echo ""
     echo "CESM test results will be in: ${cesm_testdir}" | tee -a ${logfile}
     echo "Running ./create_test ${testargs}"             | tee -a ${logfile}
@@ -648,6 +659,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
       echo "cd ${script_dir}" >> ${submit_script_cime}
       echo "module load python" >> ${submit_script_cime}
       echo './create_test' ${testargs} >> ${submit_script_cime}
+      echo "${cs_status_cmd}" >> ${submit_script_cime}
       chmod u+x ${submit_script_cime}
       qsub ${submit_script_cime}
     fi
@@ -655,6 +667,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
     if [ "${hostname:0:2}" == "de" ]; then
       echo "cd ${script_dir}" >> ${submit_script_cime}
       echo './create_test' ${testargs} >> ${submit_script_cime}
+      echo "${cs_status_cmd}" >> ${submit_script_cime}
       chmod u+x ${submit_script_cime}
       qsub ${submit_script_cime}
    fi
@@ -662,6 +675,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
     if [ "${hostname:0:6}" == "hobart" ]; then
       echo "cd ${script_dir}" >> ${submit_script_cime}
       echo './create_test' ${testargs} >> ${submit_script_cime}
+      echo "${cs_status_cmd}" >> ${submit_script_cime}
       if [ "${submit_script}" != "${submit_script_cime}" ]; then
         chmod u+x ${submit_script_cime}
         qsub ${submit_script_cime}
@@ -671,6 +685,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
     if [ "${hostname:0:5}" == "izumi" ]; then
       echo "cd ${script_dir}" >> ${submit_script_cime}
       echo './create_test' ${testargs} >> ${submit_script_cime}
+      echo "${cs_status_cmd}" >> ${submit_script_cime}
       if [ "${submit_script}" != "${submit_script_cime}" ]; then
         chmod u+x ${submit_script_cime}
         qsub ${submit_script_cime}
@@ -681,6 +696,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
       echo "cd ${script_dir}" >> ${submit_script_cime}
       echo "module load python" >> ${submit_script_cime}
       echo './create_test' ${testargs} >> ${submit_script_cime}
+      echo "${cs_status_cmd}" >> ${submit_script_cime}
       chmod u+x ${submit_script_cime}
       qsub ${submit_script_cime}
     fi
