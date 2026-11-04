@@ -226,7 +226,7 @@ def _stage_mpas_build_tree(case: Case, logger: logging.Logger | None = None) -> 
     if not os.path.isdir(os.path.join(mpas_dycore_src_root, "dycore", "src")):
         raise FileNotFoundError(
             1,
-            "MPAS source tree does not exist",
+            'MPAS source tree does not exist (Run "./bin/git-fleximod update" and try again)',
             os.path.join(mpas_dycore_src_root, "dycore", "src"))
 
     if logger is not None:
@@ -293,12 +293,12 @@ def _build_scotch(case: Case, logger: logging.Logger | None = None) -> str:
     scotch_src_root = os.path.join(atm_src_root, "src", "dynamics", "mpas", "scotch")
     scotch_bld_root = os.path.join(atm_bld_root, "scotch", "build")
 
-    # Make sure Scotch source tree exists. If not, it is likely that `./bin/git-fleximod update`
+    # Make sure Scotch source tree exists. If not, it is likely that `./bin/git-fleximod update --optional`
     # did not succeed.
     if not os.path.isdir(os.path.join(scotch_src_root, "src")):
         raise FileNotFoundError(
             1,
-            "Scotch source tree does not exist",
+            'Scotch source tree does not exist (Run "./bin/git-fleximod update --optional" and try again)',
             os.path.join(scotch_src_root, "src"))
 
     os.makedirs(scotch_bld_root, exist_ok=True)

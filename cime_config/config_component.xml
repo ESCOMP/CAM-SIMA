@@ -176,12 +176,13 @@
     <group>build_component_cam</group>
     <file>env_build.xml</file>
     <desc>
-      Whether to use the (PT-)Scotch library to enable the online graph partitioning feature in MPAS dynamical core,
+      Whether to use the (PT-)Scotch library to enable the online graph partitioning feature in the MPAS dynamical core,
       eliminating the need to precompute mesh decomposition files (i.e., *.graph.info.part.*) in advance.
 
       If TRUE and SCOTCH_PATH is not set, the build system will attempt to build the (PT-)Scotch library automatically.
       If TRUE and SCOTCH_PATH is set, the build system will use the existing (PT-)Scotch library installation directly.
-      If FALSE, the online graph partitioning feature in MPAS dynamical core will be disabled.
+      If FALSE, the online graph partitioning feature in the MPAS dynamical core will be disabled, and a mesh decomposition
+      file must be provided for the specified resolution and number of MPI ranks.
     </desc>
   </entry>
 
