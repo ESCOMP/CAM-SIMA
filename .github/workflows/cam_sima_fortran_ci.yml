@@ -256,7 +256,6 @@ jobs:
               fortitude \
                 --config-file "$SOURCE_CODE_PATH/test/fortitude-errors.toml" \
                 check \
-                --select "$ERROR_CODES" \
                 --output-format github \
                 "$@" |
                   tee -a "$SOURCE_CODE_PATH/source-code-linting.log" |
@@ -269,7 +268,6 @@ jobs:
               fortitude \
                 --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
                 check \
-                --ignore "$ERROR_CODES" \
                 --exit-zero \
                 --output-format github \
                 "$@" |
