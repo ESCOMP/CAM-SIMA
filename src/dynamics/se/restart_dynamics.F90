@@ -294,11 +294,11 @@ subroutine write_elem()
 
    if (.not. decomps_initialized) then
       ldof => get_restart_decomp(elem, 1)
-      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*np*np], ldof, iodesc2d)
+      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*npsq], ldof, iodesc2d)
       deallocate(ldof)
 
       ldof => get_restart_decomp(elem, nlev)
-      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*np*np,nlev], ldof, iodesc3d)
+      call pio_initdecomp(pio_subsystem, pio_double, [nelem_tot*npsq,nlev], ldof, iodesc3d)
       deallocate(ldof)
 
       decomps_initialized = .true.

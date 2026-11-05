@@ -36,7 +36,7 @@ subroutine write_restart_dynamics(File, dyn_out)
    use dyn_comp,           only: dyn_export_t, mpas_dynamical_core
 
    ! arguments
-   type(file_desc_t), target :: File
+   type(file_desc_t)               :: File
    type(dyn_export_t), intent(in)  :: dyn_out
    !----------------------------------------------------------------------------
 
