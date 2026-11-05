@@ -10,7 +10,6 @@ module cam_pio_utils
 
    implicit none
    private
-   save
 
    public :: cam_pio_createfile   ! Create a new NetCDF file for PIO writing
    public :: cam_pio_openfile     ! Open an existing NetCDF file
@@ -117,7 +116,7 @@ CONTAINS
    ! use_scam_limits is a private interface used to gather information about
    !    single-column usage and limits for use by the cam_pio_get_var interfaces
    ! This still only works for lat/lon dycores
-   logical function use_scam_limits(File, start, kount, dimnames)
+   logical function use_scam_limits(File, start, kount, dimnames) result(use_limits)
       use shr_scam_mod,   only: shr_scam_getCloseLatLon
 !!XXgoldyXX: v support scam?
 !      use scamMod,        only: scmlat, scmlon, single_column
@@ -130,6 +129,7 @@ CONTAINS
       integer,                    intent(inout) :: start(:)
       integer,                    intent(inout) :: kount(:)
       character(len=*), optional, intent(in)    :: dimnames(:)
+      logical                                   :: use_limits
 
       ! Local variables
       character(len=*),   parameter             :: subname='USE_SCAM_LIMITS'
@@ -139,12 +139,12 @@ CONTAINS
       logical                                   :: latfound
 
 !!XXgoldyXX: v support scam?
-      use_scam_limits = .false.
+      use_limits = .false.
       kount = 0
 #if 0
 !!XXgoldyXX: ^ support scam?
-      use_scam_limits = single_column
-      if (use_scam_limits) then
+      use_limits = single_column
+      if (use_limits) then
          call shr_scam_getCloseLatLon(File, scmlat, scmlon,                   &
             closelat, closelon, latidx, lonidx)
          if (present(dimnames)) then
@@ -222,15 +222,15 @@ CONTAINS
             perm(i) = i
          else
             isperm = .true.
-            do j = 1, fdims
+            fdim_loop: do j = 1, fdims
                if (arraydims(i) == filedims(j)) then
                   perm(i) = j
-                  exit
+                  exit fdim_loop
                else if (j == fdims) then
                   call endrun(trim(subname)//': No match for array dimension')
                   ! No else, just try the next j index
                end if
-            end do
+            end do fdim_loop
          end if
       end do
 
@@ -269,17 +269,17 @@ CONTAINS
             perm(i) = i
          else
             isperm = .true.
-            do j = 1, fdims
+            DIMLOOP: do j = 1, fdims
                if (trim(arraydims(i)) == trim(filedims(j))) then
                   perm(i) = j
-                  exit
+                  exit DIMLOOP
                else if (j == fdims) then
                   ! We have no match but for character strings, just say no perm
                   isperm = .false.
                   exit ILOOP
                   ! No else, just try the next j index
                end if
-            end do
+            end do DIMLOOP
          end if
       end do ILOOP
 
@@ -1328,12 +1328,13 @@ CONTAINS
    end subroutine cam_pio_closefile
 
    !===========================================================================
-   logical function cam_pio_fileexists(fname)
+   logical function cam_pio_fileexists(fname) result(file_exists)
       use pio,            only: pio_openfile, file_desc_t, pio_noerr
       use pio,            only: pio_seterrorhandling, PIO_BCAST_ERROR
       use pio,            only : pio_closefile, PIO_NOWRITE
 
       character(len=*), intent(in) :: fname
+      logical                      :: file_exists
 
       type(file_desc_t)            :: file
       integer                      :: ierr
@@ -1345,8 +1346,8 @@ CONTAINS
          oldmethod=err_handling)
 
       ierr = pio_openfile(pio_subsystem, file, pio_iotype, fname, PIO_NOWRITE)
-      cam_pio_fileexists = (ierr == PIO_NOERR)
-      if (cam_pio_fileexists) then
+      file_exists = (ierr == PIO_NOERR)
+      if (file_exists) then
          call pio_closefile(file)
       end if
 
@@ -1548,7 +1549,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         [ bnddimid, dimids(size(dimids, 1)) ], bnddesc)
       if (present(fill_value)) then
          ierr = pio_put_att(file, vdesc, '_FillValue', fill_value)
       end if
@@ -1669,7 +1670,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         [ bnddimid, dimids(size(dimids, 1)) ], bnddesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
 
@@ -1797,7 +1798,7 @@ CONTAINS
       ! Define the variables
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         [ bnddimid, dimids(size(dimids, 1)) ], bnddesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
 
@@ -1920,7 +1921,7 @@ CONTAINS
       call cam_pio_def_dim(file, 'bounds', size(bounds, 1), bnddimid)
       ! Define the variables
       call cam_pio_def_var(file, 'field_bounds', pio_int,                     &
-         (/ bnddimid, dimids(size(dimids, 1)) /), bnddesc)
+         [ bnddimid, dimids(size(dimids, 1)) ], bnddesc)
       call cam_pio_def_var(file, trim(fieldname), pio_double, dimids, vdesc)
       ierr = pio_put_att(file, vdesc, '_FillValue', fillval)
       ierr = pio_enddef(file)
