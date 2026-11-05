@@ -104,7 +104,8 @@ subroutine dyn_readnl(NLFileName)
    character(len=*), intent(in) :: NLFileName
 
    ! Local variables
-   integer                      :: unitn, ierr,k
+   integer                      :: unitn, ierr, k
+   character(len=cl)            :: io_errmsg, errmsg
 
    ! SE Namelist variables
    integer                      :: se_fine_ne
@@ -211,12 +212,18 @@ subroutine dyn_readnl(NLFileName)
    call MPI_barrier(mpicom, ierr)
    if (masterproc) then
       write(iulog, *) "dyn_readnl: reading dyn_se_nl namelist..."
-      open( newunit=unitn, file=trim(NLFileName), status='old' )
+      open( newunit=unitn, file=trim(NLFileName), action='read', status='old', &
+                    iostat=ierr, iomsg=io_errmsg )
+      if (ierr /= 0) then
+         write(errmsg, '(a,i0,4a)') ': Error ', ierr, ' opening ',      &
+                 trim(NLFileName), ' message: ', trim(io_errmsg)
+         call endrun('dyn_readnl'//trim(errmsg))
+      end if
       call find_group_name(unitn, 'dyn_se_nl', status=ierr)
       if (ierr == 0) then
-         read(unitn, dyn_se_nl, iostat=ierr)
+         read(unitn, dyn_se_nl, iostat=ierr, iomsg=io_errmsg)
          if (ierr /= 0) then
-            call endrun('dyn_readnl: ERROR reading dyn_se_nl namelist')
+            call endrun('dyn_readnl: ERROR reading dyn_se_nl namelist, errmsg= '//trim(io_errmsg))
          end if
       end if
       close(unitn)
@@ -404,10 +411,12 @@ subroutine dyn_readnl(NLFileName)
       !
       ! se_nu<0 then coefficients are set automatically in module global_norms_mod
       !
-      if (se_nu_div>0) &
-           write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu                       = ',se_nu
-      if (se_nu_div>0) &
-           write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu_div                   = ',se_nu_div
+      if (se_nu_div>0) then
+         write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu                       = ',se_nu
+      end if
+      if (se_nu_div>0) then
+         write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu_div                   = ',se_nu_div
+      end if
       if (se_nu_p>0) then
         write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu_p                     = ',se_nu_p
         write(iulog, '(a)') 'Note that nu_q must be the same as nu_p for  mass / tracer inconsistency'
@@ -472,7 +481,7 @@ subroutine dyn_readnl(NLFileName)
    contains
    !---------------------------------------------------------------------------
 
-      integer function set_vert_remap( remap_T, remap_alg )
+      integer function set_vert_remap( remap_T, remap_alg ) result(vert_remap)
 
          use cam_abortutils, only: endrun
          use cam_logfile,    only: iulog
@@ -481,6 +490,7 @@ subroutine dyn_readnl(NLFileName)
 
          character(len=*), intent(in) :: remap_T    ! scheme for remapping temperature
          character(len=*), intent(in) :: remap_alg  ! remapping algorithm
+         integer                      :: vert_remap
 
          ! check valid remap_T values:
          if (remap_T /= 'thermal_energy_over_P' .and. remap_T /= 'Tv_over_logP') then
@@ -490,34 +500,34 @@ subroutine dyn_readnl(NLFileName)
 
          select case (remap_alg)
          case ('PPM_bc_mirror')
-            set_vert_remap = 1
+            vert_remap = 1
          case ('PPM_bc_PCoM')
-            set_vert_remap = 2
+            vert_remap = 2
          case ('PPM_bc_linear_extrapolation')
-            set_vert_remap = 10
+            vert_remap = 10
          case ('FV3_PPM')
             if (remap_T == 'thermal_energy_over_P') then
-               set_vert_remap = -4
+               vert_remap = -4
             else
-               set_vert_remap = -40
+               vert_remap = -40
             end if
          case ('FV3_CS')
             if (remap_T == 'thermal_energy_over_P') then
-               set_vert_remap = -9
+               vert_remap = -9
             else
-               set_vert_remap = -90
+               vert_remap = -90
             end if
          case ('FV3_CS_2dz_filter')
             if (remap_T == 'thermal_energy_over_P') then
-               set_vert_remap = -10
+               vert_remap = -10
             else
-               set_vert_remap = -100
+               vert_remap = -100
             end if
          case ('FV3_non_monotone_CS_2dz_filter')
             if (remap_T == 'thermal_energy_over_P') then
-               set_vert_remap = -11
+               vert_remap = -11
             else
-               set_vert_remap = -110
+               vert_remap = -110
             end if
          case default
             write(iulog,*)'set_vert_remap: invalid remap_alg= ',trim(remap_alg)
@@ -592,8 +602,8 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
    ! variables for initializing energy and axial angular momentum diagnostics
    integer, parameter                         :: num_stages = 14
-   character (len = 4), dimension(num_stages) :: stage         = (/"dED","dAF","dBD","dBL","dAL","dAD","dAR","dBF","dBH","dCH","dAH","dBS","dAS","p2d"/)
-   character (len = 70),dimension(num_stages) :: stage_txt = (/&
+   character (len = 4), dimension(num_stages), parameter :: stage         = ["dED","dAF","dBD","dBL","dAL","dAD","dAR","dBF","dBH","dCH","dAH","dBS","dAS","p2d"]
+   character (len = 70),dimension(num_stages), parameter :: stage_txt = [&
       " end of previous dynamics                           ",& !dED
       " from previous remapping or state passed to dynamics",& !dAF - state in beginning of nsplit loop
       " state after applying CAM forcing                   ",& !dBD - state after applyCAMforcing
@@ -608,7 +618,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
       " state before sponge layer diffusion                ",& !dBS - state before sponge del2
       " state after sponge layer diffusion                 ",& !dAS - state after sponge del2
       " phys2dyn mapping errors (requires ftype-1)         " & !p2d - for assessing phys2dyn mapping errors
-      /)
+      ]
 
    integer :: istage, ivars
    character (len=108) :: str1, str2, str3
@@ -710,12 +720,12 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
        thermodynamic_active_species_idx_dycore(m) = m
        ! kord_tr_cslam is in CSLAM tracer index space (1:ntrac), so map this
        ! species constituent index into it instead of indexing it directly.
-       do mfound = 1, ntrac
+       trac_loop:do mfound = 1, ntrac
          if (advected_constituent_index(mfound) == thermodynamic_active_species_idx(m)) then
            kord_tr_cslam(mfound) = vert_remap_uvTq_alg
-           exit
+           exit trac_loop
          end if
-       end do
+       end do trac_loop
        kord_tr(m)                                 = vert_remap_uvTq_alg
        cnst_name_gll    (m)                       = const_name    (thermodynamic_active_species_idx(m))
        cnst_longname_gll(m)                       = const_longname(thermodynamic_active_species_idx(m))
@@ -725,7 +735,7 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
        ! if not running with CSLAM then the condensate-loading water tracers are not necessarily
        ! indexed contiguously (are indexed as in physics)
        !
-       if (m.le.thermodynamic_active_species_num) then
+       if (m<=thermodynamic_active_species_num) then
          thermodynamic_active_species_idx_dycore(m) = thermodynamic_active_species_idx(m)
          kord_tr(thermodynamic_active_species_idx_dycore(m)) = vert_remap_uvTq_alg
        end if
@@ -1207,7 +1217,7 @@ subroutine dyn_run(dyn_state)
      if (is_history_field_active('F'//trim(cnst_diag_name_gll(m))//'_gll')) then
        do ie = nets, nete
          call history_out_field('F'//trim(cnst_diag_name_gll(m))//'_gll',&
-              RESHAPE(dyn_state%elem(ie)%derived%FQ(:,:,:,m), (/np*np,nlev/)), element_index=ie)
+              RESHAPE(dyn_state%elem(ie)%derived%FQ(:,:,:,m), [np*np,nlev]), element_index=ie)
        end do
      end if
    end do
@@ -1481,9 +1491,9 @@ subroutine read_inidat(dyn_in)
 
       ! PHIS has already been set by set_phis.  Get local copy for
       ! possible use in setting T and PS in the analytic IC code.
-      allocate(phis_tmp(npsq,nelemd), stat=ierr)
+      allocate(phis_tmp(npsq,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'phis_tmp(npsq,nelemd)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
@@ -1614,7 +1624,7 @@ subroutine read_inidat(dyn_in)
       end if
 #ifndef planet_mars
       if (iam < par%nprocs) then
-         if (minval(dbuf2, mask=reshape(pmask, (/npsq,nelemd/))) < 10000._r8) then
+         if (minval(dbuf2, mask=reshape(pmask, [npsq,nelemd])) < 10000._r8) then
             call endrun(trim(subname)//': Problem reading ps or psdry field -- bad values')
          end if
       end if
@@ -1678,7 +1688,7 @@ subroutine read_inidat(dyn_in)
          end do
       end do
 
-      if (pertlim .ne. 0.0_r8) then
+      if (pertlim /= 0.0_r8) then
          if (masterproc) then
             write(iulog,*) trim(subname), ': Adding random perturbation bounded', &
                'by +/- ', pertlim, ' to initial temperature field'
@@ -1749,28 +1759,28 @@ subroutine read_inidat(dyn_in)
 
       ! Find input name array index to extract correct input names:
       const_ic_names_idx = -1
-      do k=1, phys_var_num
+      var_num_loop: do k=1, phys_var_num
          if(trim(phys_var_stdnames(k)) == trim(std_name)) then
             const_ic_names_idx = k
-            exit
+            exit var_num_loop
          end if
-      end do
+      end do var_num_loop
 
       ! Initialize IC name array with the constituent standard name
       const_ic_name(m_cnst) = trim(std_name)
       if (const_ic_names_idx > 0) then
          ! Scan the IC file variables for the first name in the registry IC names list.
          ! If none are found, then the standard name is the default:
-         do k = 1, size(input_var_names, 1)
+         input_var_loop: do k = 1, size(input_var_names, 1)
             ! Unused name slots are blank-padded:
             if (len_trim(input_var_names(k, const_ic_names_idx)) == 0) then
-               exit
+               exit input_var_loop
             end if
             if (dyn_field_exists(fh_ini, trim(input_var_names(k, const_ic_names_idx)), required=.false.)) then
                const_ic_name(m_cnst) = input_var_names(k, const_ic_names_idx)
-               exit
+               exit input_var_loop
             end if
-         end do
+         end do input_var_loop
       end if
    end do
    !-------------
@@ -1779,14 +1789,14 @@ subroutine read_inidat(dyn_in)
    ! dimension checked in the case that the file contains constituent mixing
    ! ratios.
 
-   do m_cnst = 1, num_advected
+   mcnst_loop: do m_cnst = 1, num_advected
       if (.not. const_is_water_species(advected_constituent_index(m_cnst))) then
          if (dyn_field_exists(fh_ini, trim(const_ic_name(m_cnst)), required=.false.)) then
             call check_file_layout(fh_ini, elem, dyn_cols, 'ncdata', .true., dimname)
-            exit
+            exit mcnst_loop
          end if
       end if
-   end do
+   end do mcnst_loop
 
    allocate(dbuf3(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'dbuf3(npsq,nlev,nelemd)', &
@@ -2527,7 +2537,7 @@ end subroutine check_file_layout
 
 !========================================================================================
 
-logical function dyn_field_exists(fh, fieldname, required)
+logical function dyn_field_exists(fh, fieldname, required) result(exists)
 
    use pio,            only: var_desc_t, PIO_inq_varid
    use pio,            only: file_desc_t, PIO_NOERR
@@ -2536,6 +2546,7 @@ logical function dyn_field_exists(fh, fieldname, required)
    type(file_desc_t), intent(in) :: fh
    character(len=*),  intent(in) :: fieldname
    logical, optional, intent(in) :: required
+   logical                       :: exists
 
    ! Local variables
    logical                  :: found
@@ -2560,7 +2571,7 @@ logical function dyn_field_exists(fh, fieldname, required)
       end if
    end if
 
-   dyn_field_exists = found
+   exists = found
 
 end function dyn_field_exists
 
@@ -2636,7 +2647,7 @@ subroutine read_dyn_field_3d(fieldname, fh, dimname, buffer)
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-   call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', (/1, nlev/), &
+   call cam_read_field(trim(fieldname), fh, buffer, found, 'lev', [1, nlev], &
                        dim3_pos=2, gridname=ini_grid_name, fillvalue=fillvalue)
    if(.not. found) then
       call endrun('READ_DYN_FIELD_3D: Could not find '//trim(fieldname)//' field on input datafile')
@@ -2733,7 +2744,7 @@ subroutine map_phis_from_physgrid_to_gll(fvm,elem,phis_phys_tmp,phis_tmp,pmask)
 
    fld_phys = 0.0_r8
    do ie = nets, nete
-      fld_phys(1:fv_nphys,1:fv_nphys,1,1,ie) = RESHAPE(phis_phys_tmp(:,ie),(/fv_nphys,fv_nphys/))
+      fld_phys(1:fv_nphys,1:fv_nphys,1,1,ie) = RESHAPE(phis_phys_tmp(:,ie),[fv_nphys,fv_nphys])
    end do
    llimiter = .true.
    call phys2dyn(hybrid,elem,fld_phys,fld_gll,nets,nete,1,1,fvm,llimiter,halo_filled=.false.)
@@ -2776,17 +2787,17 @@ subroutine write_dyn_vars(dyn_out)
    if (use_cslam) then
       do ie = 1, nelemd
          call history_out_field('dp_fvm', RESHAPE(dyn_out%fvm(ie)%dp_fvm(1:nc,1:nc,:),   &
-                                       (/nc*nc,nlev/)), element_index=ie)
+                                       [nc*nc,nlev]), element_index=ie)
          call history_out_field('PSDRY_fvm', RESHAPE(dyn_out%fvm(ie)%psc(1:nc,1:nc),     &
-                                          (/nc*nc/)), element_index=ie)
+                                          [nc*nc]), element_index=ie)
          do m = 1, ntrac
             tfname = trim(const_diag_name(advected_constituent_index(m)))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%c(1:nc,1:nc,:,m),     &
-                                        (/nc*nc,nlev/)), element_index=ie)
+                                        [nc*nc,nlev]), element_index=ie)
 
             tfname = 'F'//trim(const_diag_name(advected_constituent_index(m)))//'_fvm'
             call history_out_field(tfname, RESHAPE(dyn_out%fvm(ie)%fc(1:nc,1:nc,:,m),    &
-                                        (/nc*nc,nlev/)), element_index=ie)
+                                        [nc*nc,nlev]), element_index=ie)
          end do
       end do
    end if

@@ -360,9 +360,9 @@ subroutine model_grid_init()
 
    ! Allocate local_dyn_columns structure if not already allocated:
    if (.not.allocated(local_dyn_columns)) then
-      allocate(local_dyn_columns(num_local_columns), stat=ierr)
+      allocate(local_dyn_columns(num_local_columns), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'local_dyn_columns(num_local_columns)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    end if
 
@@ -380,18 +380,18 @@ subroutine model_grid_init()
    if (use_cslam) then
       gridname = 'physgrid_d'
 
-      allocate(grid_attribute_names(2), stat=ierr)
+      allocate(grid_attribute_names(2), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'grid_attribute_names(2)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       grid_attribute_names(1) = 'fv_nphys'
       grid_attribute_names(2) = 'ne'
    else
       gridname = 'GLL'
 
-      allocate(grid_attribute_names(3), stat=ierr)
+      allocate(grid_attribute_names(3), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'grid_attribute_names(3)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       ! For standard CAM-SE, we need to copy the area attribute.
       ! For physgrid, the physics grid will create area (GLL has area_d)
@@ -849,7 +849,7 @@ subroutine define_cam_grids()
    ii = 1
    do ie = 1, nelemd
       areaw = 1.0_r8 / elem(ie)%rspheremp(:,:)
-      pearea(ii:ii+npsq-1) = reshape(areaw, (/ np*np /))
+      pearea(ii:ii+npsq-1) = reshape(areaw, [ np*np ])
       pemap(ii:ii+npsq-1) = fdofp_local(:,ie)
       do j = 1, np
          do i = 1, np
@@ -881,9 +881,9 @@ subroutine define_cam_grids()
          'longitude', 'degrees_east', 1, size(pelon_deg), pelon_deg, map=pemap)
 
    ! Map for GLL grid
-   allocate(grid_map(3,npsq*nelemd), stat=ierr)
+   allocate(grid_map(3,npsq*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'grid_map(3,npsq*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    grid_map = 0_iMap
    mapind = 1
@@ -906,9 +906,9 @@ subroutine define_cam_grids()
 
    ! Register a second "GLL hist" grid that is needed for history output:
    !--------------------------------------------------------------------
-   allocate(grid_map_hist(3,npsq*nelemd), stat=ierr)
+   allocate(grid_map_hist(3,npsq*nelemd), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'grid_map_hist(3,npsq*nelemd)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
    grid_map_hist = 0_iMap
    mapind = 1
@@ -1050,9 +1050,9 @@ subroutine define_cam_grids()
            map=fvm_map)
 
       ! Map for FVM grid
-      allocate(grid_map(3, ncols_fvm), stat=ierr)
+      allocate(grid_map(3, ncols_fvm), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'grid_map(3, ncols_fvm)', &
-                          file=__FILE__, line=__LINE__)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       grid_map = 0_iMap
       mapind = 1
@@ -1227,7 +1227,7 @@ subroutine write_grid_mapping(par, elem)
 
    ierr = pio_def_dim(nc, 'ncenters', npm12*nelem_d, dim1)
    ierr = pio_def_dim(nc, 'ncorners', 4, dim2)
-   ierr = pio_def_var(nc, 'element_corners', PIO_INT, (/dim1,dim2/), vid)
+   ierr = pio_def_var(nc, 'element_corners', PIO_INT, [dim1,dim2], vid)
 
    ierr = pio_enddef(nc)
    call createmetadata(par, elem, subelement_corners)
@@ -1247,10 +1247,10 @@ subroutine write_grid_mapping(par, elem)
       end do
    end do
 
-   call cam_pio_newdecomp(iodesc, (/nelem_d*npm12,4/), dof, pio_int)
+   call cam_pio_newdecomp(iodesc, [nelem_d*npm12,4], dof, pio_int)
 
    call pio_write_darray(nc, vid, iodesc, &
-                         reshape(subelement_corners, (/nelemd*npm12*4/)), ierr)
+                         reshape(subelement_corners, [nelemd*npm12*4]), ierr)
 
    call pio_freedecomp(nc, iodesc)
 

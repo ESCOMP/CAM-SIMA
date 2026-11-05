@@ -7,6 +7,7 @@ module advect_tend
   use shr_kind_mod, only : r8 => shr_kind_r8
 
   private
+  implicit none
 
   public :: compute_adv_tends_xyz
 
@@ -34,15 +35,13 @@ contains
     use element_mod,            only: element_t
     use fvm_control_volume_mod, only: fvm_struct
 
-    implicit none
-
     type (element_t), intent(in) :: elem(:)
     type(fvm_struct), intent(in) :: fvm(:)
     integer,          intent(in) :: nets,nete,qn0,n0
     real(r8) :: dt,idt
     integer  :: i,j,ic,nx,ie,iret
     logical  :: init
-    real(r8), allocatable, dimension(:,:) :: ftmp
+    real(r8), allocatable :: ftmp(:,:)
 
     character(len=cl) :: errmsg
 
@@ -54,14 +53,14 @@ contains
       nx=np
     end if
 
-    allocate( ftmp(nx*nx,nlev), stat=iret, errmsg=errmsg )
+    allocate(ftmp(nx*nx,nlev), stat=iret, errmsg=errmsg)
     call check_allocate(iret, subname, 'ftmp(nx*nx,nlev)', &
                         file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     init = .false.
-    if ( .not. allocated( adv_tendxyz ) ) then
+    if (.not. allocated(adv_tendxyz)) then
       init = .true.
-      allocate( adv_tendxyz(nx,nx,nlev,num_advected,nets:nete), stat=iret, errmsg=errmsg )
+      allocate(adv_tendxyz(nx,nx,nlev,num_advected,nets:nete), stat=iret, errmsg=errmsg)
       call check_allocate(iret, subname, 'adv_tendxyz(nx,nx,nlev,num_advected,nets:nete)', &
                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
@@ -83,7 +82,7 @@ contains
     end if
 
 #ifdef cam_thermo_history
-    if ( .not. init ) then
+    if (.not. init) then
       dt = get_step_size()
       idt = 1._r8/dt
 
@@ -116,14 +115,14 @@ contains
   !   - second call computes and outputs the tendencies
   !----------------------------------------------------------------------
   subroutine compute_write_iop_fields(elem,fvm,nets,nete,qn0,n0)
-    use cam_abortutils,         only: endrun
+    use cam_abortutils,         only: endrun, check_allocate
     use cam_history,            only: outfld, hist_fld_active
     use time_manager,           only: get_step_size
     use constituents,           only: pcnst,cnst_name
     use dimensions_mod,         only: nc,np,nlev,use_cslam,npsq
     use element_mod,            only: element_t
     use fvm_control_volume_mod, only: fvm_struct
-    implicit none
+    use shr_kind_mod,           only: cl=>shr_kind_cl
 
     type (element_t), intent(inout) :: elem(:)
     type(fvm_struct), intent(inout) :: fvm(:)
@@ -141,6 +140,7 @@ contains
     integer  :: i,j,ic,nx,ie,nxsq,p
     integer  :: ierr
     logical  :: init
+    character(len=cl) :: errmsg
     character(len=*), parameter :: sub = 'compute_write_iop_fields:'
     !----------------------------------------------------------------------------
 
@@ -154,23 +154,23 @@ contains
     init = .false.
     dt = get_step_size()
 
-    if ( .not. allocated( iop_qtendxyz ) ) then
+    if (.not. allocated(iop_qtendxyz)) then
       init = .true.
 
-      allocate( iop_qtendxyz(nx,nx,nlev,pcnst,nets:nete),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate iop_qtendxyz' )
+      allocate(iop_qtendxyz(nx,nx,nlev,pcnst,nets:nete),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'iop_qtendxyz', file=__FILE__, line=__LINE__, errmsg=errmsg)
       iop_qtendxyz = 0._r8
-      allocate( derivedfq(nx,nx,nlev,pcnst,nets:nete),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate derivedfq' )
+      allocate(derivedfq(nx,nx,nlev,pcnst,nets:nete),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'derivedfq', file=__FILE__, line=__LINE__, errmsg=errmsg)
       derivedfq = 0._r8
-      allocate( iop_qtendxyz_init(nx,nx,nlev,pcnst,nets:nete),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate iop_qtendxyz' )
+      allocate(iop_qtendxyz_init(nx,nx,nlev,pcnst,nets:nete),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'iop_qtendxyz_init', file=__FILE__, line=__LINE__, errmsg=errmsg)
       iop_qtendxyz_init = 0._r8
-      allocate( iop_ttendxyz(nx,nx,nlev,nets:nete),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate iop_ttendxyz' )
+      allocate(iop_ttendxyz(nx,nx,nlev,nets:nete),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'iop_ttendxyz', file=__FILE__, line=__LINE__, errmsg=errmsg)
       iop_ttendxyz = 0._r8
-      allocate( iop_ttendxyz_init(nx,nx,nlev,nets:nete),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate iop_ttendxyz_init' )
+      allocate(iop_ttendxyz_init(nx,nx,nlev,nets:nete),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'iop_ttendxyz_init', file=__FILE__, line=__LINE__, errmsg=errmsg)
       iop_ttendxyz_init = 0._r8
     end if
 
@@ -200,30 +200,30 @@ contains
        end do
     end if
 
-    if ( .not. init ) then
-      allocate( q_adv(nxsq,nlev,pcnst),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate q_adv' )
+    if (.not. init) then
+      allocate(q_adv(nxsq,nlev,pcnst),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'q_adv', file=__FILE__, line=__LINE__, errmsg=errmsg)
       q_adv = 0._r8
-      allocate( t_adv(npsq,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate t_adv' )
+      allocate(t_adv(npsq,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 't_adv', file=__FILE__, line=__LINE__, errmsg=errmsg)
       t_adv = 0._r8
-      allocate( q_new(nx,nx,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate q_new' )
+      allocate(q_new(nx,nx,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'q_new', file=__FILE__, line=__LINE__, errmsg=errmsg)
       q_new = 0._r8
-      allocate( out_q(npsq,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate out_q' )
+      allocate(out_q(npsq,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'out_q', file=__FILE__, line=__LINE__, errmsg=errmsg)
       out_q = 0._r8
-      allocate( out_t(npsq,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate out_t' )
+      allocate(out_t(npsq,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'out_t', file=__FILE__, line=__LINE__, errmsg=errmsg)
       out_t = 0._r8
-      allocate( out_u(npsq,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate out_u' )
+      allocate(out_u(npsq,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'out_u', file=__FILE__, line=__LINE__, errmsg=errmsg)
       out_u = 0._r8
-      allocate( out_v(npsq,nlev),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate out_v' )
+      allocate(out_v(npsq,nlev),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'out_v', file=__FILE__, line=__LINE__, errmsg=errmsg)
       out_v = 0._r8
-      allocate( out_ps(npsq),stat=ierr )
-      if (ierr/=0) call endrun( sub//': not able to allocate out_ps' )
+      allocate(out_ps(npsq),stat=ierr,errmsg=errmsg)
+      call check_allocate(ierr, sub, 'out_ps', file=__FILE__, line=__LINE__, errmsg=errmsg)
       out_ps = 0._r8
       do ie=nets,nete
          do j=1,nx

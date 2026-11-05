@@ -470,7 +470,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    if (is_history_field_active('PHIS_gll')) then
       do ie = 1, nelemd
-         call history_out_field('PHIS_gll', RESHAPE(elem(ie)%state%phis, (/np*np/)), element_index=ie)
+         call history_out_field('PHIS_gll', RESHAPE(elem(ie)%state%phis, [np*np]), element_index=ie)
       end do
    end if
 
@@ -499,9 +499,9 @@ subroutine diag_dynvar_ic(elem, fvm)
 
      do ie = 1, nelemd
 
-         call history_out_field('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)), element_index=ie)
-         call history_out_field('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)), element_index=ie)
-         call history_out_field('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)), element_index=ie)
+         call history_out_field('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   [npsq,nlev]), element_index=ie)
+         call history_out_field('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), [npsq,nlev]), element_index=ie)
+         call history_out_field('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), [npsq,nlev]), element_index=ie)
 
          if (fv_nphys < 1) then
             call get_sum_species(elem(ie)%state%Qdp(:,:,:,:,tl_qdp), &
@@ -511,11 +511,11 @@ subroutine diag_dynvar_ic(elem, fvm)
                if (const_is_wet(advected_constituent_index(m_cnst))) then
                   call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(factor_array(:,:,:)*elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)), element_index=ie)
+                       elem(ie)%state%dp3d(:,:,:,tl_f), [npsq,nlev]), element_index=ie)
                else
                   call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)), element_index=ie)
+                       elem(ie)%state%dp3d(:,:,:,tl_f), [npsq,nlev]), element_index=ie)
                end if
             end do
          end if
@@ -565,7 +565,7 @@ subroutine diag_dynvar_ic(elem, fvm)
          do ie = nets, nete
             do m_cnst = 1, ntrac
                call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
-                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), (/npsq,nlev/)), element_index=ie)
+                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), [npsq,nlev]), element_index=ie)
             end do
          end do
 
