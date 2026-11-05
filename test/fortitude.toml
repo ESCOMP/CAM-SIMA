@@ -37,7 +37,7 @@ ignore = [
   'S071',   # Variable declaration missing '::'
   'S201',   # 'implicit none' set on the enclosing module
   'S221',   # Function missing result() specifier
-  'S261'    # Inconsistent specification of dimension
+  'S261',   # Inconsistent specification of dimension
   'C003',   # Temporarily ignored due to lack of support for the Fortran 2018 `implicit none (external)` statement
             # in the NVIDIA HPC SDK as of version 25.11.
   'C182',   # Requiring separate allocations and deallocations for each variable is too restrictive.
