@@ -685,7 +685,7 @@ contains
       if (.not. is_constituent) then
 
          ! Allocate host_constituents object:
-         allocate(host_constituents(1), stat=errflg)
+         allocate(host_constituents(1), stat=errflg, errmsg=errmsg)
          call check_allocate(errflg, subname, 'host_constituents(1)',                   &
                              file=__FILE__, line=__LINE__, errmsg=errmsg)
 
