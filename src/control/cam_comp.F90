@@ -45,7 +45,7 @@ module cam_comp
    public cam_timestep_init  ! CAM timestep initialization
    public cam_run1           ! CAM run method phase 1
    public cam_run2           ! CAM run method phase 2
-   public cam_run3           ! CAM run method phase 3
+   public cam_run3            ! CAM run method phase 3
    public cam_run4           ! CAM run method phase 4
    public cam_timestep_final ! CAM timestep finalization
    public cam_final          ! CAM Finalization
