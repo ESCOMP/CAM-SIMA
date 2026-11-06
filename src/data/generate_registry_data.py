@@ -364,6 +364,28 @@ class VarBase:
         """Return the dimension string for allocating this variable"""
         return '(' + ', '.join(self.allocation_dimensions) + ')'
 
+    def fix_parameter_dimensions(self, vdict):
+        """Re-resolve this variable's allocation dimensions against the
+        complete variable dictionary, <vdict>, replacing the standard name
+        of any dimension provided by a parameter variable with that
+        variable's local name. The resolution done while parsing the
+        variable can only see variables declared earlier in the registry,
+        so a parameter declared after a variable using it as a dimension
+        is missed there."""
+        for ind, adim in enumerate(self.__allocation_dimensions):
+            dimstrs = [x.strip() for x in adim.split(':')]
+            ldimstrs = []
+            for ddim in dimstrs:
+                dvar = vdict.find_variable_by_standard_name(ddim)
+                if dvar and (dvar.allocatable == 'parameter'):
+                    ldimstrs.append(dvar.local_name)
+                else:
+                    ldimstrs.append(ddim)
+                # end if
+            # end for
+            self.__allocation_dimensions[ind] = ':'.join(ldimstrs)
+        # end for
+
     @property
     def long_name(self):
         """Return the long_name for this variable"""
@@ -1299,6 +1321,20 @@ class File:
                 emsg = "Unknown registry File element, '{}'"
                 raise CCPPError(emsg.format(obj.tag))
             # end if
+        # end for
+        # A dimension may be provided by a parameter variable declared later
+        # in the registry than a variable using it; the resolution done while
+        # parsing each variable sees only earlier declarations, so redo it
+        # now that every variable is known. DDT members must be visited via
+        # their DDT because the DDT constructor removes them from the
+        # variable dictionary.
+        for var in self.__var_dict.variable_list():
+            var.fix_parameter_dimensions(self.__var_dict)
+        # end for
+        for ddt in self.__ddts.values():
+            for var in ddt.variable_list():
+                var.fix_parameter_dimensions(self.__var_dict)
+            # end for
         # end for
 
     def add_variable(self, var_node, logger):
