@@ -129,7 +129,6 @@ CONTAINS
       integer,                    intent(inout) :: start(:)
       integer,                    intent(inout) :: kount(:)
       character(len=*), optional, intent(in)    :: dimnames(:)
-      logical                                   :: use_limits
 
       ! Local variables
       character(len=*),   parameter             :: subname='USE_SCAM_LIMITS'
@@ -1334,7 +1333,6 @@ CONTAINS
       use pio,            only : pio_closefile, PIO_NOWRITE
 
       character(len=*), intent(in) :: fname
-      logical                      :: file_exists
 
       type(file_desc_t)            :: file
       integer                      :: ierr
