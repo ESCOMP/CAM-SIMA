@@ -1,5 +1,9 @@
 ncdata=/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_tj2016_sfc_pbl_hs_ne3pg3mg37_derecho_gnu_before.nc
 ncdata_check=/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_tj2016_sfc_pbl_hs_ne3pg3mg37_derecho_gnu_after.nc
+
+ncdata_check_err=.true.
+min_difference=2e-12  !Note that this is higher than normal.
+
 debug_output=0
 pver=30
 hist_add_inst_fields;h2: Q, T
