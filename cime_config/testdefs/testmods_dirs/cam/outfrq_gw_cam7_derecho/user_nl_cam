@@ -1,7 +1,7 @@
 ! fhistc_ltso snapshot
 pver = 58
-ncdata = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_before_c20260105.nc'
-ncdata_check = '/glade/campaign/cesm/community/amwg/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_after_c20260105.nc'
+ncdata = '/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_before_c20260105.nc'
+ncdata_check = '/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_ne3pg3_fhistc_ltso_gw_drag_cam7se_snapshot_derecho_gnu_after_c20260105.nc'
 
 debug_output = 0
 
@@ -44,6 +44,7 @@ gw_rdg_beta_trpd_leewv            = .false.
 
 ! diagnostics for gravity wave drag
 hist_add_inst_fields;h1: EKGW
+hist_add_inst_fields;h1: TILT_MOVMTN, PSTEER_MOVMTN, PLAUNCH_MOVMTN, MMTAUE, MMTAUW, MMTAUS, MMTAUN
 hist_output_frequency;h1: 1*nsteps
 hist_write_nstep0;h1: .true.
 hist_precision;h1: REAL64
