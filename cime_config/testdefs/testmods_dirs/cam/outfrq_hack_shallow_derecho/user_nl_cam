@@ -2,6 +2,9 @@
 ncdata = '/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_ne5np4_hack_convect_shallow_snapshot_derecho_gnu_before_c20250220.nc'
 ncdata_check = '/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam_ne5np4_hack_convect_shallow_snapshot_derecho_gnu_after_c20250220.nc'
 
+ncdata_check_err = .true.
+min_difference = 2e-15
+
 pver = 26
 user_defined_cpwv       = 1.846e3
 user_defined_gravit     = 9.79764

@@ -1,8 +1,0 @@
-SMS_Ln9.ne3pg3_ne3pg3_mg37.FKESSLER.derecho_intel.cam-outfrq_se_cslam_multitape
-  - known NLFAIL due to cime validation error on multiple history tapes (#430)
-
-SMS_Ln9.ne3pg3_ne3pg3_mg37.F2000_C7.derecho_intel.cam-outfrq_se_cslam_analy_ic (Overall: FAIL) details:
-  - known RUN failure to run due to missing components which are needed as input to PUMAS
-
-SMS_Ln9.ne3pg3_ne3pg3_mg37.F2000_C7.derecho_gnu.cam-outfrq_se_cslam_analy_ic (Overall: FAIL) details:
-  - known RUN failure to run due to missing components which are needed as input to PUMAS
