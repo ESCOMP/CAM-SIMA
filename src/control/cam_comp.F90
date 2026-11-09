@@ -23,11 +23,12 @@ module cam_comp
    use time_manager,              only: timemgr_init, get_step_size
    use time_manager,              only: get_nstep
    use time_manager,              only: is_first_step, is_first_restart_step
-   use time_manager,              only: get_curr_calday
+   use time_manager,              only: get_curr_calday, get_curr_date
 
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
+   use physics_types,             only: current_date, current_sec
    use physics_types,             only: is_first_timestep, nstep
    use physics_types,             only: is_first_restart_timestep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
@@ -45,7 +46,6 @@ module cam_comp
    public cam_run1           ! CAM run method phase 1
    public cam_run2           ! CAM run method phase 2
    public cam_run3           ! CAM run method phase 3
-   public cam_run4           ! CAM run method phase 4
    public cam_timestep_final ! CAM timestep finalization
    public cam_final          ! CAM Finalization
 
@@ -90,7 +90,7 @@ contains
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
       use cam_restart,               only: cam_read_restart
-      use cam_history,               only: history_init_files, history_restart_overwrite
+      use cam_history,               only: history_init_files, overwrite_history
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
       use cam_instance,              only: inst_suffix
@@ -102,6 +102,7 @@ contains
       use physics_grid,              only: columns_on_task
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
+      use physics_types,             only: allocate_physics_types_fields
       use tropopause_climo_read,     only: tropopause_climo_read_file
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
       use topography_statics_read,   only: topography_statics_read_file
@@ -149,6 +150,7 @@ contains
 
       ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
+      integer                  :: yr, mon, day, tod
       integer                  :: errflg
       character(len=cx)        :: errmsg
 
@@ -175,30 +177,8 @@ contains
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
 
-      dtime_phys = 0.0_r8
-      call mark_as_initialized('timestep_for_physics')
-
-      is_first_timestep = .true.
-      call mark_as_initialized('is_first_timestep')
-
-      is_first_restart_timestep = .false.
-      call mark_as_initialized('is_first_restart_timestep')
-
-      nstep = get_nstep()
-      call mark_as_initialized('current_timestep_number')
-
-      ! Get current fractional calendar day. Needs to be updated at every timestep.
-      calday = get_curr_calday()
-      next_calday = get_curr_calday(offset=int(get_step_size()))
-      radiation_offset = 0
-      nextsw_cday = next_calday
-      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
-      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
-      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
-      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
-
       ! Read CAM namelists.
-      filein = "atm_in" // trim(inst_suffix)
+      filein = 'atm_in' // trim(inst_suffix)
       call read_namelist(filein, single_column, scmlat, scmlon)
 
       ! Determine if physics is "simple", which needs to be known by some dycores:
@@ -279,9 +259,41 @@ contains
          call tracer_data_set_restart_read_file(initial_file_get_id())
       end if
 
-      call phys_init()
+      ! Allocate the CAM-SIMA registry variables and set their initial values.
+      call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
+      ! ... All registry values from the host must be set *after* the above call
+      ! because all registry variables (including scalars) are reset to their initial value.
 
-      call tracer_data_set_restart_read_file()
+      dtime_phys = 0.0_r8
+      call mark_as_initialized('timestep_for_physics')
+
+      is_first_timestep = .true.
+      call mark_as_initialized('is_first_timestep')
+
+      is_first_restart_timestep = .false.
+      call mark_as_initialized('is_first_restart_timestep')
+
+      nstep = get_nstep()
+      call mark_as_initialized('current_timestep_number')
+
+      ! Get current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+      next_calday = get_curr_calday(offset=int(get_step_size()))
+      radiation_offset = 0
+      nextsw_cday = next_calday
+      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
+      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
+      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
+
+      ! Get current date and elapsed seconds. Needs to be updated at every timestep.
+      call get_curr_date(yr, mon, day, tod)
+      current_date = yr*10000 + mon*100 + day
+      current_sec = tod
+      call mark_as_initialized('current_model_date_in_iso_order')
+      call mark_as_initialized('seconds_of_current_model_date')
+
+      call phys_init()
 
       ! Read static subgrid topography fields (SGH, SGH30, LANDM_COSLAT)
       ! from the topo file into the physics state
@@ -302,7 +314,7 @@ contains
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
       if (.not. initial_run_in) then
-         call history_restart_overwrite()
+         call overwrite_history()
       end if
 
    end subroutine cam_init
@@ -331,9 +343,15 @@ contains
 
       real(kind_phys), pointer :: constituents_array(:,:,:)
       type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
+      integer :: yr, mon, day, tod
 
       ! Update current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
+
+      ! Update current date and elapsed seconds
+      call get_curr_date(yr, mon, day, tod)
+      current_date = yr*10000 + mon*100 + day
+      current_sec = tod
 
       ! Update the orbital data
       call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
@@ -489,23 +507,6 @@ contains
    !
    !-----------------------------------------------------------------------
    !
-
-   subroutine cam_run4(rstwr, nlend)
-      logical, intent(in)  :: rstwr    ! write restart file
-      logical, intent(in)  :: nlend    ! this is final timestep
-
-      !-----------------------------------------------------------------------
-      !
-      ! Purpose:
-      !
-      !-----------------------------------------------------------------------
-!      use qneg_module,  only: qneg_print_summary
-
-   end subroutine cam_run4
-
-   !
-   !-----------------------------------------------------------------------
-   !
    subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, &
                    yr_spec, mon_spec, day_spec, sec_spec, do_history_write)
       !-----------------------------------------------------------------------
@@ -522,14 +523,14 @@ contains
       logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
       ! - flag is true if this is not the first or last step
-      logical, intent(in)  :: do_ncdata_check
+      logical,         intent(in)           :: do_ncdata_check
       integer,         intent(in), optional :: yr_spec  ! Simulation year
       integer,         intent(in), optional :: mon_spec ! Simulation month
       integer,         intent(in), optional :: day_spec ! Simulation day
-      integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
+      integer,         intent(in), optional :: sec_spec ! Seconds in current simulation day
       !Flag for whether to perform the history write
-      logical, optional, intent(in) :: do_history_write
-
+      logical,         intent(in), optional :: do_history_write
+      !Local variables
       logical                               :: history_write_loc
 
       if (present(do_history_write)) then
@@ -546,13 +547,8 @@ contains
       !
       if (rstwr) then
          call t_startf('cam_write_restart')
-         if (present(yr_spec) .and. present(mon_spec) .and.                   &
-              present(day_spec).and.present(sec_spec)) then
-            call cam_write_restart(dyn_out, yr_spec=yr_spec, &
-                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
-         else
-            call cam_write_restart(dyn_out)
-         end if
+         call cam_write_restart(dyn_out, yr_spec=yr_spec, &
+              mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
          call t_stopf('cam_write_restart')
       end if
       call history_wrap_up(rstwr, nlend)
@@ -622,7 +618,9 @@ contains
       use runtime_obj,               only: wv_stdname, wv_longname
       use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
-      use cam_constituents,          only: const_set_qmin, const_get_index
+      use cam_constituents,          only: const_set_qmin, const_name
+      use cam_constituents,          only: num_constituents
+      use string_utils,              only: to_lower
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use cam_ccpp_cap,              only: cam_ccpp_register_constituents
@@ -636,6 +634,7 @@ contains
       logical                                        :: is_constituent
       integer                                        :: num_advect
       integer                                        :: const_idx
+      integer                                        :: idx
       integer                                        :: errflg
       character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
@@ -715,8 +714,23 @@ contains
       !-------------------------------------------
       if (phys_suite_name /= 'held_suarez_1994') then !Held-Suarez is "dry" physics
 
-         ! Get constituent index for water vapor:
-         call const_get_index(wv_stdname, const_idx)
+         ! Get constituent index for water vapor.
+         ! Search the constituent properties directly, as the CCPP
+         ! constituents object is not yet locked, which means
+         ! 'const_get_index' (i.e. 'ccpp_constituent_index') cannot be used.
+         ! Note that the minimum value must be set before the object is
+         ! locked, as 'lock_data' copies it into the minimum value array.
+         const_idx = -1
+         do idx = 1, num_constituents
+            if (to_lower(trim(const_name(idx))) == to_lower(trim(wv_stdname))) then
+               const_idx = idx
+               exit
+            end if
+         end do
+         if (const_idx < 1) then
+            call endrun(subname//'Water vapor constituent ('//trim(wv_stdname)//') not found', &
+                 file=__FILE__, line=__LINE__)
+         end if
 
          ! Set new minimum value:
          call const_set_qmin(const_idx, 1.E-12_kind_phys)

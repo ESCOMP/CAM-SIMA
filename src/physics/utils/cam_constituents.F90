@@ -1,4 +1,10 @@
 module cam_constituents
+   ! Module which contains utilities and helper functions
+   ! for accessing data in the CCPP constituents object.
+   !
+   ! Please note that these routines can only be used after
+   ! the CCPP constituents object has been fully initialized
+   ! and locked.
 
    use ccpp_kinds,                only: kind_phys
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -28,7 +34,7 @@ module cam_constituents
    public :: const_is_initialized      ! Has constituent initial value been set?
 
    ! Private array of constituent properties (for property interface functions)
-   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:) => NULL()
+   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:) => null()
 
    ! Tracks constituents (by index) whose initial values have already been provided,
    ! e.g., read by the dycore on the dynamics grid, so that
@@ -105,7 +111,7 @@ module cam_constituents
    ! Private interfaces
    private :: check_index_bounds
 
-CONTAINS
+contains
 
    !#######################################################################
 
@@ -116,8 +122,8 @@ CONTAINS
       use cam_logfile,    only: DEBUGOUT_VERBOSE
 
       ! Initialize module constituent variables
-      type(ccpp_constituent_prop_ptr_t), pointer :: cnst_prop_ptr(:)
-      integer, intent(in)                        :: num_advect
+      type(ccpp_constituent_prop_ptr_t), pointer, intent(in) :: cnst_prop_ptr(:)
+      integer,                           intent(in) :: num_advect
 
       !For log output:
       integer :: cnst_idx
@@ -126,7 +132,7 @@ CONTAINS
       character(len=256) :: errmsg
 
       if (initialized) then
-         call endrun("cam_constituents_init: already initialized",            &
+         call endrun('cam_constituents_init: already initialized',            &
               file=__FILE__, line=__LINE__)
       end if
       const_props => cnst_prop_ptr
@@ -160,7 +166,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function check_index_bounds(const_ind, subname)
+   logical function check_index_bounds(const_ind, subname) result(in_bounds)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -173,17 +179,17 @@ CONTAINS
       character(len=256) :: err_msg
 
       if (const_ind < LBOUND(const_props, 1)) then
-         call endrun(subname//"index ("//to_str(const_ind)//") out of "//      &
-              "bounds, lower bound is "//to_str(LBOUND(const_props, 1)),      &
+         call endrun(subname//'index ('//to_str(const_ind)//') out of '//      &
+              'bounds, lower bound is '//to_str(LBOUND(const_props, 1)),      &
               file=__FILE__, line=__LINE__)
-         check_index_bounds = .false. ! safety in case abort becomes optionsl
+         in_bounds = .false. ! safety in case abort becomes optionsl
       else if (const_ind > UBOUND(const_props, 1)) then
-         call endrun(subname//"index ("//to_str(const_ind)//") out of "//      &
-              "bounds, upper bound is "//to_str(UBOUND(const_props, 1)),      &
+         call endrun(subname//'index ('//to_str(const_ind)//') out of '//      &
+              'bounds, upper bound is '//to_str(UBOUND(const_props, 1)),      &
               file=__FILE__, line=__LINE__)
-         check_index_bounds = .false. ! safety in case abort becomes optionsl
+         in_bounds = .false. ! safety in case abort becomes optionsl
       else
-         check_index_bounds = .true.
+         in_bounds = .true.
       end if
 
    end function check_index_bounds
@@ -209,7 +215,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_initialized(const_ind)
+   logical function const_is_initialized(const_ind) result(is_initialized)
 
       ! Return whether the initial value of the constituent at <const_ind>
       ! has already been set (see const_mark_as_initialized).
@@ -219,16 +225,16 @@ CONTAINS
       ! Local variable
       character(len=*), parameter :: subname = 'const_is_initialized: '
 
-      const_is_initialized = .false.
+      is_initialized = .false.
       if (check_index_bounds(const_ind, subname)) then
-         const_is_initialized = const_initialized(const_ind)
+         is_initialized = const_initialized(const_ind)
       end if
 
    end function const_is_initialized
 
    !#######################################################################
 
-   function const_name(const_ind)
+   function const_name(const_ind) result(std_name)
       use cam_abortutils,       only: endrun
       use string_utils,         only: to_str
       use phys_vars_init_check, only: std_name_len
@@ -236,17 +242,17 @@ CONTAINS
       ! Return the standard name of the constituent at <const_ind>.
       ! Dummy arguments
       integer, intent(in)         :: const_ind
-      character(len=std_name_len) :: const_name
+      character(len=std_name_len) :: std_name
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_name: '
 
       if (check_index_bounds(const_ind, subname)) then
-         call const_props(const_ind)%standard_name(const_name,                &
+         call const_props(const_ind)%standard_name(std_name,                  &
               err_code, err_msg)
          if (err_code /= 0) then
-            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+            call endrun(subname//'Error '//to_str(err_code)//': '//           &
                  trim(err_msg), file=__FILE__, line=__LINE__)
          end if
       end if
@@ -255,7 +261,7 @@ CONTAINS
 
    !#######################################################################
 
-   function const_longname(const_ind)
+   function const_longname(const_ind) result(longname)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
       use shr_kind_mod,   only: CL => shr_kind_cl
@@ -263,17 +269,17 @@ CONTAINS
       ! Return the long name of the constituent at <const_ind>.
       ! Dummy arguments
       integer, intent(in)         :: const_ind
-      character(len=CL)           :: const_longname
+      character(len=CL)           :: longname
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_longname: '
 
       if (check_index_bounds(const_ind, subname)) then
-         call const_props(const_ind)%long_name(const_longname,                &
+         call const_props(const_ind)%long_name(longname,                      &
               err_code, err_msg)
          if (err_code /= 0) then
-            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+            call endrun(subname//'Error '//to_str(err_code)//': '//           &
                  trim(err_msg), file=__FILE__, line=__LINE__)
          end if
       end if
@@ -281,7 +287,7 @@ CONTAINS
    end function const_longname
 
    !#######################################################################
-   function const_diag_name(const_ind)
+   function const_diag_name(const_ind) result(diag_name)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
       use shr_kind_mod,   only: CL => shr_kind_cl
@@ -289,17 +295,17 @@ CONTAINS
       ! Return the diagnostic name of the constituent at <const_ind>.
       ! Dummy arguments
       integer, intent(in)         :: const_ind
-      character(len=CL)           :: const_diag_name
+      character(len=CL)           :: diag_name
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_diag_name: '
 
       if (check_index_bounds(const_ind, subname)) then
-         call const_props(const_ind)%diagnostic_name(const_diag_name,        &
+         call const_props(const_ind)%diagnostic_name(diag_name,              &
               err_code, err_msg)
          if (err_code /= 0) then
-            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+            call endrun(subname//'Error '//to_str(err_code)//': '//           &
                  trim(err_msg), file=__FILE__, line=__LINE__)
          end if
       end if
@@ -308,24 +314,24 @@ CONTAINS
 
    !#######################################################################
 
-   function const_molec_weight(const_ind)
+   function const_molec_weight(const_ind) result(molec_weight)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
       ! Return the long name of the constituent at <const_ind>.
       ! Dummy arguments
       integer, intent(in) :: const_ind
-      real(kind_phys)     :: const_molec_weight
+      real(kind_phys)     :: molec_weight
       ! Local variables
       integer                     :: err_code
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_molec_weight: '
 
       if (check_index_bounds(const_ind, subname)) then
-         call const_props(const_ind)%molar_mass(const_molec_weight,         &
+         call const_props(const_ind)%molar_mass(molec_weight,               &
               err_code, err_msg)
          if (err_code /= 0) then
-            call endrun(subname//"Error "//to_str(err_code)//": "//           &
+            call endrun(subname//'Error '//to_str(err_code)//': '//           &
                  trim(err_msg), file=__FILE__, line=__LINE__)
          end if
       end if
@@ -335,8 +341,10 @@ CONTAINS
    !#######################################################################
 
    subroutine const_get_index(name, cindex, abort, warning, caller)
-      ! from to_be_ccppized utility routine
-      use ccpp_const_utils,     only: ccpp_const_get_idx
+
+      ! From ccpp-framework:
+      use ccpp_scheme_utils,         only: ccpp_constituent_index
+      use ccpp_constituent_prop_mod, only: int_unassigned
 
       use shr_kind_mod,         only: CX => SHR_KIND_CX
       use cam_abortutils,       only: endrun
@@ -366,14 +374,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_get_index: '
       !-----------------------------------------------------------------------
 
-      call ccpp_const_get_idx(const_props, name, cindex, errmsg, errcode)
+      call ccpp_constituent_index(name, cindex, errcode, errmsg)
 
       if (errcode /= 0) then
-         call endrun(subname//"Error "//stringify((/errcode/))//": "//           &
+         call endrun(subname//'Error '//stringify([errcode])//': '//           &
                  trim(errmsg), file=__FILE__, line=__LINE__)
-      endif
+      end if
 
-      if (cindex == -1) then
+      if (cindex == int_unassigned) then
          ! Unrecognized name, set an error return and possibly abort
          cindex = -1
          if (present(abort)) then
@@ -414,7 +422,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_advected_obj(const_obj)
+   logical function const_is_advected_obj(const_obj) result(advected)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -426,9 +434,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_advected_obj: '
 
-      call const_obj%is_advected(const_is_advected_obj, err_code, err_msg)
+      call const_obj%is_advected(advected, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -436,7 +444,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_advected_index(const_ind)
+   logical function const_is_advected_index(const_ind) result(advected)
 
       ! Return .true. if the constituent at <index> is advected
       ! Dummy argument
@@ -445,14 +453,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_advected_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_advected_index = const_is_advected(const_props(const_ind))
+         advected = const_is_advected(const_props(const_ind))
       end if
 
    end function const_is_advected_index
 
    !#######################################################################
 
-   logical function const_is_dry_obj(const_obj)
+   logical function const_is_dry_obj(const_obj) result(dry)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -464,9 +472,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_dry_obj: '
 
-      call const_obj%is_dry(const_is_dry_obj, err_code, err_msg)
+      call const_obj%is_dry(dry, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -474,7 +482,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_dry_index(const_ind)
+   logical function const_is_dry_index(const_ind) result(dry)
 
       ! Return .true. if the constituent at <index> is dry
       ! Dummy argument
@@ -483,14 +491,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_dry_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_dry_index = const_is_dry(const_props(const_ind))
+         dry = const_is_dry(const_props(const_ind))
       end if
 
    end function const_is_dry_index
 
    !#######################################################################
 
-   logical function const_is_moist_obj(const_obj)
+   logical function const_is_moist_obj(const_obj) result(moist)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -502,9 +510,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_moist_obj: '
 
-      call const_obj%is_moist(const_is_moist_obj, err_code, err_msg)
+      call const_obj%is_moist(moist, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -512,7 +520,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_moist_index(const_ind)
+   logical function const_is_moist_index(const_ind) result(moist)
 
       ! Return .true. if the constituent at <index> is moist
       ! Dummy argument
@@ -521,14 +529,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_moist_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_moist_index = const_is_moist(const_props(const_ind))
+         moist = const_is_moist(const_props(const_ind))
       end if
 
    end function const_is_moist_index
 
    !#######################################################################
 
-   logical function const_is_wet_obj(const_obj)
+   logical function const_is_wet_obj(const_obj) result(wet)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -540,9 +548,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_wet_obj: '
 
-      call const_obj%is_wet(const_is_wet_obj, err_code, err_msg)
+      call const_obj%is_wet(wet, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -550,7 +558,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_wet_index(const_ind)
+   logical function const_is_wet_index(const_ind) result(wet)
 
       ! Return .true. if the constituent at <index> is wet
       ! Dummy argument
@@ -559,14 +567,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_wet_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_wet_index = const_is_wet(const_props(const_ind))
+         wet = const_is_wet(const_props(const_ind))
       end if
 
    end function const_is_wet_index
 
    !#######################################################################
 
-   logical function const_is_thermo_active_obj(const_obj)
+   logical function const_is_thermo_active_obj(const_obj) result(thermo_active)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -579,9 +587,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_thermo_active_obj: '
 
-      call const_obj%is_thermo_active(const_is_thermo_active_obj, err_code, err_msg)
+      call const_obj%is_thermo_active(thermo_active, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -589,7 +597,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_thermo_active_index(const_ind)
+   logical function const_is_thermo_active_index(const_ind) result(thermo_active)
 
       ! Return .true. if the constituent at <index> is
       ! thermodynamically-active
@@ -599,14 +607,14 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_thermo_active_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_thermo_active_index = const_is_thermo_active(const_props(const_ind))
+         thermo_active = const_is_thermo_active(const_props(const_ind))
       end if
 
    end function const_is_thermo_active_index
 
    !#######################################################################
 
-   logical function const_is_water_species_obj(const_obj)
+   logical function const_is_water_species_obj(const_obj) result(water_species)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -619,9 +627,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_is_water_species_obj: '
 
-      call const_obj%is_water_species(const_is_water_species_obj, err_code, err_msg)
+      call const_obj%is_water_species(water_species, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -629,7 +637,7 @@ CONTAINS
 
    !#######################################################################
 
-   logical function const_is_water_species_index(const_ind)
+   logical function const_is_water_species_index(const_ind) result(water_species)
 
       ! Return .true. if the constituent at <index> is
       ! a type (species) of water
@@ -639,7 +647,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_is_water_species_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_is_water_species_index = const_is_water_species(const_props(const_ind))
+         water_species = const_is_water_species(const_props(const_ind))
       end if
 
    end function const_is_water_species_index
@@ -662,7 +670,7 @@ CONTAINS
 
       call const_obj%set_thermo_active(thermo_active, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -704,7 +712,7 @@ CONTAINS
 
       call const_obj%set_water_species(water_species, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -730,7 +738,7 @@ CONTAINS
 
    !#######################################################################
 
-   real(kind_phys) function const_qmin_obj(const_obj)
+   real(kind_phys) function const_qmin_obj(const_obj) result(qmin)
       use cam_abortutils, only: endrun
       use string_utils,   only: to_str
 
@@ -742,9 +750,9 @@ CONTAINS
       character(len=256)          :: err_msg
       character(len=*), parameter :: subname = 'const_qmin_obj: '
 
-      call const_obj%minimum(const_qmin_obj, err_code, err_msg)
+      call const_obj%minimum(qmin, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 
@@ -752,7 +760,7 @@ CONTAINS
 
    !#######################################################################
 
-   real(kind_phys) function const_qmin_index(const_ind)
+   real(kind_phys) function const_qmin_index(const_ind) result(qmin)
 
       ! Return the minimum allowed mxing ratio for the constituent at <index>
       ! Dummy argument
@@ -761,7 +769,7 @@ CONTAINS
       character(len=*), parameter :: subname = 'const_qmin_index: '
 
       if (check_index_bounds(const_ind, subname)) then
-         const_qmin_index = const_qmin(const_props(const_ind))
+         qmin = const_qmin(const_props(const_ind))
       end if
 
    end function const_qmin_index
@@ -784,7 +792,7 @@ CONTAINS
 
       call const_obj%set_minimum(qmin_val, err_code, err_msg)
       if (err_code /= 0) then
-         call endrun(subname//"Error "//to_str(err_code)//": "//           &
+         call endrun(subname//'Error '//to_str(err_code)//': '//           &
               trim(err_msg), file=__FILE__, line=__LINE__)
       end if
 

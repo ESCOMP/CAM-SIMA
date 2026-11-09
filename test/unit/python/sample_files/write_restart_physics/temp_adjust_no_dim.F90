@@ -1,6 +1,7 @@
 !simple demonstration parameterization
 !
 
+<<<<<<< HEAD
 MODULE temp_adjust
 
   USE ccpp_kinds, ONLY: kind_phys
@@ -13,10 +14,25 @@ MODULE temp_adjust
   PUBLIC :: temp_adjust_finalize
 
 CONTAINS
+=======
+module temp_adjust
+
+  use ccpp_kinds, only: kind_phys
+
+  implicit none
+  private
+
+  public :: temp_adjust_init
+  public :: temp_adjust_run
+  public :: temp_adjust_finalize
+
+contains
+>>>>>>> ESCOMP/development
 
 !> \section arg_table_temp_adjust_run  Argument Table
 !! \htmlinclude arg_table_temp_adjust_run.html
 !!
+<<<<<<< HEAD
   SUBROUTINE temp_adjust_run(nbox, lev, temp_layer,    &
     slp, timestep, errmsg, errflg)
 !----------------------------------------------------------------
@@ -25,6 +41,14 @@ CONTAINS
 
    integer,            intent(in)    :: nbox, lev
    REAL(kind_phys),    intent(inout) :: temp_layer(:, :)
+=======
+  subroutine temp_adjust_run(nbox, lev, temp_layer,    &
+    slp, timestep, errmsg, errflg)
+!----------------------------------------------------------------
+
+   integer,            intent(in)    :: nbox, lev
+   real(kind_phys),    intent(inout) :: temp_layer(:, :)
+>>>>>>> ESCOMP/development
    real(kind_phys),    intent(in)    :: slp(:)
    real(kind_phys),    intent(in)    :: timestep
    character(len=512), intent(out)   :: errmsg
@@ -48,7 +72,11 @@ CONTAINS
        end do
     end do
 
+<<<<<<< HEAD
   END SUBROUTINE temp_adjust_run
+=======
+  end subroutine temp_adjust_run
+>>>>>>> ESCOMP/development
 
 !> \section arg_table_temp_adjust_init  Argument Table
 !! \htmlinclude arg_table_temp_adjust_init.html
@@ -80,4 +108,8 @@ CONTAINS
 
   end subroutine temp_adjust_finalize
 
+<<<<<<< HEAD
 END MODULE temp_adjust
+=======
+end module temp_adjust
+>>>>>>> ESCOMP/development

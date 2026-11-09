@@ -37,7 +37,7 @@ _CAM_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
 _PRE_TMP_DIR = os.path.join(_CURRDIR, "tmp")
 _TMP_DIR = os.path.join(_PRE_TMP_DIR, "cam_build_cache")
 _SAMPLES_DIR = os.path.join(_CURRDIR, "sample_files", "build_cache_files")
-_SHARED_DIR = os.path.join(_CURRDIR, "sample_files", "shared")
+_SHARED_DIR = os.path.join(_CURRDIR, "sample_files", "shared_files")
 _WRITE_INIT_DIR = os.path.join(_CURRDIR, "sample_files", "write_init_files")
 _CCPP_FRAMEWORK = os.path.join(_CAM_ROOT_DIR, "ccpp_framework", 'scripts')
 

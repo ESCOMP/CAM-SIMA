@@ -1,15 +1,11 @@
 module restart_dynamics
 
-use dyn_comp,           only: dyn_export_t, dyn_import_t
-use pio,                only: file_desc_t
-
 implicit none
 private
-save
 
 public :: &
    init_restart_dynamics,  &
-   write_restart_dynamics, &
+   write_restart_dynamics
    read_restart_dynamics
 
 !=========================================================================================
@@ -17,6 +13,8 @@ contains
 !=========================================================================================
 
 subroutine init_restart_dynamics(file, dyn_out)
+   use dyn_comp,           only: dyn_export_t
+   use pio,                only: file_desc_t
 
    ! arguments
    type(file_desc_t),  target     :: File
@@ -30,6 +28,8 @@ end subroutine init_restart_dynamics
 !=========================================================================================
 
 subroutine write_restart_dynamics(File, dyn_out)
+   use dyn_comp,           only: dyn_export_t
+   use pio,                only: file_desc_t
 
    ! arguments
    type(File_desc_t), target :: File
@@ -37,11 +37,14 @@ subroutine write_restart_dynamics(File, dyn_out)
    !----------------------------------------------------------------------------
 
    ! STUB-ROUTINE
+
 end subroutine write_restart_dynamics
 
 !=========================================================================================
 
 subroutine read_restart_dynamics(File, dyn_in, dyn_out)
+   use dyn_comp,           only: dyn_export_t, dyn_import_t
+   use pio,                only: file_desc_t
 
    ! arguments
    type(File_desc_t), target :: File
@@ -50,7 +53,7 @@ subroutine read_restart_dynamics(File, dyn_in, dyn_out)
    !----------------------------------------------------------------------------
 
    ! STUB-ROUTINE
-end subroutine read_restart_dynamics
 
+end subroutine read_restart_dynamics
 
 end module restart_dynamics
