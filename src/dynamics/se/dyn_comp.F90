@@ -148,7 +148,7 @@ subroutine dyn_readnl(NLFileName)
    integer                      :: se_kmax_jet
    real(r8)                     :: se_molecular_diff
    integer                      :: se_pgf_formulation
-   real(r8)                     :: se_dribble_in_rsplit_loop
+   integer                      :: se_dribble_in_rsplit_loop
 
    namelist /dyn_se_nl/            &
       se_fine_ne,                  & ! For refined meshes

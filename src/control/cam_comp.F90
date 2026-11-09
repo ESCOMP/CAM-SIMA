@@ -267,7 +267,7 @@ contains
       ! ... All registry values from the host must be set *after* the above call
       ! because all registry variables (including scalars) are reset to their initial value.
 
-      dtime_phys = 0.0_r8
+      dtime_phys = real(get_step_size(), r8)
       call mark_as_initialized('timestep_for_physics')
 
       is_first_timestep = .true.

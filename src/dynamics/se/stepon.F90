@@ -357,7 +357,7 @@ subroutine diag_dynvar_ic(elem, fvm)
    real(r8), allocatable :: fld_fvm(:,:,:,:,:), fld_gll(:,:,:,:,:)
    real(r8), allocatable :: fld_2d(:,:)
    logical,  allocatable :: llimiter(:)
-   real(r8)              :: qtmp(np,np,nlev), dp_ref(np,np,nlev), ps_ref(np,np)
+   real(r8)              :: dp_ref(np,np,nlev), ps_ref(np,np)
    real(r8), allocatable :: factor_array(:,:,:)
 
    character(len=*), parameter :: subname = 'diag_dynvar_ic'
@@ -375,8 +375,6 @@ subroutine diag_dynvar_ic(elem, fvm)
      tfname = trim(cnst_diag_name_gll(m_cnst))//'_gll'
      if (is_history_field_active(tfname)) then
        do ie = 1, nelemd
-         qtmp(:,:,:) =  elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-              elem(ie)%state%dp3d(:,:,:,tl_f)
          do j = 1, np
            do i = 1, np
              ftmp(i+(j-1)*np,:,1) = elem(ie)%state%Qdp(i,j,:,m_cnst,tl_qdp)/&

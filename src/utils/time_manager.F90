@@ -924,7 +924,7 @@ function get_curr_calday(offset) result(calday)
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
-   if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
+   if (( calday >= 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
       calday = calday - 1.0_r8
    end if
@@ -970,7 +970,7 @@ function get_calday(ymd, tod) result(calday)
 ! This is done by decrementing calday by 1 immediately below.
 ! bundy, July 2008
 !
-   if (( calday > 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
+   if (( calday >= 366.0_r8 ) .and. ( calday <= 367.0_r8 ) &
         .and. (timemgr_is_caltype(trim(shr_cal_gregorian)))) then
       calday = calday - 1.0_r8
    end if

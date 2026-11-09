@@ -1398,13 +1398,13 @@ contains
             deallocate(poverp0_phys)
          end if
 
+         !Set output variables back to dynamics kind:
+         exner = real(exner_phys, kind_dyn)
+
          !Deallocate variables:
          deallocate(tracer_phys)
          deallocate(dp_dry_phys)
          deallocate(exner_phys)
-
-         !Set output variables back to dynamics kind:
-         exner = real(exner_phys, kind_dyn)
 
       end if !kind check
 

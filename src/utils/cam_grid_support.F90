@@ -2653,6 +2653,7 @@ contains
       integer                                     :: err_handling
       integer                                     :: file_index_loc
       integer                                     :: ierr
+      character(len=shr_kind_cm)                  :: errormsg
       character(len=*), parameter                 :: subname = 'cam_grid_write_attr'
 
       if (present(file_index)) then
@@ -2706,9 +2707,9 @@ contains
             call check_allocate(ierr, subname, 'header_info%hdims',           &
                  file=__FILE__, line=__LINE__-1)
          else
-            allocate(header_info%hdims(2))
+            allocate(header_info%hdims(2), stat=ierr, errmsg=errormsg)
             call check_allocate(ierr, subname, 'header_info%hdims',           &
-                 file=__FILE__, line=__LINE__-1)
+                 file=__FILE__, line=__LINE__-1, errmsg=errormsg)
             header_info%hdims(2) = dimids(2)
          end if
          header_info%hdims(1) = dimids(1)
@@ -3221,6 +3222,7 @@ contains
       end if
       allocate(src_out(2), stat=ierr) ! Currently, all cases have two source dims
       call check_allocate(ierr, subname, 'src_out', file=__FILE__, line=__LINE__-1)
+      src_out = 0
 
       do i = 1, num_coords
          do j = 1, size(field_dnames)
@@ -3228,6 +3230,12 @@ contains
                src_out(i) = j
             end if
          end do
+      end do
+      do i = 1, num_coords
+         if (src_out(i) == 0) then
+            call endrun(subname//': source dimension, '//trim(coord_dimnames(i))// &
+                 ', not found among field dimensions')
+         end if
       end do
       if (num_coords < 2) then
          src_out(2) = -1  ! Assume a block structure for unstructured grids
@@ -3322,9 +3330,9 @@ contains
          if (present(file_dnames) .and. present(field_dnames)) then
             ! This only works if the arrays are the same size
             if (size(file_dnames) == size(field_dnames)) then
-               allocate(permutation(size(file_dnames)))
+               allocate(permutation(size(file_dnames)), stat=ierr, errmsg=errormsg)
                call check_allocate(ierr, subname, 'permutation',              &
-                      file=__FILE__, line=__LINE__-1)
+                      file=__FILE__, line=__LINE__-1, errmsg=errormsg)
                call calc_permutation(file_dnames, field_dnames,               &
                     permutation, is_perm)
             end if
@@ -4480,6 +4488,8 @@ contains
          deallocate(coord)
          nullify(coord)
       end if
+      ! Free the longitude decomposition before iodesc is reused for latitude
+      call pio_freedecomp(File, iodesc)
       ! Write out lat
       if (associated(this%latmap)) then
          field_lens(1) = size(this%latmap, 1)

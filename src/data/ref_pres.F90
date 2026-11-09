@@ -198,7 +198,7 @@ contains
       ! do_molec_diff
       call mark_as_initialized("do_molecular_diffusion")
       ! nbot_molec
-      call mark_as_initialized("index_of_pressure_at_bottom_of_molecular_diffusion")
+      call mark_as_initialized("vertical_layer_index_at_bottom_of_molecular_diffusion")
       ! gravity_wave_taper_bot_press
       call mark_as_initialized("largest_model_top_pressure_that_allows_tapering_gravity_wave_drag_at_model_top")
       ! nbot_gravity_wave_top_taper
