@@ -826,9 +826,9 @@
               units="cm s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <!-- dry deposition velocities from the land model (Sl_ddvel) are in cm s-1
-           and are used by gas-phase Weseley dry-deposition scheme over land.
-           these are merged with the velocities computed within the atmosphere model for seaice and ocean.
-           usually aerosol deposition (MAM/CARMA) are handled separately, except in prognostic BAM,
+           and are used by the gas-phase Weseley dry-deposition scheme over land.
+           These are merged with the velocities computed within the atmosphere model for seaice and ocean.
+           Usually aerosol deposition (MAM/CARMA) are handled separately, except in prognostic BAM,
            thus this might not just be gas-phase species, hence the "verbose" standard name. -->
       <dimensions>horizontal_dimension number_of_dry_deposited_species_from_coupler</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
