@@ -4,6 +4,7 @@
 create the cam library
 """
 # Python system imports
+from typing import Optional
 import filecmp
 import logging
 import os
@@ -35,7 +36,7 @@ from CIME.Tools.standard_script_setup import check_minimum_python_version
 from CIME.XML.env_build import EnvBuild
 #pylint: enable=wrong-import-position
 
-check_minimum_python_version(3, 7) #CAM requires version 3.7 or greater
+check_minimum_python_version(3, 9) # CIME requires version 3.9 or greater
 stop_buffering_output()
 
 _LOGGER = logging.getLogger(__name__)
@@ -210,7 +211,7 @@ def _build_cam():
         expect(retcode == 0, f"Command {cmd} failed with rc={retcode}")
 
 ###############################################################################
-def _stage_mpas_build_tree(case: Case, logger: logging.Logger | None = None) -> None:
+def _stage_mpas_build_tree(case: Case, logger: Optional[logging.Logger] = None) -> None:
 ###############################################################################
     """
     Stage the MPAS build tree such that it can be built alongside CAM-SIMA by CIME.
@@ -258,7 +259,7 @@ def _stage_mpas_build_tree(case: Case, logger: logging.Logger | None = None) -> 
         dirs_exist_ok=True)
 
 ###############################################################################
-def _get_optional_mpas_features(case: Case, config: ConfigCAM, logger: logging.Logger | None = None) -> list[str]:
+def _get_optional_mpas_features(case: Case, config: ConfigCAM, logger: Optional[logging.Logger] = None) -> list[str]:
 ###############################################################################
     """
     Get the optional MPAS features to enable based on the current case and CAM-SIMA configuration.
@@ -282,7 +283,7 @@ def _get_optional_mpas_features(case: Case, config: ConfigCAM, logger: logging.L
     return optional_mpas_features
 
 ###############################################################################
-def _build_scotch(case: Case, logger: logging.Logger | None = None) -> str:
+def _build_scotch(case: Case, logger: Optional[logging.Logger] = None) -> str:
 ###############################################################################
     """
     Build the Scotch library and return the installation path.
@@ -347,7 +348,7 @@ def _build_scotch(case: Case, logger: logging.Logger | None = None) -> str:
     return install_prefix
 
 ###############################################################################
-def _update_scotch_linking_flags(case: Case, scotch: None | str, logger: logging.Logger | None = None) -> None:
+def _update_scotch_linking_flags(case: Case, scotch: Optional[str] = None, logger: Optional[logging.Logger] = None) -> None:
 ###############################################################################
     """
     Add/remove the linking flags for the Scotch library to/from the current case as needed.
