@@ -1,1 +1,6 @@
 ./xmlchange CAM_LINKED_LIBS=" "
+./xmlchange REST_N=3
+./xmlchange REST_OPTION=nsteps
+CASEROOT=$(dirname "$0")
+SRCROOT=$(cd "$CASEROOT" && ./xmlquery --value SRCROOT)
+cp "$SRCROOT/cime_config/testdefs/testmods_dirs/cam/outfrq_se_cslam_multitape/external_diag_config" "$CASEROOT/"
