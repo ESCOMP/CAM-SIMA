@@ -1,6 +1,12 @@
+module test_string_core_utils
+    use funit
+
+    implicit none
+
+    public
+contains
 @test
 subroutine test_integer_one_to_str()
-    use funit
     use string_core_utils, only : core_to_str
 
     integer :: to_convert
@@ -12,7 +18,6 @@ end subroutine test_integer_one_to_str
 
 @test
 subroutine test_integer_with_leading_zeros_to_str()
-    use funit
     use string_core_utils, only : core_to_str
 
     integer :: to_convert
@@ -26,7 +31,6 @@ end subroutine test_integer_with_leading_zeros_to_str
 
 @test
 subroutine test_integer_with_trailing_zeros_to_str()
-    use funit
     use string_core_utils, only : core_to_str
 
     integer :: to_convert
@@ -40,7 +44,6 @@ end subroutine test_integer_with_trailing_zeros_to_str
 
 @test
 subroutine test_one_int_date_to_yyyymmdd()
-    use funit
     use string_core_utils, only : core_int_date_to_yyyymmdd
 
     integer :: to_convert
@@ -54,7 +57,6 @@ end subroutine test_one_int_date_to_yyyymmdd
 
 @test
 subroutine test_zero_int_seconds_to_hhmmss()
-    use funit
     use string_core_utils, only : core_int_seconds_to_hhmmss
 
     integer :: to_convert
@@ -69,7 +71,6 @@ end subroutine test_zero_int_seconds_to_hhmmss
 @test
 subroutine test_stringify_empty_arrays()
     use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=128), allocatable :: carr(:)
@@ -92,7 +93,6 @@ end subroutine test_stringify_empty_arrays
 
 @test
 subroutine test_stringify_character_array()
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
@@ -123,7 +123,6 @@ end subroutine test_stringify_character_array
 @test
 subroutine test_stringify_integer_array()
     use, intrinsic :: iso_fortran_env, only: int32, int64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
@@ -157,7 +156,6 @@ end subroutine test_stringify_integer_array
 @test
 subroutine test_stringify_integer_extreme_values()
     use, intrinsic :: iso_fortran_env, only: int32, int64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -190,7 +188,6 @@ end subroutine test_stringify_integer_extreme_values
 @test
 subroutine test_stringify_floating_point_array()
     use, intrinsic :: iso_fortran_env, only: real32, real64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '<'
@@ -210,7 +207,8 @@ subroutine test_stringify_floating_point_array()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-10000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+    r32arr(:) = [-10000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 10000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Each value should have a fixed width of 13. Only negative values should have signs.
@@ -228,7 +226,6 @@ end subroutine test_stringify_floating_point_array
 @test
 subroutine test_stringify_floating_point_scientific_notation()
     use, intrinsic :: iso_fortran_env, only: real32, real64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -244,7 +241,8 @@ subroutine test_stringify_floating_point_scientific_notation()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-100000.0, -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, 100000.0]
+    r32arr(:) = [-100000.0_real32, -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, 100000.0_real32]
     r64arr(:) = real(r32arr, real64)
 
     ! Scientific notation should be enabled if there is any value with a magnitude >= 1.0E+5.
@@ -257,7 +255,6 @@ end subroutine test_stringify_floating_point_scientific_notation
 @test
 subroutine test_stringify_floating_point_extreme_values()
     use, intrinsic :: iso_fortran_env, only: real32, real64
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator_with_spaces = ' < '
@@ -279,7 +276,8 @@ subroutine test_stringify_floating_point_extreme_values()
 
     allocate(r32arr(10), r64arr(10))
 
-    r32arr(:) = [-huge(r32arr), -1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0, huge(r32arr)]
+    r32arr(:) = [-huge(r32arr), -1000.0_real32, -100.0_real32, -10.0_real32, -1.0_real32, &
+                 1.0_real32, 10.0_real32, 100.0_real32, 1000.0_real32, huge(r32arr)]
     r64arr(:) = real(r32arr, real64)
     r64arr(1) = -9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
     r64arr(10) = 9.999999E+99_real64 ! Arbitrarily limited by the "es13.6e2" format specification.
@@ -293,7 +291,6 @@ end subroutine test_stringify_floating_point_extreme_values
 
 @test
 subroutine test_stringify_logical_array()
-    use funit
     use string_core_utils, only: stringify
 
     character(len=*), parameter :: custom_separator = '.or.'
@@ -322,7 +319,6 @@ end subroutine test_stringify_logical_array
 
 @test
 subroutine test_split_by_empty_string_set()
-    use funit
     use string_core_utils, only: split
 
     character(*), parameter :: test_string_comma_separated = &
@@ -358,7 +354,6 @@ end subroutine test_split_by_empty_string_set
 
 @test
 subroutine test_split_by_forward_searches()
-    use funit
     use string_core_utils, only: split
 
     character(*), parameter :: test_string_comma_separated = &
@@ -393,7 +388,6 @@ end subroutine test_split_by_forward_searches
 
 @test
 subroutine test_split_by_backward_searches()
-    use funit
     use string_core_utils, only: split
 
     character(*), parameter :: test_string_comma_separated = &
@@ -428,7 +422,6 @@ end subroutine test_split_by_backward_searches
 
 @test
 subroutine test_split_by_out_of_bounds_searches()
-    use funit
     use string_core_utils, only: split
 
     character(*), parameter :: test_string_comma_separated = &
@@ -476,7 +469,6 @@ end subroutine test_split_by_out_of_bounds_searches
 
 @test
 subroutine test_tokenize_into_first_last_by_empty_string_set()
-    use funit
     use string_core_utils, only: tokenize
 
     character(*), parameter :: test_string_comma_separated = &
@@ -508,7 +500,6 @@ end subroutine test_tokenize_into_first_last_by_empty_string_set
 
 @test
 subroutine test_tokenize_into_first_last_by_known_string_set()
-    use funit
     use string_core_utils, only: tokenize
 
     character(*), parameter :: test_string_comma_separated = &
@@ -543,7 +534,6 @@ end subroutine test_tokenize_into_first_last_by_known_string_set
 
 @test
 subroutine test_tokenize_into_tokens_separator_by_empty_string_set()
-    use funit
     use string_core_utils, only: tokenize
 
     character(*), parameter :: test_string_comma_separated = &
@@ -599,7 +589,6 @@ end subroutine test_tokenize_into_tokens_separator_by_empty_string_set
 
 @test
 subroutine test_tokenize_into_tokens_separator_by_known_string_set()
-    use funit
     use string_core_utils, only: tokenize
 
     character(*), parameter :: test_string_comma_separated = &
@@ -654,7 +643,6 @@ end subroutine test_tokenize_into_tokens_separator_by_known_string_set
 
 @test
 subroutine test_get_last_significant_char_empty_string()
-    use funit
     use string_core_utils, only: get_last_significant_char
 
     character(len=10) :: test_string
@@ -665,7 +653,6 @@ end subroutine test_get_last_significant_char_empty_string
 
 @test
 subroutine test_get_last_significant_char_all_blanks()
-    use funit
     use string_core_utils, only: get_last_significant_char
 
     character(len=10) :: test_string
@@ -676,7 +663,6 @@ end subroutine test_get_last_significant_char_all_blanks
 
 @test
 subroutine test_get_last_significant_char_trailing_spaces()
-    use funit
     use string_core_utils, only: get_last_significant_char
 
     character(len=20) :: test_string
@@ -687,7 +673,6 @@ end subroutine test_get_last_significant_char_trailing_spaces
 
 @test
 subroutine test_get_last_significant_char_no_trailing_spaces()
-    use funit
     use string_core_utils, only: get_last_significant_char
 
     character(len=7) :: test_string
@@ -698,7 +683,6 @@ end subroutine test_get_last_significant_char_no_trailing_spaces
 
 @test
 subroutine test_last_non_digit_empty_string()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=10) :: test_string
@@ -709,7 +693,6 @@ end subroutine test_last_non_digit_empty_string
 
 @test
 subroutine test_last_non_digit_all_digits()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=10) :: test_string
@@ -720,7 +703,6 @@ end subroutine test_last_non_digit_all_digits
 
 @test
 subroutine test_last_non_digit_with_trailing_digits()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=20) :: test_string
@@ -731,7 +713,6 @@ end subroutine test_last_non_digit_with_trailing_digits
 
 @test
 subroutine test_last_non_digit_no_trailing_digits()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=20) :: test_string
@@ -742,7 +723,6 @@ end subroutine test_last_non_digit_no_trailing_digits
 
 @test
 subroutine test_last_non_digit_single_digit()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=10) :: test_string
@@ -753,7 +733,6 @@ end subroutine test_last_non_digit_single_digit
 
 @test
 subroutine test_last_non_digit_with_leading_zeros()
-    use funit
     use string_core_utils, only: last_non_digit
 
     character(len=15) :: test_string
@@ -764,7 +743,6 @@ end subroutine test_last_non_digit_with_leading_zeros
 
 @test
 subroutine test_increment_string_no_trailing_digits()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -779,7 +757,6 @@ end subroutine test_increment_string_no_trailing_digits
 
 @test
 subroutine test_increment_string_single_digit_increment()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -794,7 +771,6 @@ end subroutine test_increment_string_single_digit_increment
 
 @test
 subroutine test_increment_string_multiple_digits()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -809,7 +785,6 @@ end subroutine test_increment_string_multiple_digits
 
 @test
 subroutine test_increment_string_with_rollover()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -824,7 +799,6 @@ end subroutine test_increment_string_with_rollover
 
 @test
 subroutine test_increment_string_with_large_increment()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -839,7 +813,6 @@ end subroutine test_increment_string_with_large_increment
 
 @test
 subroutine test_increment_string_positive_overflow()
-    use funit
     use string_core_utils, only: increment_string
 
     character(len=20) :: test_string
@@ -851,3 +824,188 @@ subroutine test_increment_string_positive_overflow()
     @assertEqual(-2, result)
 end subroutine test_increment_string_positive_overflow
 
+@test
+subroutine test_glob_match_exact()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_bc_a1'))
+    @assertFalse(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_bc_a2'))
+end subroutine test_glob_match_exact
+
+@test
+subroutine test_glob_match_trailing_star()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_bc_a1', 'aerochem_vmr_*'))
+    @assertFalse(core_glob_match('other_var', 'aerochem_vmr_*'))
+end subroutine test_glob_match_trailing_star
+
+@test
+subroutine test_glob_match_star_matches_empty()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_', 'aerochem_vmr_*'))
+    @assertTrue(core_glob_match('ab', 'a*b'))
+end subroutine test_glob_match_star_matches_empty
+
+@test
+subroutine test_glob_match_leading_star()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('aerochem_vmr_so4_c1', '*_c1'))
+    @assertFalse(core_glob_match('aerochem_vmr_so4_a1', '*_c1'))
+end subroutine test_glob_match_leading_star
+
+@test
+subroutine test_glob_match_middle_star_backtracks()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    ! The star must be able to extend past an early partial match of the tail
+    @assertTrue(core_glob_match('a_x_y_b', 'a_*_b'))
+    @assertTrue(core_glob_match('mam_del_h2so4_gasprod', 'mam_*_gasprod'))
+    @assertFalse(core_glob_match('mam_del_h2so4_aeruptk', 'mam_*_gasprod'))
+end subroutine test_glob_match_middle_star_backtracks
+
+@test
+subroutine test_glob_match_multiple_stars()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('xAAyBBz', 'x*y*z'))
+    @assertTrue(core_glob_match('xyz', 'x*y*z'))
+    @assertFalse(core_glob_match('xAAzBBy', 'x*y*z'))
+end subroutine test_glob_match_multiple_stars
+
+@test
+subroutine test_glob_match_star_only_and_empty()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    @assertTrue(core_glob_match('anything_at_all', '*'))
+    @assertTrue(core_glob_match('', '*'))
+    @assertTrue(core_glob_match('', ''))
+    @assertFalse(core_glob_match('a', ''))
+end subroutine test_glob_match_star_only_and_empty
+
+@test
+subroutine test_glob_match_question_mark_is_literal()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    ! Only '*' is a wildcard; '?' matches itself
+    @assertTrue(core_glob_match('what?', 'what?'))
+    @assertFalse(core_glob_match('whatx', 'what?'))
+end subroutine test_glob_match_question_mark_is_literal
+
+@test
+subroutine test_glob_match_trailing_blanks_insignificant()
+    use funit
+    use string_core_utils, only: core_glob_match
+
+    character(len=32) :: padded_string, padded_pattern
+
+    padded_string  = 'aerochem_vmr_bc_a1'
+    padded_pattern = 'aerochem_vmr_*'
+
+    @assertTrue(core_glob_match(padded_string, padded_pattern))
+end subroutine test_glob_match_trailing_blanks_insignificant
+
+@test
+subroutine test_glob_list_excluded_simple()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(1)
+
+    patterns(1) = 'aerochem_vmr_*'
+
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('other_var', patterns))
+end subroutine test_glob_list_excluded_simple
+
+@test
+subroutine test_glob_list_excluded_keep_verb_first_match_wins()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(2)
+
+    ! gitignore-style: keep the verdict rows, exclude the rest of the family
+    patterns(1) = '!aerochem_vmr_post*'
+    patterns(2) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('unrelated_var', patterns))
+end subroutine test_glob_list_excluded_keep_verb_first_match_wins
+
+@test
+subroutine test_glob_list_excluded_order_matters()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(2)
+
+    ! With the broad exclude first, the keep-verb is never reached
+    patterns(1) = 'aerochem_vmr_*'
+    patterns(2) = '!aerochem_vmr_post*'
+
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+end subroutine test_glob_list_excluded_order_matters
+
+@test
+subroutine test_glob_list_excluded_blank_entries_skipped()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(4)
+
+    ! Fixed-size namelist arrays arrive mostly blank
+    patterns(1) = ''
+    patterns(2) = '!aerochem_vmr_post*'
+    patterns(3) = ''
+    patterns(4) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postnewnuc_so4_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_so4_a1', patterns))
+end subroutine test_glob_list_excluded_blank_entries_skipped
+
+@test
+subroutine test_glob_list_excluded_empty_list()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(0)
+
+    @assertFalse(core_glob_list_excluded('any_var', patterns))
+end subroutine test_glob_list_excluded_empty_list
+
+@test
+subroutine test_glob_list_excluded_multiple_keep_verbs()
+    use funit
+    use string_core_utils, only: core_glob_list_excluded
+
+    character(len=32) :: patterns(3)
+
+    ! Keep the verdict rows AND the cloud-borne (_c) rows, exclude the rest
+    ! of the family; names outside the family are compared as usual
+    patterns(1) = '!aerochem_vmr_post*'
+    patterns(2) = '!aerochem_vmr_*_c*'
+    patterns(3) = 'aerochem_vmr_*'
+
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postnewnuc_so4_a1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_postcoag_bc_a1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_num_c1', patterns))
+    @assertFalse(core_glob_list_excluded('aerochem_vmr_so4_c2', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_so4_a1', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_ncl_a3', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_H2SO4', patterns))
+    @assertTrue(core_glob_list_excluded('aerochem_vmr_SOAG', patterns))
+    @assertFalse(core_glob_list_excluded('mam_del_h2so4_gasprod', patterns))
+end subroutine test_glob_list_excluded_multiple_keep_verbs
+end module test_string_core_utils

@@ -182,6 +182,8 @@ class ConfigCAM:
         nthrds = case.get_value("NTHRDS_ATM")               # Number of model OpenMP threads
         start_date = case.get_value("RUN_STARTDATE")        # Model simulation start date
         debug_case = case.get_value("DEBUG")                # Case debug flag
+        sim_year = case.get_value("CAM_SIM_YEAR")           # Simulation (climatology) year
+        sim_type = case.get_value("CAM_SIM_TYPE")           # Simulation type (transient compsets)
 
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
@@ -272,6 +274,34 @@ class ConfigCAM:
 
         self.create_config("ic_ymd", "Start date of model run.",
                            start_date_cam, is_nml_attr=True)
+
+        #----------------------------------------------------
+        # Set simulation year (needed for namelist generation)
+        #----------------------------------------------------
+
+        # CAM_SIM_YEAR is empty for compsets without a recognized
+        # time period, which CIME returns as None:
+        if sim_year is None:
+            sim_year = ""
+        # End if
+
+        self.create_config("sim_year",
+                           "Simulation (climatology) year used for namelist defaults.",
+                           sim_year, is_nml_attr=True)
+
+        #----------------------------------------------------
+        # Set simulation type (needed for namelist generation)
+        #----------------------------------------------------
+
+        # CAM_SIM_TYPE is empty for compsets that are not transient,
+        # which CIME returns as None:
+        if sim_type is None:
+            sim_type = ""
+        # End if
+
+        self.create_config("sim_type",
+                           "Simulation type (e.g. historical) used for namelist defaults.",
+                           sim_type, is_nml_attr=True)
 
         #----------------------------------------------------
         # Set CAM debug flag (needed for namelist generation)
