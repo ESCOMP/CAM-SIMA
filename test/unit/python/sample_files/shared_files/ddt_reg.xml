@@ -4,7 +4,8 @@
   <file name="physics_types_ddt" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
     <variable local_name="theta" standard_name="potential_temperature"
-              units="K" type="real" kind="kind_phys"  allocatable="pointer">
+              units="K" type="real" kind="kind_phys"  allocatable="pointer"
+	      restart="true">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>theta pot_temp</ic_file_input_names>
     </variable>

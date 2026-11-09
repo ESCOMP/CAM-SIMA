@@ -213,6 +213,7 @@ class BuildCacheCAM:
         # Set empty values sure to trigger processing
         self.__gen_reg_file = None
         self.__gen_init_file = None
+        self.__gen_restart_file = None
         self.__registry_files = {}
         self.__dycore = None
         self.__sdfs = {}
@@ -227,6 +228,7 @@ class BuildCacheCAM:
         self.__reg_gen_files = []
         self.__ic_names = {}
         self.__constituents = []
+        self.__restart_dict = {}
         self.__vars_init_value = []
         if os.path.exists(build_cache):
             # Initialize build cache state
@@ -240,6 +242,9 @@ class BuildCacheCAM:
                         elif item.tag == 'generate_init_file':
                             new_entry = new_entry_from_xml(item)
                             self.__gen_init_file = new_entry
+                        elif item.tag == 'generate_restart_file':
+                            new_entry = new_entry_from_xml(item)
+                            self.__gen_restart_file = new_entry
                         elif item.tag == 'registry_file':
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
@@ -258,6 +263,10 @@ class BuildCacheCAM:
                             stdname = item.get('standard_name')
                             itext = clean_xml_text(item)
                             self.__constituents.append(itext)
+                        elif item.tag == 'restart_entry':
+                            stdname = item.get('standard_name')
+                            itext = clean_xml_text(item)
+                            self.__restart_dict[stdname] = itext
                         elif item.tag == 'vars_init_value_entry':
                             itext = clean_xml_text(item)
                             self.__vars_init_value.append(itext)
@@ -322,7 +331,8 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names, constituents, vars_init_value):
+                        dycore, reg_file_list, ic_names, constituents,
+                        restart_dict, vars_init_value):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
@@ -338,6 +348,7 @@ class BuildCacheCAM:
         # and should already be of type dict:
         self.__ic_names = ic_names
         self.__constituents = constituents
+        self.__restart_dict = restart_dict
         self.__vars_init_value = vars_init_value
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
@@ -383,6 +394,14 @@ class BuildCacheCAM:
         """
         self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
 
+    def update_restart_gen(self, gen_restart_file):
+        """
+        Replace the restart writer
+        (write_restart_physics.py) cache
+        data with input data
+        """
+        self.__gen_restart_file = FileStatus(gen_restart_file, 'generate_restart_file')
+
     def write(self):
         """Write out the current cache state"""
         new_cache = ET.Element("CAMBuildCache")
@@ -394,6 +413,9 @@ class BuildCacheCAM:
         new_xml_entry(registry, 'generate_registry_file',
                       self.__gen_reg_file.file_path,
                       self.__gen_reg_file.file_hash)
+        new_xml_entry(registry, 'generate_restart_file',
+                      self.__gen_restart_file.file_path,
+                      self.__gen_restart_file.file_hash)
         for rfile in self.__registry_files.values():
             new_xml_entry(registry, 'registry_file',
                           rfile.file_path, rfile.file_hash)
@@ -414,6 +436,11 @@ class BuildCacheCAM:
         for stdname in self.__constituents:
             const_entry = ET.SubElement(registry, 'constituent_entry')
             const_entry.text = stdname
+        # end for
+        for stdname, restart_name in self.__restart_dict.items():
+            restart_entry = ET.SubElement(registry, 'restart_entry')
+            restart_entry.set('standard_name', stdname)
+            restart_entry.text = restart_name
         # end for
         for stdname in self.__vars_init_value:
             var_entry = ET.SubElement(registry, 'vars_init_value_entry')
@@ -603,6 +630,22 @@ class BuildCacheCAM:
         #Return mismatch logical:
         return mismatch
 
+    def restart_write_mismatch(self, gen_restart_file):
+        """
+        Determine if the restart_files writer (write_restart_files.py)
+            differs from the data stored in our cache. Return True
+            if the data differs.
+        """
+
+        # Initialize variable
+        mismatch = False
+
+        # Check file hash to see if mis-match exists:
+        mismatch = self.__gen_restart_file.hash_mismatch(gen_restart_file)
+
+        # Return mismatch logical:
+        return mismatch
+
     def scheme_nl_metadata(self):
         """Return the stored list of scheme namelist metadata files"""
         return self.__scheme_nl_metadata
@@ -624,6 +667,10 @@ class BuildCacheCAM:
     def constituents(self):
         """Return a copy of the registry constituents list"""
         return list(self.__constituents)
+
+    def restart_vars(self):
+        """Return a copy of the registry's list of variables for the restart file"""
+        return dict(self.__restart_dict)
 
     def vars_init_value(self):
         """Return a copy of the list of variables with initial_value"""
