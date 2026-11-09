@@ -1,18 +1,10 @@
 ! Separate dynamics and physics grids
 
 module dp_mapping
-  use shr_const_mod,          only: pi => shr_const_pi
-  use cam_abortutils,         only: endrun, check_allocate
-
-  !SE dycore:
-  use dimensions_mod,         only: np, fv_nphys
-  use shr_kind_mod,           only: r8=>shr_kind_r8, shr_kind_cl
-  use coordinate_systems_mod, only: spherical_polar_t
-  use fvm_control_volume_mod, only: fvm_struct
+  use shr_kind_mod,           only: r8=>shr_kind_r8
 
   implicit none
   private
-  save
 
   public :: dp_init
   public :: dp_reorder
@@ -49,19 +41,23 @@ module dp_mapping
 contains
   subroutine dp_init(elem,fvm)
 
-    use spmd_utils,     only: masterproc
-    use cam_logfile,    only: iulog
+    use shr_kind_mod,           only: cl=>shr_kind_cl
+    use spmd_utils,             only: masterproc
+    use cam_logfile,            only: iulog
+    use cam_abortutils,         only: check_allocate
 
     !SE dycore:
-    use dimensions_mod, only: nelemd, nc, irecons_tracer, npsq
-    use element_mod,    only: element_t
+    use dimensions_mod,         only: nelemd, nc, irecons_tracer, npsq, fv_nphys
+    use element_mod,            only: element_t
+    use fvm_control_volume_mod, only: fvm_struct
 
     ! Dummy variables:
     type(element_t)  , dimension(nelemd), intent(in) :: elem
     type (fvm_struct), dimension(nelemd), intent(in) :: fvm
 
     ! Local variables:
-    integer :: iret
+    integer                     :: iret
+    character(len=cl)           :: errmsg
     character(len=*), parameter :: subname = 'dp_init'
 
     num_weights_phys2fvm = 0
@@ -70,45 +66,51 @@ contains
       num_weights_phys2fvm = (nc+fv_nphys)**2
       num_weights_fvm2phys = (nc+fv_nphys)**2
 
-       allocate(weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd), stat=iret)
+       allocate(weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_all_fvm2phys(num_weights_fvm2phys,irecons_tracer,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
+       allocate(weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_eul_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), stat=iret)
+       allocate(weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_lgr_index_all_fvm2phys(num_weights_fvm2phys,2,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd), stat=iret)
+       allocate(weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_all_phys2fvm(num_weights_phys2fvm,irecons_tracer,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
+       allocate(weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_eul_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), stat=iret)
+       allocate(weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd), &
+                stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'weights_lgr_index_all_phys2fvm(num_weights_phys2fvm,2,nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(jall_fvm2phys(nelemd), stat=iret)
+       allocate(jall_fvm2phys(nelemd), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'jall_fvm2phys(nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-       allocate(jall_phys2fvm(nelemd), stat=iret)
+       allocate(jall_phys2fvm(nelemd), stat=iret, errmsg=errmsg)
        call check_allocate(iret, subname, &
                            'jall_phys2fvm(nelemd)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
 
        call fvm2phys_init(elem,fvm,nc,fv_nphys,irecons_tracer,&
             weights_all_fvm2phys,weights_eul_index_all_fvm2phys,weights_lgr_index_all_fvm2phys,&
@@ -123,12 +125,14 @@ contains
   end subroutine dp_init
 
   subroutine dp_reorder(before, after)
+
     use cam_logfile,    only: iulog
     use spmd_utils,     only: masterproc
     use shr_sys_mod,    only: shr_sys_flush
+    use cam_abortutils, only: endrun
 
     !SE dycore:
-    use dimensions_mod, only: nelem
+    use dimensions_mod, only: nelem, fv_nphys
 
     implicit none
     real(r8), dimension(fv_nphys*fv_nphys,*), intent(in)  :: before
@@ -151,9 +155,12 @@ contains
   !!!
 
   subroutine dp_allocate(elem)
+
+    use shr_kind_mod,   only: cl=>shr_kind_cl
     use spmd_utils,     only: masterproc, masterprocid, npes
     use spmd_utils,     only: mpicom
     use mpi,            only: mpi_integer
+    use cam_abortutils, only: check_allocate
 
     !SE dycore:
     use dimensions_mod, only: nelem, nelemd
@@ -165,22 +172,23 @@ contains
     integer                          :: i,j,ierror
     integer,dimension(nelemd)        :: lgid
     integer,dimension(:),allocatable :: displs,recvcount
+    character(len=cl)                :: errmsg
 
     character(len=*), parameter :: subname = 'dp_allocate'
 
     ! begin
 
-    allocate(displs(npes), stat=ierror)
+    allocate(displs(npes), stat=ierror, errmsg=errmsg)
     call check_allocate(ierror, subname, 'displs(npes)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(dp_gid(nelem), stat=ierror)
+    allocate(dp_gid(nelem), stat=ierror, errmsg=errmsg)
     call check_allocate(ierror, subname, 'dp_gid(nelem)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-    allocate(recvcount(npes), stat=ierror)
+    allocate(recvcount(npes), stat=ierror, errmsg=errmsg)
     call check_allocate(ierror, subname, 'recvcount(npes)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     call mpi_gather(nelemd, 1, mpi_integer, recvcount, 1, mpi_integer,        &
          masterprocid, mpicom, ierror)
@@ -194,9 +202,9 @@ contains
     call mpi_gatherv(lgid, nelemd, mpi_integer, dp_gid, recvcount, displs,    &
          mpi_integer, masterprocid, mpicom, ierror)
     if (masterproc) then
-      allocate(dp_owner(nelem), stat=ierror)
+      allocate(dp_owner(nelem), stat=ierror, errmsg=errmsg)
       call check_allocate(ierror, subname, 'dp_owner(nelem)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       dp_owner(:) = -1
       do i = 1,npes
@@ -210,7 +218,7 @@ contains
     ! minimize global memory use
     call mpi_barrier(mpicom,ierror)
     if (.not.masterproc) then
-      allocate(dp_owner(nelem), stat=ierror)
+      allocate(dp_owner(nelem), stat=ierror, errmsg=errmsg)
       call check_allocate(ierror, subname, 'dp_owner(nelem)', &
                         file=__FILE__, line=__LINE__)
     end if
@@ -236,12 +244,16 @@ contains
     use spmd_utils,             only: masterproc, masterprocid, mpicom, npes
     use cam_logfile,            only: iulog
     use shr_sys_mod,            only: shr_sys_flush
+    use shr_const_mod,          only: pi => shr_const_pi
+    use shr_kind_mod,           only: shr_kind_cl
+    use cam_abortutils,         only: endrun, check_allocate
 
     !SE dycore:
     use dimensions_mod,         only: nelem, nelemd
     use element_mod,            only: element_t
-    use dimensions_mod,         only: ne
-    use coordinate_systems_mod, only: cart2spherical
+    use dimensions_mod,         only: ne, np, fv_nphys
+    use coordinate_systems_mod, only: cart2spherical, spherical_polar_t
+    use fvm_control_volume_mod, only: fvm_struct
 
     ! Inputs
     type(element_t),   intent(in) :: elem(:)
@@ -308,22 +320,22 @@ contains
 
     ! Allocate workspace and calculate PE displacement information
     if (IOroot) then
-      allocate(displs(npes), stat=ierror)
+      allocate(displs(npes), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'displs(npes)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
-      allocate(recvcount(npes), stat=ierror)
+      allocate(recvcount(npes), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'recvcount(npes)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
     else
-      allocate(displs(0), stat=ierror)
+      allocate(displs(0), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'displs(0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
-      allocate(recvcount(0), stat=ierror)
+      allocate(recvcount(0), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'recvcount(0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
     end if
     gridsize = nelem * fv_nphys*fv_nphys
     if(masterproc) then
@@ -339,19 +351,19 @@ contains
       do i = 2, npes
         displs(i) = displs(i-1)+recvcount(i-1)
       end do
-      allocate(recvbuf(gridsize), stat=ierror)
+      allocate(recvbuf(gridsize), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'recvbuf(gridsize)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
     else
-      allocate(recvbuf(0), stat=ierror)
+      allocate(recvbuf(0), stat=ierror, errmsg=errormsg)
       call check_allocate(ierror, subname, 'recvbuf(0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
     end if
-    allocate(gwork(4, gridsize), stat=ierror)
+    allocate(gwork(4, gridsize), stat=ierror, errmsg=errormsg)
     call check_allocate(ierror, subname, 'gwork(4, gridsize)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errormsg)
 
     if (IOroot) then
       ! Define the horizontal grid dimensions for SCRIP output
@@ -618,9 +630,10 @@ contains
             jall_fvm2phys,jall_phys2fvm)
 
     !SE dycore:
-    use dimensions_mod  , only: ngpc,nelemd
-    use fvm_overlap_mod , only: compute_weights_cell
-    use element_mod     , only: element_t
+    use dimensions_mod        , only: ngpc,nelemd
+    use fvm_overlap_mod       , only: compute_weights_cell
+    use element_mod           , only: element_t
+    use fvm_control_volume_mod, only: fvm_struct
 
     type(element_t)  , dimension(nelemd), intent(in) :: elem
     type (fvm_struct), dimension(nelemd), intent(in) :: fvm

@@ -1,0 +1,322 @@
+!-----------------------------------------------------------------------
+! pFUnit tests for aerosol_instances_mod.
+!
+! Exercises the full lifecycle of the aerosol properties/state registry:
+!   aerosol_instances_init -> aerosol_instances_init_states ->
+!   get_props/get_state accessors -> aerosol_instances_final -> re-init.
+!
+! The key invariant under test is the compressed iaermod index contract:
+! aerosol_instances_init and aerosol_instances_init_states walk the
+! aerosol models in the same order (modal, carma, bulk) with the same
+! active-flag gating, so slot i must hold the same model's properties
+! and state.
+!
+! Mock boundaries (same as the Tier 3 tests):
+!   - radiative_aerosol (rad_aer_get_info) decides which models are active
+!   - aerosol_mmr_host provides the host-binding handle
+!   - physics_grid provides columns_on_task
+! active_calls is a plain module variable in radiative_aerosol_definitions
+! and is set directly by each test.
+!
+! CARMA is a stub in CAM-SIMA (constructor calls endrun) and the mock
+! reports nbins = 0, so the CARMA path is compile-only here.
+!-----------------------------------------------------------------------
+
+module test_aerosol_instances
+    use funit
+
+    implicit none
+
+    public
+
+contains
+
+! Reset all shared module state touched by these tests so each test is
+! independent of execution order.
+subroutine reset_all()
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_instances_mod, only: aerosol_instances_final
+
+    call aerosol_instances_final()
+    call cleanup_mock_rad_aer()
+    active_calls(:) = .false.
+end subroutine reset_all
+
+subroutine setup_bulk_mock()
+    use shr_kind_mod, only: r8 => shr_kind_r8
+    use radiative_aerosol, only: setup_mock_rad_aer
+
+    call setup_mock_rad_aer( &
+         naero = 2, &
+         density = [1000._r8, 1700._r8], &
+         hygro = [0.0_r8, 0.5_r8], &
+         dispersion = [2.0_r8, 1.6_r8], &
+         aername = [character(len=20) :: 'dust1', 'sulfate'], &
+         opticstype = [character(len=32) :: 'nonhygro', 'hygro'])
+end subroutine setup_bulk_mock
+
+@test
+subroutine test_bulk_only_lifecycle()
+    use funit
+    use ccpp_kinds, only: kind_phys
+    use physics_grid, only: columns_on_task
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_properties_mod, only: aerosol_properties
+    use aerosol_state_mod, only: aerosol_state
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use aerosol_instances_mod, only: aerosol_instances_init, &
+         aerosol_instances_init_states, aerosol_instances_get_props, &
+         aerosol_instances_get_state, aerosol_instances_get_num_models, &
+         aerosol_instances_is_active, aerosol_instances_final
+
+    class(aerosol_properties), pointer :: props
+    class(aerosol_state), pointer :: astate
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    logical :: is_bulk_state
+
+    call reset_all()
+    call setup_bulk_mock()
+    active_calls(0) = .true.
+
+    call aerosol_instances_init()
+
+    @assertEqual(1, aerosol_instances_get_num_models())
+    @assertTrue(aerosol_instances_is_active('bulk'))
+    @assertFalse(aerosol_instances_is_active('modal'))
+    @assertFalse(aerosol_instances_is_active('carma'))
+    @assertFalse(aerosol_instances_is_active('junk'))
+
+    props => aerosol_instances_get_props(1, 0)
+    @assertTrue(associated(props))
+    @assertTrue(props%model_is('BAM'))
+
+    ! inactive diagnostic list: no properties object
+    props => aerosol_instances_get_props(1, 1)
+    @assertFalse(associated(props))
+
+    columns_on_task = 3
+    allocate(constituents(columns_on_task, 2, 2))
+    constituents = 1.0e-6_kind_phys
+    cptr => constituents
+
+    call aerosol_instances_init_states(cptr)
+
+    astate => aerosol_instances_get_state(1, 0)
+    @assertTrue(associated(astate))
+    is_bulk_state = .false.
+    select type (astate)
+    type is (bulk_aerosol_state)
+       is_bulk_state = .true.
+    end select
+    @assertTrue(is_bulk_state)
+
+    ! inactive diagnostic list: no state object
+    astate => aerosol_instances_get_state(1, 1)
+    @assertFalse(associated(astate))
+
+    call aerosol_instances_final()
+    @assertEqual(0, aerosol_instances_get_num_models())
+
+    deallocate(constituents)
+    call reset_all()
+end subroutine test_bulk_only_lifecycle
+
+@test
+subroutine test_modal_bulk_ordering()
+    use funit
+    use ccpp_kinds, only: kind_phys
+    use physics_grid, only: columns_on_task
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_properties_mod, only: aerosol_properties
+    use aerosol_state_mod, only: aerosol_state
+    use modal_aerosol_state_mod, only: modal_aerosol_state
+    use bulk_aerosol_state_mod, only: bulk_aerosol_state
+    use modal_test_helpers, only: setup_2mode_mock
+    use aerosol_instances_mod, only: aerosol_instances_init, &
+         aerosol_instances_init_states, aerosol_instances_get_props, &
+         aerosol_instances_get_state, aerosol_instances_get_num_models, &
+         aerosol_instances_is_active, aerosol_instances_final
+
+    class(aerosol_properties), pointer :: props
+    class(aerosol_state), pointer :: astate
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+    logical :: type_ok
+
+    call reset_all()
+    ! Both modal (2 modes) and bulk (2 aerosols) active at once
+    call setup_2mode_mock()
+    call setup_bulk_mock()
+    active_calls(0) = .true.
+
+    call aerosol_instances_init()
+
+    @assertEqual(2, aerosol_instances_get_num_models())
+    @assertTrue(aerosol_instances_is_active('modal'))
+    @assertTrue(aerosol_instances_is_active('bulk'))
+    @assertFalse(aerosol_instances_is_active('carma'))
+
+    ! compressed index contract: modal fills slot 1, bulk slot 2
+    props => aerosol_instances_get_props(1, 0)
+    @assertTrue(associated(props))
+    @assertTrue(props%model_is('MAM'))
+
+    props => aerosol_instances_get_props(2, 0)
+    @assertTrue(associated(props))
+    @assertTrue(props%model_is('BAM'))
+
+    columns_on_task = 2
+    ! flat modal layout (num + species per mode) = 5 slots; extent is not
+    ! used at construction, only the pointer is stored
+    allocate(constituents(columns_on_task, 2, 5))
+    constituents = 1.0e-6_kind_phys
+    cptr => constituents
+
+    call aerosol_instances_init_states(cptr)
+
+    ! states must land in the same slots as their properties
+    astate => aerosol_instances_get_state(1, 0)
+    @assertTrue(associated(astate))
+    type_ok = .false.
+    select type (astate)
+    type is (modal_aerosol_state)
+       type_ok = .true.
+    end select
+    @assertTrue(type_ok)
+
+    astate => aerosol_instances_get_state(2, 0)
+    @assertTrue(associated(astate))
+    type_ok = .false.
+    select type (astate)
+    type is (bulk_aerosol_state)
+       type_ok = .true.
+    end select
+    @assertTrue(type_ok)
+
+    deallocate(constituents)
+    call reset_all()
+end subroutine test_modal_bulk_ordering
+
+@test
+subroutine test_diag_list_population()
+    use funit
+    use ccpp_kinds, only: kind_phys
+    use physics_grid, only: columns_on_task
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_properties_mod, only: aerosol_properties
+    use aerosol_state_mod, only: aerosol_state
+    use aerosol_instances_mod, only: aerosol_instances_init, &
+         aerosol_instances_init_states, aerosol_instances_get_props, &
+         aerosol_instances_get_state, aerosol_instances_final
+
+    class(aerosol_properties), pointer :: props
+    class(aerosol_state), pointer :: astate
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+
+    call reset_all()
+    call setup_bulk_mock()
+    ! climate list plus one non-contiguous diagnostic list
+    active_calls(0) = .true.
+    active_calls(3) = .true.
+
+    call aerosol_instances_init()
+
+    columns_on_task = 2
+    allocate(constituents(columns_on_task, 2, 2))
+    constituents = 1.0e-6_kind_phys
+    cptr => constituents
+
+    call aerosol_instances_init_states(cptr)
+
+    props => aerosol_instances_get_props(1, 3)
+    @assertTrue(associated(props))
+    astate => aerosol_instances_get_state(1, 3)
+    @assertTrue(associated(astate))
+
+    ! lists that were never activated stay empty
+    props => aerosol_instances_get_props(1, 2)
+    @assertFalse(associated(props))
+    astate => aerosol_instances_get_state(1, 2)
+    @assertFalse(associated(astate))
+
+    deallocate(constituents)
+    call reset_all()
+end subroutine test_diag_list_population
+
+@test
+subroutine test_none_active()
+    use funit
+    use ccpp_kinds, only: kind_phys
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_instances_mod, only: aerosol_instances_init, &
+         aerosol_instances_init_states, aerosol_instances_get_num_models, &
+         aerosol_instances_is_active, aerosol_instances_final
+
+    real(kind_phys), allocatable, target :: constituents(:,:,:)
+    real(kind_phys), pointer :: cptr(:,:,:)
+
+    call reset_all()
+    ! no mock setup: rad_aer_get_info reports 0 modes/bins/aerosols
+    active_calls(0) = .true.
+
+    call aerosol_instances_init()
+
+    @assertEqual(0, aerosol_instances_get_num_models())
+    @assertFalse(aerosol_instances_is_active('modal'))
+    @assertFalse(aerosol_instances_is_active('carma'))
+    @assertFalse(aerosol_instances_is_active('bulk'))
+
+    ! init_states and final must be safe no-ops with nothing active
+    allocate(constituents(1, 1, 1))
+    constituents = 0.0_kind_phys
+    cptr => constituents
+    call aerosol_instances_init_states(cptr)
+    call aerosol_instances_final()
+
+    deallocate(constituents)
+    call reset_all()
+end subroutine test_none_active
+
+@test
+subroutine test_reinit_after_final()
+    use funit
+    use radiative_aerosol, only: cleanup_mock_rad_aer
+    use radiative_aerosol_definitions, only: active_calls
+    use aerosol_properties_mod, only: aerosol_properties
+    use modal_test_helpers, only: setup_2mode_mock
+    use aerosol_instances_mod, only: aerosol_instances_init, &
+         aerosol_instances_get_props, aerosol_instances_get_num_models, &
+         aerosol_instances_is_active, aerosol_instances_final
+
+    class(aerosol_properties), pointer :: props
+
+    call reset_all()
+
+    ! first init: bulk only
+    call setup_bulk_mock()
+    active_calls(0) = .true.
+    call aerosol_instances_init()
+    @assertEqual(1, aerosol_instances_get_num_models())
+    @assertTrue(aerosol_instances_is_active('bulk'))
+
+    call aerosol_instances_final()
+    call cleanup_mock_rad_aer()
+
+    ! second init after final: modal only; slot 1 must now be modal
+    call setup_2mode_mock()
+    call aerosol_instances_init()
+    @assertEqual(1, aerosol_instances_get_num_models())
+    @assertTrue(aerosol_instances_is_active('modal'))
+    @assertFalse(aerosol_instances_is_active('bulk'))
+
+    props => aerosol_instances_get_props(1, 0)
+    @assertTrue(associated(props))
+    @assertTrue(props%model_is('MAM'))
+
+    call reset_all()
+end subroutine test_reinit_after_final
+
+end module test_aerosol_instances

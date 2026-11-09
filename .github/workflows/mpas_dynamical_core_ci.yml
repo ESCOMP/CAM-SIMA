@@ -29,11 +29,13 @@ jobs:
     name: Check if jobs should run
     runs-on: ubuntu-slim
     outputs:
-      should-run: ${{ steps.conditional.outputs.result }}
+      # Encoded in base64 to preserve the matched paths exactly.
+      matched-paths: ${{ steps.conditional.outputs.matched-paths }}
+      should-run: ${{ steps.conditional.outputs.should-run }}
     timeout-minutes: 1
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if there are changes to MPAS dynamical core
         id: conditional
@@ -41,15 +43,21 @@ jobs:
           set -euo pipefail
 
           write_result_and_exit() {
+            if [ -f matched-paths.txt ]; then
+              echo "matched-paths=$(base64 -w 0 < matched-paths.txt)" >> "$GITHUB_OUTPUT"
+            else
+              echo "matched-paths=" >> "$GITHUB_OUTPUT"
+            fi
+
             case "$1" in
               false)
                 echo "Result: Skip jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               true)
                 echo "Result: Run jobs."
-                echo "result=$1" >> "$GITHUB_OUTPUT"
+                echo "should-run=$1" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
               error|*)
@@ -114,7 +122,7 @@ jobs:
           echo "Finding changed paths between $BASE_COMMIT..$HEAD_COMMIT..."
           git diff --name-only "$BASE_COMMIT..$HEAD_COMMIT" | tee changed-paths.txt || write_result_and_exit error
 
-          if grep -E -q '(^\.github\/workflows\/mpas_dynamical_core_ci\.yml$|^src\/dynamics\/mpas\/.+$)' changed-paths.txt; then
+          if grep -E '^\.github/workflows/mpas_dynamical_core_ci\.yml$|^src/dynamics/mpas/.+$' changed-paths.txt > matched-paths.txt; then
             write_result_and_exit true
           else
             write_result_and_exit false
@@ -199,15 +207,15 @@ jobs:
     if: ${{ needs.conditional-check.outputs.should-run == 'true' }}
     runs-on: ubuntu-slim
     env:
-      FORTITUDE_VERSION: 0.7.*
+      FORTITUDE_VERSION: 0.9.*
       SOURCE_CODE_PATH: ${{ github.workspace }}/src/dynamics/mpas
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           cache: pip
           python-version: 3.12
@@ -216,6 +224,7 @@ jobs:
         run: |
           python3 -m venv venv-fortitude
           source venv-fortitude/bin/activate
+          python3 -m pip install --upgrade pip
           python3 -m pip install "fortitude-lint==$FORTITUDE_VERSION"
 
       - name: Lint Fortran source code
@@ -226,7 +235,6 @@ jobs:
             check \
             --exit-zero \
             --output-file "$SOURCE_CODE_PATH/source-code-linting.log" \
-            --preview \
             "$SOURCE_CODE_PATH"
           cat "$SOURCE_CODE_PATH/source-code-linting.log"
 
@@ -267,7 +275,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout CAM-SIMA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build unit tests
         run: |

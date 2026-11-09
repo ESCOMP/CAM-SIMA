@@ -1,4 +1,4 @@
-module time_mod
+module se_dyn_time_mod
   !------------------
   use shr_kind_mod,   only: r8=>shr_kind_r8
   !------------------
@@ -80,6 +80,7 @@ contains
   !locations for nm1 and n0 for Qdp - because
   !it only has 2 levels for storage
   subroutine TimeLevel_Qdp(tl, qsplit, n0, np1)
+    use dimensions_mod, only: use_cslam
     type (TimeLevel_t) :: tl
     integer, intent(in) :: qsplit
     integer, intent(inout) :: n0
@@ -87,22 +88,26 @@ contains
 
     integer :: i_temp
 
-    i_temp = tl%nstep/qsplit
-
-    if (mod(i_temp,2)  ==0) then
+    if (use_cslam) then
        n0 = 1
-       if (present(np1)) then
-          np1 = 2
-       endif
+       if (present(np1)) np1 = 1
     else
-       n0 = 2
-       if (present(np1)) then 
-          np1 = 1
-       end if
-    endif
 
+       i_temp = tl%nstep/qsplit
+
+       if (mod(i_temp,2)  ==0) then
+          n0 = 1
+          if (present(np1)) then
+             np1 = 2
+          endif
+       else
+          n0 = 2
+          if (present(np1)) then
+             np1 = 1
+          end if
+       endif
     !print * ,'nstep = ', tl%nstep, 'qsplit= ', qsplit, 'i_temp = ', i_temp, 'n0 = ', n0
-
+    endif
   end subroutine TimeLevel_Qdp
 
   subroutine TimeLevel_update(tl,uptype)
@@ -123,13 +128,13 @@ contains
        ntmp    = tl%np1
        tl%np1  = tl%n0
        tl%n0   = ntmp
-    else 
+    else
        print *,'WARNING: TimeLevel_update called wint invalid uptype=',uptype
     end if
-       
+
     tl%nstep = tl%nstep+1
 !$OMP END MASTER
-!$OMP BARRIER    
+!$OMP BARRIER
   end subroutine TimeLevel_update
 
-end module time_mod
+end module se_dyn_time_mod

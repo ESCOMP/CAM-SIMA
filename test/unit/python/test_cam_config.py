@@ -72,6 +72,8 @@ class FakeCase:
             "CAM_CPPDEFS" : "UNSET",
             "NTHRDS_ATM" : 1,
             "RUN_STARTDATE" : "101",
+            "CAM_SIM_YEAR" : "2000",
+            "CAM_SIM_TYPE" : None,
             "DEBUG" : False,
             "OPENACC_GPU_OFFLOAD": False
             }
@@ -350,6 +352,10 @@ class CamConfigTestRoutine(unittest.TestCase):
                   'DEBUG:print_config:-----------------------------',
                   'DEBUG:print_config:# Start date of model run.',
                   'DEBUG:print_config:ic_ymd = 101',
+                  'DEBUG:print_config:# Simulation (climatology) year used for namelist defaults.',
+                  'DEBUG:print_config:sim_year = 2000',
+                  'DEBUG:print_config:# Simulation type (e.g. historical) used for namelist defaults.',
+                  'DEBUG:print_config:sim_type = ',
                   'DEBUG:print_config:# Flag to check if debug mode is enabled.',
                   'DEBUG:print_config:debug = 0',
                   'DEBUG:print_config:# Maximum number of columns assigned to a thread.',
