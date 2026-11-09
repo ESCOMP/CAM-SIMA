@@ -1429,7 +1429,7 @@
        <data>surface_albedo_due_to_uv_and_vis_diffuse_from_coupler</data>
        <data>surface_albedo_due_to_uv_and_vis_direct_from_coupler</data>
        <data>surface_upward_ccpp_constituent_fluxes_from_coupler</data>
-       <data>dry_deposition_velocity_from_coupler</data>
+       <data>dry_deposition_velocity_of_dry_deposited_species_from_coupler</data>
        <data>surface_upward_dust_fluxes_from_coupler</data>
        <data>co2_flux_from_land_from_coupler</data>
        <data>co2_flux_from_ocean_from_coupler</data>
