@@ -224,7 +224,7 @@ contains
        call NUOPC_Advertise(exportState, standardName=fldsFrAtm(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    enddo
+    end do
 
     !-----------------
     ! Import fields
@@ -307,7 +307,7 @@ contains
        call NUOPC_Advertise(importState, standardName=fldsToAtm(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    enddo
+    end do
 
   end subroutine advertise_fields
 
@@ -338,6 +338,7 @@ contains
     type(ESMF_Field)      :: lfield
     integer               :: numOwnedElements
     integer               :: n, ierr
+    character(len=512)    :: errmsg
     real(r8), allocatable :: mesh_areas(:)
     real(r8), pointer     :: dataptr(:)
     real(r8)              :: max_mod2med_areacor
@@ -395,21 +396,21 @@ contains
     if ( trim(mesh_lnd) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd) .and. &
          trim(mesh_ocn) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
        samegrid_atm_lnd_ocn = .true.
-    elseif ( trim(mesh_lnd) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
+    else if ( trim(mesh_lnd) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
        samegrid_atm_lnd_ocn = .true.
-    elseif ( trim(mesh_ocn) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd)) then
+    else if ( trim(mesh_ocn) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd)) then
        samegrid_atm_lnd_ocn = .true.
     end if
 
     ! allocate area correction factors
     call ESMF_MeshGet(Emesh, numOwnedElements=numOwnedElements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate (mod2med_areacor(numOwnedElements), stat=ierr)
+    allocate (mod2med_areacor(numOwnedElements), stat=ierr, errmsg=errmsg)
     call check_allocate(ierr, subname, 'mod2med_areacor(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
-    allocate (med2mod_areacor(numOwnedElements), stat=ierr)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate (med2mod_areacor(numOwnedElements), stat=ierr, errmsg=errmsg)
     call check_allocate(ierr, subname, 'med2mod_areacor(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     if (single_column .or. samegrid_atm_lnd_ocn) then
 
@@ -425,9 +426,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       allocate(mesh_areas(numOwnedElements), stat=ierr)
+       allocate(mesh_areas(numOwnedElements), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'mesh_areas(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
        mesh_areas(:) = dataptr(:)
 
        ! Determine flux correction factors (module variables)
@@ -1159,9 +1160,9 @@ contains
              ! Create the field
              if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
-                     ungriddedLbound=(/fldlist(n)%ungridded_lbound/), &
-                     ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
-                     gridToFieldMap=(/2/), rc=rc)
+                     ungriddedLbound=[fldlist(n)%ungridded_lbound], &
+                     ungriddedUbound=[fldlist(n)%ungridded_ubound], &
+                     gridToFieldMap=[2], rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 if (masterproc) then
                    write(iulog,'(a,i8,a,i8)') trim(subname)// trim(tag)//" Field = "//trim(stdname)// &
@@ -1185,7 +1186,7 @@ contains
              if (masterproc) then
                 write(iulog,'(a)')trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is not connected"
              end if
-             call ESMF_StateRemove(state, (/stdname/), rc=rc)
+             call ESMF_StateRemove(state, [stdname], rc=rc)
              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
           end if
        end if
@@ -1217,14 +1218,14 @@ contains
       rc = ESMF_SUCCESS
 
       ! create a DistGrid with a single index space element, which gets mapped onto DE 0.
-      distgrid = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/1/), rc=rc)
+      distgrid = ESMF_DistGridCreate(minIndex=[1], maxIndex=[1], rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
       grid = ESMF_GridCreate(distgrid, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
       field = ESMF_FieldCreate(name=trim(flds_scalar_name), grid=grid, typekind=ESMF_TYPEKIND_R8, &
-           ungriddedLBound=(/1/), ungriddedUBound=(/flds_scalar_num/), gridToFieldMap=(/2/), rc=rc)
+           ungriddedLBound=[1], ungriddedUBound=[flds_scalar_num], gridToFieldMap=[2], rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
     end subroutine SetScalarField
