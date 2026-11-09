@@ -14,9 +14,9 @@ python test_atm_in_paramgen.py -v
 which will currently run 24 tests, all of which should pass.
 """
 
-#----------------------------------------
-#Import required python libraries/modules:
-#----------------------------------------
+# ----------------------------------------
+# Import required python libraries/modules:
+# ----------------------------------------
 import logging
 import os
 import os.path
@@ -25,10 +25,10 @@ import glob
 import filecmp
 import xml.etree.ElementTree as ET
 
-#Python unit-testing library:
+# Python unit-testing library:
 import unittest
 
-#Add directory to python path:
+# Add directory to python path:
 _TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 _CAM_ROOT_DIR = os.path.join(_TEST_DIR, os.pardir, os.pardir, os.pardir)
 _CIME_CONF_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "cime_config"))
@@ -37,7 +37,7 @@ _SAMPLES_DIR = os.path.join(os.path.join(_TEST_DIR, "sample_files"), "atm_in_fil
 _PRE_TMP_DIR = os.path.join(_TEST_DIR, "tmp")
 _TMP_DIR = os.path.join(_PRE_TMP_DIR, "atm_in_paramgen")
 
-#Check for all necessary directories:
+# Check for all necessary directories:
 if not os.path.exists(_CIME_CONF_DIR):
     EMSG = "Cannot find cime_config directory where 'atm_in_paramgen.py' should be located."
     raise ImportError(EMSG)
@@ -45,18 +45,20 @@ if not os.path.exists(_CIME_CONF_DIR):
 if not os.path.exists(_SAMPLES_DIR):
     raise ImportError("Cannot find sample files directory")
 
-#Add "cime_config" directory to python path:
+# Add "cime_config" directory to python path:
 sys.path.append(_CIME_CONF_DIR)
 
-#Import CAM configure objects:
+# Import CAM configure objects:
 # pylint: disable=wrong-import-position
 from atm_in_paramgen import AtmInParamGen
 from atm_in_paramgen import AtmInParamGenError
+
 # pylint: enable=wrong-import-position
 
 #################
-#Helper functions
+# Helper functions
 #################
+
 
 def remove_files(file_list):
     """Remove files in <file_list> if they exist"""
@@ -66,11 +68,13 @@ def remove_files(file_list):
         # End if
     # End for
 
+
 #################
 
-#++++++++++++++++++++++++++++++++++++++++++
-#Create "fake" CIME case to test Config_CAM
-#++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++
+# Create "fake" CIME case to test Config_CAM
+# ++++++++++++++++++++++++++++++++++++++++++
+
 
 class FakeCase:
 
@@ -82,27 +86,25 @@ class FakeCase:
 
     def __init__(self):
 
-
-        #Create dictionary (so get_value works properly):
+        # Create dictionary (so get_value works properly):
         self.conf_opts = {
-            "ATM_GRID" : "f19_f19_mg17",
-            "ATM_NX"   : 180,
-            "ATM_NY"   : 90,
-            "COMP_OCN" : "socn",
-            "COMP_ATM" : "cam",
-            "EXEROOT"  : "/some/made-up/path",
-            "CASEROOT" : "/another/made-up/path",
-            "CAM_CONFIG_OPTS" : "-dyn none --physics-suites something;otherthing",
-            "COMP_ROOT_DIR_ATM" : "/a/third/made-up/path",
-            "CAM_CPPDEFS" : "UNSET",
-            "NTHRDS_ATM" : 1,
-            "RUN_STARTDATE" : "101",
-            "DIN_LOC_ROOT" : "/NOT/HERE",
-            "feel_lucky" : 1 #For testing
-            }
+            "ATM_GRID": "f19_f19_mg17",
+            "ATM_NX": 180,
+            "ATM_NY": 90,
+            "COMP_OCN": "socn",
+            "COMP_ATM": "cam",
+            "EXEROOT": "/some/made-up/path",
+            "CASEROOT": "/another/made-up/path",
+            "CAM_CONFIG_OPTS": "-dyn none --physics-suites something;otherthing",
+            "COMP_ROOT_DIR_ATM": "/a/third/made-up/path",
+            "CAM_CPPDEFS": "UNSET",
+            "NTHRDS_ATM": 1,
+            "RUN_STARTDATE": "101",
+            "DIN_LOC_ROOT": "/NOT/HERE",
+            "feel_lucky": 1,  # For testing
+        }
 
     def get_value(self, key):
-
         """
         Function used to return value
         from conf_opts dictionary,
@@ -113,17 +115,17 @@ class FakeCase:
             val = self.conf_opts[key]
         else:
             val = None
-        #End if
+        # End if
 
         return val
 
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#Main AtmInParamGen testing routine, used when script is run directly
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Main AtmInParamGen testing routine, used when script is run directly
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 class AtmInParamGenTestRoutine(unittest.TestCase):
-
     """
     Runs all AtmInParamGen tests, to ensure
     that the class (and error-handling) methods
@@ -132,26 +134,24 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-
         """Clean output directory (tmp) before running tests"""
-        #Does "tmp" directory exist?  If not then create it:
+        # Does "tmp" directory exist?  If not then create it:
         if not os.path.exists(_PRE_TMP_DIR):
             os.mkdir(_PRE_TMP_DIR)
 
-        #Now check if ""atm_in_paramgen"" directory exists:
+        # Now check if ""atm_in_paramgen"" directory exists:
         if not os.path.exists(_TMP_DIR):
             os.mkdir(_TMP_DIR)
 
-        #Clear out all files:
-        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
+        # Clear out all files:
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, "*.*")))
 
-        #Run inherited setup method:
+        # Run inherited setup method:
         super().setUpClass()
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml(self):
-
         """
         Check that AtmInParamGen can properly parse
         an XML namelist defition file and generate
@@ -185,13 +185,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml_using_attrs(self):
-
         """
         Check that AtmInParamGen can properly parse
         an XML namelist defition file and generate
@@ -203,7 +203,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         fcase = FakeCase()
 
         # Create namelist attribute dictionary:
-        nml_attr_dict = {"bird" : "goose", "never_read" : "0"}
+        nml_attr_dict = {"bird": "goose", "never_read": "0"}
 
         # Get XML file path:
         xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
@@ -229,13 +229,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_from_xml_using_multi_attrs(self):
-
         """
         Check that AtmInParamGen can properly parse
         an XML namelist defition file and generate
@@ -248,7 +248,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         fcase = FakeCase()
 
         # Create namelist attribute dictionary:
-        nml_attr_dict = {"bird" : "goose", "never_read" : "1"}
+        nml_attr_dict = {"bird": "goose", "never_read": "1"}
 
         # Get XML file path:
         xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
@@ -274,13 +274,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_xml_bad_value_entry(self):
-
         """
         Check that AtmInParamGen throws the correct
         error message when an XML namelist file
@@ -291,7 +291,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         fcase = FakeCase()
 
         # Create namelist attribute dictionary:
-        nml_attr_dict = {"bird" : "goose", "never_read" : "0"}
+        nml_attr_dict = {"bird": "goose", "never_read": "0"}
 
         # Get XML file path to original sample file:
         xml_base_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
@@ -301,8 +301,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         base_root = base_tree.getroot()
 
         # Write new namelist entry with "bad" value:
-        bad_namelist_string = \
-        """
+        bad_namelist_string = """
         <entry id="bad_default_entry">
           <type>integer</type>
           <category>more_testing</category>
@@ -342,15 +341,14 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
             pg_test.write(test_output)
 
         # Check exception message
-        emsg =  "Namelist entry 'bad_default_entry' is missing"
+        emsg = "Namelist entry 'bad_default_entry' is missing"
         emsg += " a valid/default 'value' element."
 
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_xml_missing_elems(self):
-
         """
         Check that AtmInParamGen throws the correct
         error message when an XML namelist file
@@ -374,10 +372,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_namelist_defs(self):
-
         """
         Check that using multiple XML namelist
         definition files that are then appended
@@ -388,7 +385,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         fcase = FakeCase()
 
         # Create namelist attribute dictionary:
-        nml_attr_dict = {"bird" : "goose", "spaceship" : "x-wing"}
+        nml_attr_dict = {"bird": "goose", "spaceship": "x-wing"}
 
         # Get XML file paths:
         xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
@@ -399,8 +396,8 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         atm_in_output = os.path.join(_SAMPLES_DIR, "test_multi_xml_in")
 
         # Create the ParamGen objects:
-        pg_test  = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext   = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
         pg_third = AtmInParamGen.from_namelist_xml(third_xml_fil)
 
         # Append two ParamGen objects together:
@@ -424,13 +421,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_same_nl_group(self):
-
         """
         Check that using multiple XML namelist
         definition files that have the same
@@ -444,7 +441,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Create the ParamGen objects:
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the extra PG object to the other:
         with self.assertRaises(AtmInParamGenError) as cerr:
@@ -457,10 +454,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "bird_sounds_nl"
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_mutli_xml_same_nl_var(self):
-
         """
         Check that using multiple XML namelist
         definition files that have the same
@@ -474,7 +470,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Create the ParamGen objects:
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the extra PG object to the other:
         with self.assertRaises(AtmInParamGenError) as cerr:
@@ -487,10 +483,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "duck_quack"
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_mode_from_user_nl_cam(self):
-
         """
         Check that AtmInParamGen can properly change
         the value of a namelist entry based on
@@ -530,13 +525,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_bad_format_entry(self):
-
         """
         Check that a user_nl_cam file with a
         namelist entry that is missing an equals
@@ -549,7 +544,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         xml_test_fil = os.path.join(_SAMPLES_DIR, "test_simple_nml_def.xml")
 
         # Get "user_nl_cam" file paths:
-        user_nl_no_equals  = os.path.join(_SAMPLES_DIR, "test_user_nl_no_equals")
+        user_nl_no_equals = os.path.join(_SAMPLES_DIR, "test_user_nl_no_equals")
         user_nl_bad_equals = os.path.join(_SAMPLES_DIR, "test_user_nl_bad_equals")
 
         # Create the ParamGen object:
@@ -574,10 +569,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += """ :\n'=straw_into_gold = "Rapunzel"\n'"""
         self.assertEqual(emsg, str(cerr.exception))
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_undefined_entry(self):
-
         """
         Check that a user_nl_cam file with a
         namelist entry that has yet to be defined
@@ -603,10 +597,9 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " Please double-check 'user_nl_cam'."
         self.assertEqual(emsg, str(cerr.exception))
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_namelist_user_nl_double_entry(self):
-
         """
         Check that a user_nl_cam file with a
         namelist entry that has been included twice
@@ -631,11 +624,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         user_nl_fil = os.path.join(_SAMPLES_DIR, "test_user_nl_dupl_var")
 
         # Get "user_nl_cam" file that allow duplicates:
-        user_nl_fil_allow_dupl = os.path.join(_SAMPLES_DIR, "test_user_nl_allow_dupl_var")
+        user_nl_fil_allow_dupl = os.path.join(
+            _SAMPLES_DIR, "test_user_nl_allow_dupl_var"
+        )
 
         # Create the ParamGen objects:
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext  = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append ParamGenObjects together:
         pg_test.append_atm_in_pg(pg_ext)
@@ -668,13 +663,13 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_non_array_comma(self):
-
         """
         Check that a user_nl_cam file with
         a namelist entry that is not an array,
@@ -688,7 +683,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("duck_quack = 1 \n")
             nl_file.write(", .false.")
         # End with
@@ -699,18 +694,17 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         # End with
 
         # Check exception message:
-        emsg  = "Line number 2 in 'user_nl_cam'"
+        emsg = "Line number 2 in 'user_nl_cam'"
         emsg += " starts with a comma (,) but the"
         emsg += " associated namelist variable is not an array."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_double_comma(self):
-
         """
         Check that a user_nl_cam file with a
         namelist entry that is an array, but
@@ -727,7 +721,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros = 'mario', 'luigi',\n")
             nl_file.write(", 'wario', 'karl'")
         # End with
@@ -744,13 +738,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "\nPlease remove one of the commas."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_trailing_comma(self):
-
         """
         Check that a user_nl_cam file with a
         namelist entry that is an array, but
@@ -765,7 +758,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros = 'mario', 'luigi',\n")
             nl_file.write("duck_quack = .false.")
         # End with
@@ -781,13 +774,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " the previous entry has a trailing comma (,).  Please fix."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_non_array_dims(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that is not
@@ -803,7 +795,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("duck_quack(5:6) = .true.")
         # End with
 
@@ -817,13 +809,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " dimensions are being specified in 'user_nl_cam'."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_too_many_array_dims(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
@@ -838,7 +829,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros(5,8) = .true.")
         # End with
 
@@ -853,13 +844,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += f" to have 1 dimension."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_too_few_array_dims(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
@@ -874,7 +864,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("body_snatchers(1) = Alien!!!")
         # End with
 
@@ -889,13 +879,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += f" to have 2 dimensions."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_no_stride_val(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
@@ -912,7 +901,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros(2::) = 'Gummo'")
         # End with
 
@@ -928,13 +917,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "extra colon."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_three_colons(self):
-
         """
         Check that a user_nl_cam file
         with a namelist variable that is
@@ -950,7 +938,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros(1:2:3:4) = 'Gummo'")
         # End with
 
@@ -965,13 +953,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " This is not a valid Fortran array section specification."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_colon_dupl(self):
-
         """
         Check that a user_nl_cam file
         with a namelist variable that is
@@ -987,7 +974,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros(:) = 'Gummo'\n")
             nl_file.write("marx_bros(:) = 'Groucho'")
         # End with
@@ -1003,13 +990,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += " dimension 1."
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_arr_index_dupl(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that has an
@@ -1023,14 +1009,14 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         extra_xml_fil = os.path.join(_SAMPLES_DIR, "test_extra_nml_def.xml")
 
         # Create the ParamGen objects:
-        pg_test  = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext   = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the PG objects together:
         pg_test.append_atm_in_pg(pg_ext)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("marx_bros(:) = 'Gummo'\n")
             nl_file.write("marx_bros(4) = 'Groucho'\n\n")
             nl_file.write("lets_ask_computer(:) = 2\n")
@@ -1051,13 +1037,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "7"
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_arr_index_range_dupl(self):
-
         """
         check that a user_nl_cam file with a
         namelist variable that has an array
@@ -1071,20 +1056,20 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         extra_xml_fil = os.path.join(_SAMPLES_DIR, "test_extra_nml_def.xml")
 
         # Create the ParamGen objects:
-        pg_test  = AtmInParamGen.from_namelist_xml(xml_test_fil)
-        pg_ext   = AtmInParamGen.from_namelist_xml(extra_xml_fil)
+        pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
+        pg_ext = AtmInParamGen.from_namelist_xml(extra_xml_fil)
 
         # Append the PG objects together:
         pg_test.append_atm_in_pg(pg_ext)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write('marx_bros = "Gummo"\n')
             nl_file.write('marx_bros(2:) = "Groucho"\n')
             nl_file.write('marx_bros(1) = "Karl"\n')
-            nl_file.write('lets_ask_computer = 2\n')
-            nl_file.write('lets_ask_computer(5:20) = 3\n')
-            nl_file.write('lets_ask_computer(4) = 4\n')
+            nl_file.write("lets_ask_computer = 2\n")
+            nl_file.write("lets_ask_computer(5:20) = 3\n")
+            nl_file.write("lets_ask_computer(4) = 4\n")
             nl_file.write("lets_ask_computer(:11) = 5 !Should fail here")
         # End with
 
@@ -1101,13 +1086,12 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         emsg += "4, 5, 6, 7, 8, 9, 10, 11"
         self.assertEqual(emsg, str(cerr.exception))
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
-    #+++++++++++++++++++++++++++++++++++++++++++++++++
+    # +++++++++++++++++++++++++++++++++++++++++++++++++
 
     def test_user_nl_complex_array_dims(self):
-
         """
         Check that a user_nl_cam file with
         a namelist variable that is an array,
@@ -1127,7 +1111,7 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
         pg_test = AtmInParamGen.from_namelist_xml(xml_test_fil)
 
         # Create temporary user_nl_cam file:
-        with open("user_nl_tmp", "w", encoding='utf-8') as nl_file:
+        with open("user_nl_tmp", "w", encoding="utf-8") as nl_file:
             nl_file.write("swedish_chef(15:10:-2) = 'bork', 'bork', 'bork'\n")
             nl_file.write("swedish_chef(7:9:2) = 'not bork', 'not bork'\n")
             nl_file.write("swedish_chef(1) = ''\n")
@@ -1151,19 +1135,21 @@ class AtmInParamGenTestRoutine(unittest.TestCase):
 
         # Check that output file matches expected file:
         amsg = f"{test_output} does not match {atm_in_output}"
-        self.assertTrue(filecmp.cmp(test_output, atm_in_output, shallow=False), \
-                        msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(test_output, atm_in_output, shallow=False), msg=amsg
+        )
 
-        #Remove temporary user_nl_cam file
+        # Remove temporary user_nl_cam file
         os.remove("user_nl_tmp")
 
+
 #################################################
-#Run unit tests if this script is called directly
+# Run unit tests if this script is called directly
 #################################################
 
 if __name__ == "__main__":
     unittest.main()
 
 ############
-#End of file
+# End of file
 ############

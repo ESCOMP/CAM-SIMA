@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # Description:  Contains unit tests for testing CAM "phys_init" code
 #               generation using the registry and CCPP physics suites.
 #
@@ -8,7 +8,7 @@
 # Command line arguments: none
 #
 # Usage: python "write_init_unit_tests.py"         # run the unit tests
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 """Test write_init_files in write_init_files.py"""
 
@@ -30,15 +30,19 @@ _TMP_DIR = os.path.join(_PRE_TMP_DIR, "write_init_files")
 _SRC_MOD_DIR = os.path.join(_PRE_TMP_DIR, "SourceMods")
 _INC_SEARCH_DIRS = [_SRC_MOD_DIR, __REGISTRY_DIR]
 
-__FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
+__FILE_OPEN = lambda x: open(x, "r", encoding="utf-8")
 
-#Check for all necessary directories:
+# Check for all necessary directories:
 if not os.path.exists(__CCPP_DIR):
-    EMSG = "Cannot find CCPP framework directory where 'ccpp_capgen.py' should be located."
+    EMSG = (
+        "Cannot find CCPP framework directory where 'ccpp_capgen.py' should be located."
+    )
     raise ImportError(EMSG)
 
 if not os.path.exists(__REGISTRY_DIR):
-    EMSG = "Cannot find registry directory where 'write_init_files.py' should be located."
+    EMSG = (
+        "Cannot find registry directory where 'write_init_files.py' should be located."
+    )
     raise ImportError(EMSG)
 
 if not os.path.exists(_REG_SAMPLES_DIR):
@@ -47,12 +51,12 @@ if not os.path.exists(_REG_SAMPLES_DIR):
 if not os.path.exists(_INIT_SAMPLES_DIR):
     raise ImportError("Cannot find 'write_init_files' sample files directory")
 
-#Add CCPP framework directory to python path to
-#import capgen code generator:
+# Add CCPP framework directory to python path to
+# import capgen code generator:
 sys.path.append(__CCPP_DIR)
 
-#Add registry directory to python path to import
-#registry and 'phys_init' code generators:
+# Add registry directory to python path to import
+# registry and 'phys_init' code generators:
 sys.path.append(__REGISTRY_DIR)
 
 # pylint: disable=wrong-import-position
@@ -60,11 +64,13 @@ from ccpp_capgen import capgen
 from framework_env import CCPPFrameworkEnv
 from generate_registry_data import gen_registry
 import write_init_files as write_init
+
 # pylint: enable=wrong-import-position
+
 
 ###############################################################################
 def remove_files(file_list):
-###############################################################################
+    ###############################################################################
     """Remove files in <file_list> if they exist"""
     for fpath in file_list:
         if os.path.exists(fpath):
@@ -72,11 +78,12 @@ def remove_files(file_list):
         # End if
     # End for
 
+
 ###############################################################################
 def find_file(filename, search_dirs):
-###############################################################################
+    ###############################################################################
     """Look for <filename> in <path_list>.
-       Return the found path and the match directory (from <path_list>).
+    Return the found path and the match directory (from <path_list>).
     """
     match_file = None
     for sdir in search_dirs:
@@ -88,10 +95,11 @@ def find_file(filename, search_dirs):
     # End for
     return match_file
 
+
 ###############################################################################
 
-class WriteInitTest(unittest.TestCase):
 
+class WriteInitTest(unittest.TestCase):
     """Tests for `write_init_files`."""
 
     @classmethod
@@ -111,7 +119,7 @@ class WriteInitTest(unittest.TestCase):
         # end if
 
         # Clear out all files:
-        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, "*.*")))
 
         # Run inherited setup method:
         super(cls, WriteInitTest).setUpClass()
@@ -127,12 +135,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
 
@@ -151,39 +159,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_simple")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -193,11 +221,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_simple_reg_constituent_write_init(self):
         """
@@ -210,12 +240,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_cnst.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_cnst.xml")
 
@@ -234,39 +264,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_constituent")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, _, ic_names, constituents, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                          _SRC_MOD_DIR, _CAM_ROOT,
-                                          loglevel=logging.ERROR,
-                                          error_on_no_validate=True)
+        _, _, ic_names, constituents, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, constituents, [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            ic_names,
+            constituents,
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -276,11 +326,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_simple_initial_value_write_init(self):
         """
@@ -293,12 +345,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg_initial_value.xml")
         out_source_name = "physics_types_simple_initial_value"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
 
@@ -317,39 +369,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_initial_value")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, _, ic_names, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                                          _SRC_MOD_DIR, _CAM_ROOT,
-                                                          loglevel=logging.ERROR,
-                                                          error_on_no_validate=True)
+        _, _, ic_names, _, vars_init_value = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, [], vars_init_value, _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            ic_names,
+            [],
+            vars_init_value,
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -359,11 +431,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_no_reqvar_write_init(self):
         """
@@ -376,12 +450,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "no_req_var_reg.xml")
         out_source_name = "physics_types_no_req_var"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_noreq.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_req_var.xml")
 
@@ -399,39 +473,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_noreq")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -441,11 +535,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_protected_reg_write_init(self):
         """
@@ -458,12 +554,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "protected_reg.xml")
         out_source_name = "physics_types_protected"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_protected.xml")
 
@@ -482,39 +578,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_protect")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -524,11 +640,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_host_input_var_write_init(self):
         """
@@ -542,12 +660,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "host_var_reg.xml")
         out_source_name = "physics_types_host_var"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"host_var_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "host_var_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_host_var.xml")
 
@@ -566,35 +684,55 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_missing")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message
         rmsg = ""
@@ -608,11 +746,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_no_horiz_var_write_init(self):
         """
@@ -627,14 +767,13 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "no_horiz_dim_reg.xml")
         out_source_name = "physics_types_no_horiz"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR,
-                                    "temp_adjust_no_horiz.meta")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
+        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_no_horiz.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_horiz.xml")
 
         host_files = [model_host, out_meta]
@@ -652,42 +791,65 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_no_horiz")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                        find_file, _INC_SEARCH_DIRS,
-                                        3, logger,
-                                        phys_check_filename=vic_name,
-                                        phys_input_filename=pi_name)
+        _ = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_scalar_var_write_init(self):
         """
@@ -701,14 +863,13 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "scalar_var_reg.xml")
         out_source_name = "physics_types_scalar_var"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR,
-                                    "temp_adjust_scalar.meta")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
+        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_scalar.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_scalar.xml")
 
         host_files = [model_host, out_meta]
@@ -726,43 +887,65 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_scalar")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
         kind_types = ["kind_phys=REAL64"]
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        _ = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                        find_file, _INC_SEARCH_DIRS,
-                                        3, logger,
-                                        phys_check_filename=vic_name,
-                                        phys_input_filename=pi_name)
+        _ = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_4d_5d_var_write_init(self):
         """
@@ -778,17 +961,16 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "var_4D_reg.xml")
         out_source_name = "physics_types_4D"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_4D.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_4D.xml")
 
         host_files = [model_host, out_meta]
-
 
         # Setup write_init_files inputs:
         vic_name = "phys_vars_init_check_4D.F90"
@@ -803,34 +985,54 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_4D")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                   loglevel=logging.ERROR,
-                                   error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
         kind_types = ["kind_phys=REAL64"]
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=inputs_fname)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=inputs_fname,
+        )
 
         # Check return message
         rmsg = ""
@@ -838,11 +1040,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_ddt_reg_write_init(self):
         """
@@ -855,12 +1059,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "ddt_reg.xml")
         out_source_name = "physics_types_ddt"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt.xml")
 
@@ -878,37 +1082,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_ddt")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return code:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -918,11 +1143,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_ddt2_reg_write_init(self):
         """
@@ -935,12 +1162,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "ddt2_reg.xml")
         out_source_name = "physics_types_ddt2"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt2.xml")
 
@@ -959,38 +1186,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_ddt2")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                         _SRC_MOD_DIR, _CAM_ROOT,
-                                         loglevel=logging.ERROR,
-                                         error_on_no_validate=True)
+        _, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return code:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1000,11 +1247,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_ddt_array_reg_write_init(self):
         """
@@ -1017,12 +1266,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "ddt_array_reg.xml")
         out_source_name = "physics_types_ddt_array"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_array.xml")
 
@@ -1040,38 +1289,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_ddt_array")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, _, ic_names, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                            _SRC_MOD_DIR, _CAM_ROOT,
-                                            loglevel=logging.ERROR,
-                                            error_on_no_validate=True)
+        _, _, ic_names, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            ic_names,
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return code:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1081,11 +1350,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_ddt_scheme_arg_write_init(self):
         """
@@ -1099,15 +1370,17 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
         ddt_host_mod = os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_host_mod.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_ddt_arg.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
-                        os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_scheme.meta")]
+        scheme_files = [
+            os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+            os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_scheme.meta"),
+        ]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_arg.xml")
 
         host_files = [model_host, ddt_host_mod, out_meta]
@@ -1124,38 +1397,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_ddt_arg")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1166,11 +1459,13 @@ class WriteInitTest(unittest.TestCase):
         # For each output file, make sure it matches input file.
         # The DDT variable must not appear in either file.
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_meta_file_reg_write_init(self):
         """
@@ -1182,13 +1477,13 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "mf_reg.xml")
         out_source_name = "physics_types_mf"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        model_mf_file = os.path.join(_INIT_SAMPLES_DIR,"ref_theta.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        model_mf_file = os.path.join(_INIT_SAMPLES_DIR, "ref_theta.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_mf.xml")
 
@@ -1206,38 +1501,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_mf")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return code:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1247,11 +1562,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_parameter_reg_write_init(self):
         """
@@ -1264,12 +1581,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "param_reg.xml")
         out_source_name = "physics_types_param"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_param.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_param.xml")
 
@@ -1287,38 +1604,58 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_param")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return code:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1328,11 +1665,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_bad_vertical_dimension(self):
         """
@@ -1348,12 +1687,12 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "var_bad_vertdim.xml")
         out_source_name = "physics_types_bad_vertdim"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_bvd.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_bad_vertdim.xml")
 
@@ -1372,34 +1711,54 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_bvd")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types=['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
         cap_database = capgen(run_env, return_db=True)
 
         # Run test
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check exception message
         emsg = ""
@@ -1407,11 +1766,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_out, check_init_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_out, check_init_in, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_out, phys_input_in,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_out, phys_input_in, shallow=False), msg=amsg
+        )
 
     def test_simple_constituent_dimensioned_var_write_init(self):
         """
@@ -1425,13 +1786,15 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg_constituent_dim.xml")
         out_source_name = "physics_types_simple_constituent_dim"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_constituent_dim.meta")
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_simple.xml")
+        scheme_files = os.path.join(
+            _INIT_SAMPLES_DIR, "temp_adjust_constituent_dim.meta"
+        )
         cap_datafile = os.path.join(_TMP_DIR, "datatable_constituent_dim.xml")
 
         host_files = [model_host, out_meta]
@@ -1449,39 +1812,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_constituent_dim")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _, _, ic_names, constituents, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
-                                          _SRC_MOD_DIR, _CAM_ROOT,
-                                          loglevel=logging.ERROR,
-                                          error_on_no_validate=True)
+        _, _, ic_names, constituents, vars_init_value = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, ic_names, constituents, vars_init_value, _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            ic_names,
+            constituents,
+            vars_init_value,
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1491,11 +1874,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_set_before_use_write_init(self):
         """
@@ -1512,14 +1897,16 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_set_before_use.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
-                        os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_set_before_use.xml")
+        scheme_files = [
+            os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+            os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta"),
+        ]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_set_before_use.xml")
 
         host_files = [model_host, out_meta]
@@ -1537,39 +1924,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_set_before_use")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1579,11 +1986,13 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
 
     def test_use_before_set_write_init(self):
         """
@@ -1599,14 +2008,16 @@ class WriteInitTest(unittest.TestCase):
         # Setup registry inputs:
         filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_use_before_set.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
-                        os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
+        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_use_before_set.xml")
+        scheme_files = [
+            os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+            os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta"),
+        ]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_use_before_set.xml")
 
         host_files = [model_host, out_meta]
@@ -1624,39 +2035,59 @@ class WriteInitTest(unittest.TestCase):
         logger = logging.getLogger("write_init_files_use_before_set")
 
         # Clear all temporary output files:
-        remove_files([out_source, out_meta, cap_datafile,
-                      check_init_out, phys_input_out])
+        remove_files(
+            [out_source, out_meta, cap_datafile, check_init_out, phys_input_out]
+        )
 
         # Generate registry files:
-        _ = gen_registry(filename, 'se', _TMP_DIR, 3,
-                         _SRC_MOD_DIR, _CAM_ROOT,
-                         loglevel=logging.ERROR,
-                         error_on_no_validate=True)
+        _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            3,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Generate CCPP capgen files:
-        kind_types = ['kind_phys=REAL64']
-        run_env = CCPPFrameworkEnv(logger, host_files=host_files,
-                                   scheme_files=scheme_files, suites=sdf,
-                                   preproc_directives='',
-                                   generate_docfiles=False,
-                                   host_name='cam', kind_types=kind_types,
-                                   use_error_obj=False,
-                                   force_overwrite=True,
-                                   output_root=_TMP_DIR,
-                                   ccpp_datafile=cap_datafile)
+        kind_types = ["kind_phys=REAL64"]
+        run_env = CCPPFrameworkEnv(
+            logger,
+            host_files=host_files,
+            scheme_files=scheme_files,
+            suites=sdf,
+            preproc_directives="",
+            generate_docfiles=False,
+            host_name="cam",
+            kind_types=kind_types,
+            use_error_obj=False,
+            force_overwrite=True,
+            output_root=_TMP_DIR,
+            ccpp_datafile=cap_datafile,
+        )
 
         cap_database = capgen(run_env, return_db=True)
 
         # Generate physics initialization files:
-        retmsg = write_init.write_init_files(cap_database, {}, [], [], _TMP_DIR,
-                                             find_file, _INC_SEARCH_DIRS,
-                                             3, logger,
-                                             phys_check_filename=vic_name,
-                                             phys_input_filename=pi_name)
+        retmsg = write_init.write_init_files(
+            cap_database,
+            {},
+            [],
+            [],
+            _TMP_DIR,
+            find_file,
+            _INC_SEARCH_DIRS,
+            3,
+            logger,
+            phys_check_filename=vic_name,
+            phys_input_filename=pi_name,
+        )
 
         # Check return message:
         amsg = f"Test failure: retmsg={retmsg}"
-        self.assertEqual(retmsg, '', msg=amsg)
+        self.assertEqual(retmsg, "", msg=amsg)
 
         # Make sure each output file was created:
         amsg = f"{check_init_out} does not exist"
@@ -1666,13 +2097,16 @@ class WriteInitTest(unittest.TestCase):
 
         # For each output file, make sure it matches input file
         amsg = f"{check_init_out} does not match {check_init_in}"
-        self.assertTrue(filecmp.cmp(check_init_in, check_init_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(check_init_in, check_init_out, shallow=False), msg=amsg
+        )
         amsg = f"{phys_input_out} does not match {phys_input_in}"
-        self.assertTrue(filecmp.cmp(phys_input_in, phys_input_out,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(
+            filecmp.cmp(phys_input_in, phys_input_out, shallow=False), msg=amsg
+        )
+
 
 ##########
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

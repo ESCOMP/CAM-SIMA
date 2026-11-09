@@ -6,20 +6,20 @@ need to be run as part of a current build.
 To run doctests on this file: python cam_build_cache.py
 """
 
-#----------------------------------------
+# ----------------------------------------
 # Import generic python libraries/modules
-#----------------------------------------
+# ----------------------------------------
 import sys
 import os
 import hashlib
 import xml.etree.ElementTree as ET
-from xml.dom import minidom #Used to pretty-print cache file
+from xml.dom import minidom  # Used to pretty-print cache file
 
 # Find and include the ccpp-framework scripts directory
 # Assume we are in <CAMROOT>/cime_config and CCPP_FRAMEWORK is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
-__CCPP_FRAMEWORK = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
+__CCPP_FRAMEWORK = os.path.join(__CAMROOT, "ccpp_framework", "scripts")
 if __CCPP_FRAMEWORK not in sys.path:
     sys.path.append(__CCPP_FRAMEWORK)
 # end if
@@ -27,11 +27,13 @@ if __CCPP_FRAMEWORK not in sys.path:
 # CCPP framework imports
 # pylint: disable=wrong-import-position
 from parse_tools import read_xml_file
+
 # pylint: enable=wrong-import-position
+
 
 ###############################################################################
 def new_xml_entry(parent, tag, path, file_hash):
-###############################################################################
+    ###############################################################################
     """
     Create a new file type entry in the cache
 
@@ -42,13 +44,14 @@ def new_xml_entry(parent, tag, path, file_hash):
     <test file_path="/no/where" hash="banana" />
     """
     new_entry = ET.SubElement(parent, tag)
-    new_entry.set('file_path', path)
-    new_entry.set('hash', file_hash)
+    new_entry.set("file_path", path)
+    new_entry.set("hash", file_hash)
     return new_entry
+
 
 ###############################################################################
 def new_entry_from_xml(item):
-###############################################################################
+    ###############################################################################
     """Create a new FileStatus entry from XML entry, <item>.
         ValueError is thrown in error.
 
@@ -84,8 +87,8 @@ def new_entry_from_xml(item):
     ValueError: ERROR: Invalid 'test' XML item
 
     """
-    path = item.get('file_path', default=None)
-    file_hash = item.get('hash', default=None)
+    path = item.get("file_path", default=None)
+    file_hash = item.get("hash", default=None)
     new_entry = None
     if path and file_hash:
         new_entry = FileStatus(path, item.tag, file_hash)
@@ -100,25 +103,26 @@ def new_entry_from_xml(item):
     # end if
     return new_entry
 
+
 ###############################################################################
 def clean_xml_text(item):
-###############################################################################
+    ###############################################################################
     """Return a 'clean' (stripped) version of <item>.text or an empty
-       string if <item>.text is None or not a string-type variable
+    string if <item>.text is None or not a string-type variable
 
-       doctests
+    doctests
 
-       1. Test that the function works as expected when passed a string.
-       >>> test_xml = ET.Element("text")
-       >>> test_xml.text = " THIS IS A test "
-       >>> clean_xml_text(test_xml)
-       'THIS IS A test'
+    1. Test that the function works as expected when passed a string.
+    >>> test_xml = ET.Element("text")
+    >>> test_xml.text = " THIS IS A test "
+    >>> clean_xml_text(test_xml)
+    'THIS IS A test'
 
-       2. Verify that the function returns an empty string when not passed a string.
-       >>> test_xml = ET.Element("text")
-       >>> test_xml.text = 2
-       >>> clean_xml_text(test_xml)
-       ''
+    2. Verify that the function returns an empty string when not passed a string.
+    >>> test_xml = ET.Element("text")
+    >>> test_xml.text = 2
+    >>> clean_xml_text(test_xml)
+    ''
 
     """
     itext = item.text
@@ -127,6 +131,7 @@ def clean_xml_text(item):
         iret = itext.strip()
     # end if
     return iret
+
 
 class FileStatus:
     """Class to hold full path and SHA hash of a file"""
@@ -138,7 +143,7 @@ class FileStatus:
         <description> is used to generate any error messages."""
         self.__path = file_path
         if file_hash:
-             # Add an existing entry
+            # Add an existing entry
             self.__hash = file_hash
         elif os.path.exists(self.__path):
             self.__hash = FileStatus.sha1sum(self.__path)
@@ -182,14 +187,15 @@ class FileStatus:
         https://stackoverflow.com/questions/22058048/hashing-a-file-in-python/44873382#44873382
         """
         file_hash = hashlib.sha1()
-        barray = bytearray(128*1024)
+        barray = bytearray(128 * 1024)
         mem_view = memoryview(barray)
-        with open(filename, 'rb', buffering=0) as infile:
+        with open(filename, "rb", buffering=0) as infile:
             for num_read in iter(lambda: infile.readinto(mem_view), 0):
                 file_hash.update(mem_view[:num_read])
             # end for
         # end with
         return file_hash.hexdigest()
+
 
 class BuildCacheCAM:
     """Class to store and check the state of all files involved in
@@ -232,77 +238,78 @@ class BuildCacheCAM:
             # Initialize build cache state
             _, cache = read_xml_file(build_cache)
             for section in cache:
-                if section.tag == 'registry':
+                if section.tag == "registry":
                     for item in section:
-                        if item.tag == 'generate_registry_file':
+                        if item.tag == "generate_registry_file":
                             new_entry = new_entry_from_xml(item)
                             self.__gen_reg_file = new_entry
-                        elif item.tag == 'generate_init_file':
+                        elif item.tag == "generate_init_file":
                             new_entry = new_entry_from_xml(item)
                             self.__gen_init_file = new_entry
-                        elif item.tag == 'registry_file':
+                        elif item.tag == "registry_file":
                             new_entry = new_entry_from_xml(item)
                             self.__registry_files[new_entry.key] = new_entry
-                        elif item.tag == 'dycore':
+                        elif item.tag == "dycore":
                             self.__dycore = item.text
-                        elif item.tag == 'reg_gen_file':
+                        elif item.tag == "reg_gen_file":
                             self.__reg_gen_files.append(clean_xml_text(item))
-                        elif item.tag == 'ic_name_entry':
-                            stdname = item.get('standard_name')
+                        elif item.tag == "ic_name_entry":
+                            stdname = item.get("standard_name")
                             if stdname not in self.__ic_names:
                                 self.__ic_names[stdname] = []
                             # end if
                             itext = clean_xml_text(item)
                             self.__ic_names[stdname].append(itext)
-                        elif item.tag == 'constituent_entry':
-                            stdname = item.get('standard_name')
+                        elif item.tag == "constituent_entry":
+                            stdname = item.get("standard_name")
                             itext = clean_xml_text(item)
                             self.__constituents.append(itext)
-                        elif item.tag == 'vars_init_value_entry':
+                        elif item.tag == "vars_init_value_entry":
                             itext = clean_xml_text(item)
                             self.__vars_init_value.append(itext)
                         else:
                             emsg = "ERROR: Unknown registry tag, '{}'"
                             raise ValueError(emsg.format(item.tag))
                         # end if
-                elif section.tag == 'CCPP':
+                elif section.tag == "CCPP":
                     for item in section:
-                        if item.tag == 'SDF':
+                        if item.tag == "SDF":
                             new_entry = new_entry_from_xml(item)
                             self.__sdfs[new_entry.key] = new_entry
-                        elif item.tag == 'scheme':
+                        elif item.tag == "scheme":
                             new_entry = new_entry_from_xml(item)
                             self.__schemes[new_entry.key] = new_entry
-                        elif item.tag == 'host':
+                        elif item.tag == "host":
                             new_entry = new_entry_from_xml(item)
                             self.__host_files[new_entry.key] = new_entry
-                        elif item.tag == 'create_nl_file':
+                        elif item.tag == "create_nl_file":
                             new_entry = new_entry_from_xml(item)
                             self.__create_nl_file = new_entry
-                        elif item.tag == 'xml_file':
+                        elif item.tag == "xml_file":
                             new_entry = new_entry_from_xml(item)
                             self.__xml_files[new_entry.key] = new_entry
-                        elif item.tag == 'scheme_namelist_meta_file':
+                        elif item.tag == "scheme_namelist_meta_file":
                             if isinstance(item.text, str):
                                 if item.text:
                                     self.__scheme_nl_metadata.append(item.text.strip())
                                 # end if
                             # end if
-                        elif item.tag == 'scheme_namelist_groups':
+                        elif item.tag == "scheme_namelist_groups":
                             group_list = []
                             if isinstance(item.text, str):
                                 if item.text:
-                                    group_list = [x for x in
-                                                  item.text.strip().split(' ') if x]
+                                    group_list = [
+                                        x for x in item.text.strip().split(" ") if x
+                                    ]
                                 # end if
                             # end if
                             self.__scheme_nl_groups = group_list
-                        elif item.tag == 'preproc_defs':
+                        elif item.tag == "preproc_defs":
                             self.__preproc_defs = clean_xml_text(item)
-                        elif item.tag == 'kind_type':
+                        elif item.tag == "kind_type":
                             if isinstance(item.text, str):
                                 if item.text:
-                                    kname, ktype = item.text.strip().split('=')
+                                    kname, ktype = item.text.strip().split("=")
                                     self.__kind_types[kname.strip()] = ktype.strip()
                                 # end if
                             # end if
@@ -317,19 +324,26 @@ class BuildCacheCAM:
             # end for
         # end if (no else, we just have an almost empty object)
         # We always need a default definition for kind_phys
-        if 'kind_phys' not in self.__kind_types:
-            self.__kind_types['kind_phys'] = 'REAL64'
+        if "kind_phys" not in self.__kind_types:
+            self.__kind_types["kind_phys"] = "REAL64"
         # end if
 
-    def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names, constituents, vars_init_value):
-        """Replace the registry cache data with input data
-        """
+    def update_registry(
+        self,
+        gen_reg_file,
+        registry_source_files,
+        dycore,
+        reg_file_list,
+        ic_names,
+        constituents,
+        vars_init_value,
+    ):
+        """Replace the registry cache data with input data"""
         self.__dycore = dycore
-        self.__gen_reg_file = FileStatus(gen_reg_file, 'generate_registry_file')
+        self.__gen_reg_file = FileStatus(gen_reg_file, "generate_registry_file")
         self.__registry_files = {}
         for rfile in registry_source_files:
-            new_entry = FileStatus(rfile, 'registry_file')
+            new_entry = FileStatus(rfile, "registry_file")
             self.__registry_files[new_entry.key] = new_entry
         # end for
         # reg_file_list contains the files generated from the registry
@@ -340,40 +354,48 @@ class BuildCacheCAM:
         self.__constituents = constituents
         self.__vars_init_value = vars_init_value
 
-    def update_ccpp(self, suite_definition_files, scheme_files, host_files,
-                    xml_files, namelist_meta_files, namelist_groups,
-                    create_nl_file, preproc_defs, kind_types):
-        """Replace the ccpp cache data with input data
-        """
+    def update_ccpp(
+        self,
+        suite_definition_files,
+        scheme_files,
+        host_files,
+        xml_files,
+        namelist_meta_files,
+        namelist_groups,
+        create_nl_file,
+        preproc_defs,
+        kind_types,
+    ):
+        """Replace the ccpp cache data with input data"""
         self.__preproc_defs = preproc_defs
         self.__kind_types = {}
         for kind_def in kind_types:
-            name, ktype = [x.strip() for x in kind_def.split('=')]
+            name, ktype = [x.strip() for x in kind_def.split("=")]
             self.__kind_types[name] = ktype
         # end for
         self.__sdfs = {}
         for sfile in suite_definition_files:
-            new_entry = FileStatus(sfile, 'SDF')
+            new_entry = FileStatus(sfile, "SDF")
             self.__sdfs[new_entry.key] = new_entry
         # end for
         self.__schemes = {}
         for sfile in scheme_files:
-            new_entry = FileStatus(sfile, 'scheme')
+            new_entry = FileStatus(sfile, "scheme")
             self.__schemes[new_entry.key] = new_entry
         # end for
         self.__host_files = {}
         for hfile in host_files:
-            new_entry = FileStatus(hfile, 'host')
+            new_entry = FileStatus(hfile, "host")
             self.__host_files[new_entry.key] = new_entry
         # end for
         self.__xml_files = {}
         for sfile in xml_files.values():
-            new_entry = FileStatus(sfile, 'xml_file')
+            new_entry = FileStatus(sfile, "xml_file")
             self.__xml_files[new_entry.key] = new_entry
         # end for
         self.__scheme_nl_metadata = namelist_meta_files
         self.__scheme_nl_groups = namelist_groups
-        self.__create_nl_file = FileStatus(create_nl_file, 'create_nl_file')
+        self.__create_nl_file = FileStatus(create_nl_file, "create_nl_file")
 
     def update_init_gen(self, gen_init_file):
         """
@@ -381,88 +403,95 @@ class BuildCacheCAM:
         (generate_registry_data.py) cache
         data with input data
         """
-        self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
+        self.__gen_init_file = FileStatus(gen_init_file, "generate_init_file")
 
     def write(self):
         """Write out the current cache state"""
         new_cache = ET.Element("CAMBuildCache")
         # Registry
-        registry = ET.SubElement(new_cache, 'registry')
-        new_xml_entry(registry, 'generate_init_file',
-                      self.__gen_init_file.file_path,
-                      self.__gen_init_file.file_hash)
-        new_xml_entry(registry, 'generate_registry_file',
-                      self.__gen_reg_file.file_path,
-                      self.__gen_reg_file.file_hash)
+        registry = ET.SubElement(new_cache, "registry")
+        new_xml_entry(
+            registry,
+            "generate_init_file",
+            self.__gen_init_file.file_path,
+            self.__gen_init_file.file_hash,
+        )
+        new_xml_entry(
+            registry,
+            "generate_registry_file",
+            self.__gen_reg_file.file_path,
+            self.__gen_reg_file.file_hash,
+        )
         for rfile in self.__registry_files.values():
-            new_xml_entry(registry, 'registry_file',
-                          rfile.file_path, rfile.file_hash)
+            new_xml_entry(registry, "registry_file", rfile.file_path, rfile.file_hash)
         # end for
-        dycore = ET.SubElement(registry, 'dycore')
+        dycore = ET.SubElement(registry, "dycore")
         dycore.text = self.__dycore
         for rgen_file in self.__reg_gen_files:
-            rgen_entry = ET.SubElement(registry, 'reg_gen_file')
+            rgen_entry = ET.SubElement(registry, "reg_gen_file")
             rgen_entry.text = rgen_file
         # end for
         for stdname, ic_names in self.__ic_names.items():
             for ic_name in ic_names:
-                ic_entry = ET.SubElement(registry, 'ic_name_entry')
-                ic_entry.set('standard_name', stdname)
+                ic_entry = ET.SubElement(registry, "ic_name_entry")
+                ic_entry.set("standard_name", stdname)
                 ic_entry.text = ic_name
             # end for
         # end for
         for stdname in self.__constituents:
-            const_entry = ET.SubElement(registry, 'constituent_entry')
+            const_entry = ET.SubElement(registry, "constituent_entry")
             const_entry.text = stdname
         # end for
         for stdname in self.__vars_init_value:
-            var_entry = ET.SubElement(registry, 'vars_init_value_entry')
+            var_entry = ET.SubElement(registry, "vars_init_value_entry")
             var_entry.text = stdname
         # CCPP
-        ccpp = ET.SubElement(new_cache, 'CCPP')
+        ccpp = ET.SubElement(new_cache, "CCPP")
         for sfile in self.__sdfs.values():
-            new_xml_entry(ccpp, 'SDF', sfile.file_path, sfile.file_hash)
+            new_xml_entry(ccpp, "SDF", sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__schemes.values():
-            new_xml_entry(ccpp, 'scheme', sfile.file_path, sfile.file_hash)
+            new_xml_entry(ccpp, "scheme", sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__host_files.values():
-            new_xml_entry(ccpp, 'host', sfile.file_path, sfile.file_hash)
+            new_xml_entry(ccpp, "host", sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__xml_files.values():
-            new_xml_entry(ccpp, 'xml_file', sfile.file_path, sfile.file_hash)
+            new_xml_entry(ccpp, "xml_file", sfile.file_path, sfile.file_hash)
         # end for
         for sfile in self.__scheme_nl_metadata:
-            scheme_nlmeta = ET.SubElement(ccpp, 'scheme_namelist_meta_file')
+            scheme_nlmeta = ET.SubElement(ccpp, "scheme_namelist_meta_file")
             scheme_nlmeta.text = sfile
         # end for
         if self.__scheme_nl_groups:
-            scheme_nlgroups = ET.SubElement(ccpp, 'scheme_namelist_groups')
+            scheme_nlgroups = ET.SubElement(ccpp, "scheme_namelist_groups")
             scheme_nlgroups.text = " ".join(self.__scheme_nl_groups)
-        #end if
-        new_xml_entry(ccpp, 'create_nl_file',
-                      self.__create_nl_file.file_path,
-                      self.__create_nl_file.file_hash)
-        preproc = ET.SubElement(ccpp, 'preproc_defs')
+        # end if
+        new_xml_entry(
+            ccpp,
+            "create_nl_file",
+            self.__create_nl_file.file_path,
+            self.__create_nl_file.file_hash,
+        )
+        preproc = ET.SubElement(ccpp, "preproc_defs")
         preproc.text = self.__preproc_defs
         for kind_def, kind_type in self.__kind_types.items():
-            kind_elem = ET.SubElement(ccpp, 'kind_type')
+            kind_elem = ET.SubElement(ccpp, "kind_type")
             kind_elem.text = f"{kind_def}={kind_type}"
         # end for
 
-        #Combine elments into an Element Tree object:
+        # Combine elments into an Element Tree object:
         new_cache_tree = ET.ElementTree(new_cache)
 
-        #Convert Element Tree to a Document Object Model (DOM) XML object:
+        # Convert Element Tree to a Document Object Model (DOM) XML object:
         dom_xml = minidom.parseString(ET.tostring(new_cache_tree.getroot()))
 
-        #Write XML in a "pretty-print" format:
+        # Write XML in a "pretty-print" format:
         with open(self.__build_cache, "w", encoding="UTF-8") as xml_file:
             xml_file.write(dom_xml.toprettyxml(indent="   "))
-        #End with
+        # End with
 
-    def registry_mismatch(self, gen_reg_file, registry_source_files,
-                          dycore):
+    def registry_mismatch(self, gen_reg_file, registry_source_files, dycore):
         """
         Determine if the registry input data differs from the data
         stored in our cache. Return True if the data differs.
@@ -476,8 +505,7 @@ class BuildCacheCAM:
         # Note that this method will ignore duplicated files.
         if not mismatch:
             my_reg_keys = set(self.__registry_files.keys())
-            test_reg_keys = {FileStatus.gen_key(x)
-                             for x in registry_source_files}
+            test_reg_keys = {FileStatus.gen_key(x) for x in registry_source_files}
             mismatch = my_reg_keys != test_reg_keys
             for ref_file in registry_source_files:
                 if mismatch:
@@ -490,19 +518,18 @@ class BuildCacheCAM:
         # end if
         return mismatch
 
-    def ccpp_mismatch(self, sdfs, scheme_files, host_files,
-                      preproc_defs, kind_types):
+    def ccpp_mismatch(self, sdfs, scheme_files, host_files, preproc_defs, kind_types):
         """
         Determine if the CCPP input data differs from the data stored in
         our cache. Return True if the data differs.
         """
-        mismatch = ((not self.__preproc_defs) or
-                    (self.__preproc_defs != preproc_defs))
+        mismatch = (not self.__preproc_defs) or (self.__preproc_defs != preproc_defs)
         if not mismatch:
             my_kind_defs = set(self.__kind_types.keys())
-            test_kdefs = {z[0] : z[1] for z in
-                          [[x.strip() for x in y.split('=')]
-                           for y in kind_types]}
+            test_kdefs = {
+                z[0]: z[1]
+                for z in [[x.strip() for x in y.split("=")] for y in kind_types]
+            }
             test_kind_keys = test_kdefs.keys()
             test_kind_set = set(test_kind_keys)
             mismatch = my_kind_defs != test_kind_set
@@ -594,13 +621,13 @@ class BuildCacheCAM:
             if the data differs.
         """
 
-        #Initialize variable:
+        # Initialize variable:
         mismatch = False
 
-        #Check file hash to see if mis-match exists:
+        # Check file hash to see if mis-match exists:
         mismatch = self.__gen_init_file.hash_mismatch(gen_init_file)
 
-        #Return mismatch logical:
+        # Return mismatch logical:
         return mismatch
 
     def scheme_nl_metadata(self):
@@ -628,6 +655,7 @@ class BuildCacheCAM:
     def vars_init_value(self):
         """Return a copy of the list of variables with initial_value"""
         return list(self.__vars_init_value)
+
 
 #############
 # End of file

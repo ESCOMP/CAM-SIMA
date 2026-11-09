@@ -26,6 +26,7 @@ jobs:
         python -m pip install --upgrade pip  # Install latest version of PIP
         pip install PyGithub                 # Install PyGithub python package
         pip install pylint                   # Install Pylint python package
+        pip install "black==26.10.1"         # Install Black python formatter
     # run CAM source code testing master script:
     - name: source-code testing python script
       env:

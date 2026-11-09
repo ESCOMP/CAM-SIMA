@@ -10,9 +10,9 @@ requires python 3.7 or later.
 To run doctests on this file: python cam_config_classes.py
 """
 
-#----------------------------------------
+# ----------------------------------------
 # Import generic python libraries/modules
-#----------------------------------------
+# ----------------------------------------
 
 import re
 
@@ -20,22 +20,26 @@ import re
 # Error-handling classes
 ###############################################################################
 
+
 class CamConfigValError(ValueError):
     """Class used to handle CAM config value errors
     (e.g., log user errors without backtrace)"""
 
+
 ###############################################################################
+
 
 class CamConfigTypeError(TypeError):
     """Class used to handle CAM config type errors
     (e.g., log user errors without  backtrace)"""
 
+
 ###############################################################################
 # Valid value-checking functions
 ###############################################################################
 
-def _check_integer_val(name, val, valid_vals=None):
 
+def _check_integer_val(name, val, valid_vals=None):
     """
     Checks if a provided integer value is "valid"
     as defined by the provided "valid_vals" entry
@@ -140,10 +144,11 @@ def _check_integer_val(name, val, valid_vals=None):
 
             # Check that length of valid values tuple is 2
             if len(valid_vals) != 2:
-                emsg = ("ERROR: Valid values tuple for variable, "
-                        "'{}', must have two elements, not '{}' elements.")
-                raise CamConfigValError(emsg.format(name,
-                                                    len(valid_vals)))
+                emsg = (
+                    "ERROR: Valid values tuple for variable, "
+                    "'{}', must have two elements, not '{}' elements."
+                )
+                raise CamConfigValError(emsg.format(name, len(valid_vals)))
             # End if
 
             if valid_vals[0] is None:
@@ -194,7 +199,6 @@ def _check_integer_val(name, val, valid_vals=None):
                 raise CamConfigTypeError(emsg)
             # end if
 
-
             # If valid_vals is a list, then just check that the given value
             # matches one of the valid values in the list
             if val not in valid_vals:
@@ -215,10 +219,11 @@ def _check_integer_val(name, val, valid_vals=None):
     # Return nothing if value is valid
     return None
 
+
 ###############################################################################
 
-def _check_string_val(name, val, valid_vals=None):
 
+def _check_string_val(name, val, valid_vals=None):
     """
     Checks if a provided string value is "valid"
     as defined by the provided "valid_vals" entry.
@@ -278,9 +283,13 @@ def _check_string_val(name, val, valid_vals=None):
             # Check that all list elements are strings:
             for valid_val in valid_vals:
                 if not isinstance(valid_val, str):
-                    emsg = ("ERROR:  Valid value, '{}', for variable '{}', must be "
-                            "a string.  Currently it is '{}'.")
-                    raise CamConfigTypeError(emsg.format(valid_val, name, type(valid_val)))
+                    emsg = (
+                        "ERROR:  Valid value, '{}', for variable '{}', must be "
+                        "a string.  Currently it is '{}'."
+                    )
+                    raise CamConfigTypeError(
+                        emsg.format(valid_val, name, type(valid_val))
+                    )
                 # End if
             # End for
 
@@ -310,8 +319,9 @@ def _check_string_val(name, val, valid_vals=None):
     # Return nothing if value is valid
     return None
 
+
 # Helper function to better generalize config value checking:
-_TYPE_CHECK_FUNCTIONS = {"int" : _check_integer_val, "str" : _check_string_val}
+_TYPE_CHECK_FUNCTIONS = {"int": _check_integer_val, "str": _check_string_val}
 
 # Set of valid types (for faster checking):
 _VALID_TYPE_SET = {"int", "str"}
@@ -320,8 +330,8 @@ _VALID_TYPE_SET = {"int", "str"}
 # Internal generic CAM configure class
 ###############################################################################
 
-class _ConfigGen:
 
+class _ConfigGen:
     """
     Generic configuration class used to
     store CAM configuration names and
@@ -372,7 +382,7 @@ class _ConfigGen:
 
     def __init__(self, name, desc, is_nml_attr=False):
 
-            # Check that "name" is a string
+        # Check that "name" is a string
         if not isinstance(name, str):
             emsg = "ERROR:  Configuration variable name '{}' must be a string, not {}"
             raise CamConfigTypeError(emsg.format(name, type(name)))
@@ -384,9 +394,11 @@ class _ConfigGen:
             desc_ok = all(isinstance(x, str) for x in desc)
         # end if
         if not desc_ok:
-            emsg = ("ERROR:  Configuration variable, '{}', "
-                    "must have a string-type description, or a list of "
-                    "string-type descriptions, not {}")
+            emsg = (
+                "ERROR:  Configuration variable, '{}', "
+                "must have a string-type description, or a list of "
+                "string-type descriptions, not {}"
+            )
             if isinstance(desc, str):
                 derr = type(desc)
             elif isinstance(desc, list):
@@ -406,7 +418,7 @@ class _ConfigGen:
         # end if
         self.__is_nml_attr = is_nml_attr
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     # Create properties needed to return name and description properties
     @property
@@ -424,12 +436,13 @@ class _ConfigGen:
         """Return the namelist attribute logical of this config object"""
         return self.__is_nml_attr
 
+
 ###############################################################################
 # CAM configure option classes
 ###############################################################################
 
-class ConfigInteger(_ConfigGen):
 
+class ConfigInteger(_ConfigGen):
     """
     Configuration class used to store
     integer-based CAM configuration
@@ -481,7 +494,7 @@ class ConfigInteger(_ConfigGen):
         # If everything is ok, then add provided value to object
         self.__value = val
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     # Create properties needed to return given value and valid values
     @property
@@ -494,10 +507,9 @@ class ConfigInteger(_ConfigGen):
         """Return the valid values of this config object"""
         return self.__valid_vals
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def __check_value(self, val):
-
         """
         Checks input/given value to make sure
         it is valid according to the
@@ -514,17 +526,15 @@ class ConfigInteger(_ConfigGen):
         """
 
         # Check if integer value is valid
-        bad_val_msg = _check_integer_val(self.name, val,
-                                         valid_vals=self.valid_vals)
+        bad_val_msg = _check_integer_val(self.name, val, valid_vals=self.valid_vals)
 
         # Raise an error if a bad value is found:
         if bad_val_msg:
             raise CamConfigValError(bad_val_msg)
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def set_value(self, val):
-
         """
         Set configure object's value to the one provided.
         """
@@ -535,10 +545,11 @@ class ConfigInteger(_ConfigGen):
         # If ok, then set object's value to one provided
         self.__value = val
 
+
 ###############################################################################
 
-class ConfigString(_ConfigGen):
 
+class ConfigString(_ConfigGen):
     """
     Configuration class used to store
     string-based CAM configuration
@@ -591,7 +602,7 @@ class ConfigString(_ConfigGen):
         # If everything is ok, then add provided value to object
         self.__value = val
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     # Create properties needed to return given value and valid values
     # without underscores
@@ -605,10 +616,9 @@ class ConfigString(_ConfigGen):
         """Return the valid values of this config object"""
         return self.__valid_vals
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def __check_value(self, val):
-
         """
         Checks input/given value to make sure
         it is valid according to the
@@ -625,17 +635,15 @@ class ConfigString(_ConfigGen):
         """
 
         # Check if string value is valid
-        bad_val_msg = _check_string_val(self.name, val,
-                                        valid_vals=self.valid_vals)
+        bad_val_msg = _check_string_val(self.name, val, valid_vals=self.valid_vals)
 
         # Raise an error if a bad value is found:
         if bad_val_msg:
             raise CamConfigValError(bad_val_msg)
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def set_value(self, val):
-
         """
         Set configure object's value to the one provided.
         """
@@ -646,10 +654,11 @@ class ConfigString(_ConfigGen):
         # If ok, then set object's value to one provided
         self.__value = val
 
+
 ###############################################################################
 
-class ConfigList(_ConfigGen):
 
+class ConfigList(_ConfigGen):
     """
     Configuration class used to store list-based
     CAM configuration options.
@@ -755,14 +764,14 @@ class ConfigList(_ConfigGen):
         if self.__valid_type is not None:
             self.__check_type(val)
 
-            #If valid values are provided, then check them as well:
+            # If valid values are provided, then check them as well:
             if self.__valid_vals is not None:
                 self.__check_values(val)
 
         # If everything is ok, then add provided value to object
         self.__value = val
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     # Create properties needed to return given value and valid values
     # without underscores
@@ -781,10 +790,9 @@ class ConfigList(_ConfigGen):
         """Return the valid values of this config object"""
         return self.__valid_vals
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def __check_type(self, val):
-
         """
         Check if the entries in the provided
         list (val) are of the correct type as
@@ -799,28 +807,32 @@ class ConfigList(_ConfigGen):
 
         good_type = "??"
         if valid_type == "str":
-            #All list entries should be strings:
+            # All list entries should be strings:
             good_type = "string"
             for list_entry in val:
                 if not isinstance(list_entry, str):
-                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'")
+                    bad_val_type_msgs.append(
+                        f"'{list_entry}': type='{type(list_entry)}'"
+                    )
                 # end if
             # end for
         elif valid_type == "int":
-            #All list entries should be integers:
+            # All list entries should be integers:
             good_type = "int"
             for list_entry in val:
                 if not isinstance(list_entry, int):
-                    bad_val_type_msgs.append(f"'{list_entry}': type='{type(list_entry)}'")
+                    bad_val_type_msgs.append(
+                        f"'{list_entry}': type='{type(list_entry)}'"
+                    )
                 # end if
             # end for
         else:
-            #Invalid option given for "valid_type", so raise error:
+            # Invalid option given for "valid_type", so raise error:
             emsg = "ERROR: '{}' is not a recognized option for 'valid_type'."
             emsg += " Please use either 'int' or 'str'."
             raise CamConfigValError(emsg.format(valid_type))
         # End if
-        #If bad values dictionary is non-empty, then raise error:
+        # If bad values dictionary is non-empty, then raise error:
         if bad_val_type_msgs:
             if len(bad_val_type_msgs) > 1:
                 emsg = "ERROR: The following list entries, provided for variable,"
@@ -829,14 +841,13 @@ class ConfigList(_ConfigGen):
                 emsg = "ERROR: The following list entry, provided for variable,"
                 emsg += f" '{self.name}', is not a {good_type}, but instead is: "
             # end if
-            emsg += '\n'.join(bad_val_type_msgs)
+            emsg += "\n".join(bad_val_type_msgs)
             raise CamConfigValError(emsg)
         # End if
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def __check_values(self, list_vals):
-
         """
         Check if the entries in the provided
         list (val) are valid as specified by
@@ -849,9 +860,10 @@ class ConfigList(_ConfigGen):
         # Check if valid type is string or integer
         if self.valid_type in _TYPE_CHECK_FUNCTIONS:
             for val in list_vals:
-                #Check if integer or string value in list is valid
-                bad_val_msg = _TYPE_CHECK_FUNCTIONS[self.valid_type](self.name, val,
-                                                                     valid_vals=self.valid_vals)
+                # Check if integer or string value in list is valid
+                bad_val_msg = _TYPE_CHECK_FUNCTIONS[self.valid_type](
+                    self.name, val, valid_vals=self.valid_vals
+                )
                 # If return value is not None, then add
                 # to bad value list
                 if bad_val_msg:
@@ -870,10 +882,9 @@ class ConfigList(_ConfigGen):
             raise CamConfigValError(emsg)
         # End if
 
-    #++++++++++++++++++++++++
+    # ++++++++++++++++++++++++
 
     def set_value(self, list_vals):
-
         """
         Set configure object's value to the one provided.
         """
@@ -884,6 +895,7 @@ class ConfigList(_ConfigGen):
 
         # If ok, then set object's value to one provided
         self.__value = list_vals
+
 
 #############
 # End of file

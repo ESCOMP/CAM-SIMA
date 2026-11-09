@@ -21,11 +21,9 @@ import math
 # Assume we are in <CAMROOT>/cime_config and SPIN is in <CAMROOT>/ccpp_framework
 _CURRDIR = os.path.abspath(os.path.dirname(__file__))
 _CAMROOT = os.path.abspath(os.path.join(_CURRDIR, os.pardir))
-_SPINSCRIPTS = os.path.join(_CAMROOT, "ccpp_framework", 'scripts')
-_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "data", "config",
-                            "xml_schemas")
-_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "ParamGen",
-                           "xml_schema")
+_SPINSCRIPTS = os.path.join(_CAMROOT, "ccpp_framework", "scripts")
+_XML_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "data", "config", "xml_schemas")
+_PG_SCHEMAS = os.path.join(_CAMROOT, "cime", "CIME", "ParamGen", "xml_schema")
 if _SPINSCRIPTS not in sys.path:
     sys.path.append(_SPINSCRIPTS)
 # end if
@@ -35,14 +33,16 @@ if _SPINSCRIPTS not in sys.path:
 from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import init_log, CCPPError, ParseInternalError
 from fortran_tools import FortranWriter
+
 # pylint: enable=wrong-import-position
 
-#Names for possible auto-generated loop variables:
+# Names for possible auto-generated loop variables:
 _LOOP_VARS = ["i", "j", "k", "m", "l", "x", "y", "z"]
+
 
 ###############################################################################
 def is_int(token):
-###############################################################################
+    ###############################################################################
     """Return True if <token> is an integer.
        <token> should be a string or None.
 
@@ -80,33 +80,35 @@ def is_int(token):
     # end if
     return isint
 
+
 ###############################################################################
 def write_ccpp_table_header(name, outfile, indent):
-###############################################################################
+    ###############################################################################
     """Write the standard Fortran comment block for a CCPP header
     (module, type, scheme)."""
-    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name),
-                  indent)
+    outfile.write(r"!> \section arg_table_{}  Argument Table".format(name), indent)
     outfile.write(r"!! \htmlinclude {}.html".format(name), indent)
+
 
 ###############################################################################
 class NamelistError(ValueError):
-###############################################################################
+    ###############################################################################
     """Class to indicate errors processing namelist files"""
+
     def __init__(self, message):
         """Initialize this exception"""
         logging.shutdown()
         super().__init__(message)
 
+
 ###############################################################################
 class MpiModuleInfo:
-###############################################################################
+    ###############################################################################
     """Class to hold information about MPI module version to use as
-       well as the names of host model MPI variables such as communicator.
+    well as the names of host model MPI variables such as communicator.
     """
 
-    def __init__(self, arg_mpi_comm, arg_mpi_root,
-                 arg_mpi_is_root, arg_mpi_mod):
+    def __init__(self, arg_mpi_comm, arg_mpi_root, arg_mpi_is_root, arg_mpi_mod):
         """Initialize this MpiModuleObject"""
         self.__mpicomm_arg = arg_mpi_comm
         self.__mpiroot_arg = arg_mpi_root
@@ -139,28 +141,29 @@ class MpiModuleInfo:
     @property
     def mpi_comm_arg(self):
         """Return the dummy argument name for the MPI communicator to use
-           when broadcasting namelist variable values.
+        when broadcasting namelist variable values.
         """
         return self.__mpicomm_arg
 
     @property
     def mpi_root_arg(self):
         """Return the dummy argument name for the MPI root task to use
-           when broadcasting namelist variable values.
+        when broadcasting namelist variable values.
         """
         return self.__mpiroot_arg
 
     @property
     def mpi_is_root_arg(self):
         """Return the dummy argument name for the logical for determing if
-           this is the task to use for reading the namelist and logging
-           the values.
+        this is the task to use for reading the namelist and logging
+        the values.
         """
         return self.__mpiisroot_arg
 
+
 ###############################################################################
 class NLVar:
-###############################################################################
+    ###############################################################################
     """Class to hold information about a namelist variable entry"""
 
     # For unique dimension names
@@ -171,8 +174,12 @@ class NLVar:
     __kind_badkind = "Illegal kind, '{}', for type, '{}' of '{}'"
     __char_nolen = "Bad 'char' type for '{}', must specify length"
     __nl_types = ["integer", "logical", "real", "character"]
-    __mpi_types = {"integer" : "MPI_Integer", "logical" : "MPI_Logical",
-                   "real" : "MPI_Real8", "character" : "MPI_Character"}
+    __mpi_types = {
+        "integer": "MPI_Integer",
+        "logical": "MPI_Logical",
+        "real": "MPI_Real8",
+        "character": "MPI_Character",
+    }
 
     # Parse any valid XML <type> text
     __tspec = r"[ ]*([a-z]+)[ ]*"
@@ -181,7 +188,7 @@ class NLVar:
     __type_re = re.compile(__tspec + __clenspec + __aspec)
 
     # Formatting parameters
-    __type_strlen = 20 # Crude but no loop through variables necessary
+    __type_strlen = 20  # Crude but no loop through variables necessary
 
     def __init__(self, var_xml):
         """Collect namelist variable information from <var_xml> element"""
@@ -194,7 +201,7 @@ class NLVar:
         self.__kind = None
         self.__array_lengths = ()
         self.__array_names = ()
-        self.__valid = True # speculation to be confirmed
+        self.__valid = True  # speculation to be confirmed
         self.__kind_err = ""
         var_kind = None
         var_type = None
@@ -215,8 +222,9 @@ class NLVar:
                 if self.kind:
                     # Someone already set the kind, probably a char*nnn type
                     self.__valid = False
-                    self.__kind_err = self.__kind_errstr.format(self.__kind,
-                                                                element.text)
+                    self.__kind_err = self.__kind_errstr.format(
+                        self.__kind, element.text
+                    )
                 else:
                     self.__kind = element.text
                 # end if
@@ -228,7 +236,7 @@ class NLVar:
         # end if
         # Process the type and (optional) kind arguments
         typ, knd, alen = self._parse_xml_type(var_type, self.var_name)
-        if typ == 'ERROR':
+        if typ == "ERROR":
             self.__kind_err = knd
             self.__valid = False
         elif typ == "character":
@@ -264,9 +272,11 @@ class NLVar:
             self.__kind = "kind_phys"
         # end if
         # Final validity check
-        self.__valid &= ((self.group is not None) and
-                         (self.standard_name is not None) and
-                         (self.units is not None))
+        self.__valid &= (
+            (self.group is not None)
+            and (self.standard_name is not None)
+            and (self.units is not None)
+        )
         self.__valid &= self.var_type in self.__nl_types
 
     @classmethod
@@ -313,18 +323,18 @@ class NLVar:
         match = cls.__type_re.match(type_str)
         if match:
             var_type = match.group(1)
-            if var_type == 'char':
-                var_type = 'character'
+            if var_type == "char":
+                var_type = "character"
             # end if
             kind = match.group(2)
             if kind:
-                if var_type == 'character':
-                    kind = 'len='+kind
+                if var_type == "character":
+                    kind = "len=" + kind
                 else:
                     kind = cls.__kind_badkind.format(kind, var_type, name)
                     var_type = "ERROR"
                 # end if
-            elif var_type == 'character':
+            elif var_type == "character":
                 kind = cls.__char_nolen.format(name)
                 var_type = "ERROR"
             array_len = match.group(3)
@@ -351,7 +361,7 @@ class NLVar:
         """
         if alen:
             try:
-                alens = tuple([int(x.strip()) for x in alen.split(',')])
+                alens = tuple([int(x.strip()) for x in alen.split(",")])
                 anames = tuple([cls._new_nl_dimname(name) for x in alens])
             except:
                 emsg = f"Invalid array argument, '{alen}', for {name}"
@@ -386,8 +396,7 @@ class NLVar:
         if self.__kind_err:
             missing_props.append(self.__kind_err)
         # end if
-        if ((self.var_type not in self.__nl_types) and
-            (self.var_type != "ERROR")):
+        if (self.var_type not in self.__nl_types) and (self.var_type != "ERROR"):
             missing_props.append(f"Unknown variable type, '{self.var_type}'")
         # end if
         if len(missing_props) > 2:
@@ -445,17 +454,17 @@ class NLVar:
         else:
             type_str = f"{self.var_type}, public, protected"
         # end if
-        pad1 = " "*(self.__type_strlen - len(type_str))
+        pad1 = " " * (self.__type_strlen - len(type_str))
         if intent:
-            comma = ','
-            intent_str = f"intent({intent})" + " "*(5 - len(intent))
+            comma = ","
+            intent_str = f"intent({intent})" + " " * (5 - len(intent))
         else:
-            comma = ''
-            intent_str = ''
+            comma = ""
+            intent_str = ""
         # end if
         if self.array_len:
             if intent:
-                array_str = "(:"+",:"*(len(self.array_len) - 1)+")"
+                array_str = "(:" + ",:" * (len(self.array_len) - 1) + ")"
             else:
                 lens = ", ".join([str(x) for x in self.array_len])
                 array_str = f"({lens})"
@@ -501,7 +510,7 @@ class NLVar:
 
     def var_mpi_type(self):
         """Return the MPI variable type constant of this NLVar object.
-           Note that all real quantities will be passed as mpi_real8
+        Note that all real quantities will be passed as mpi_real8
         """
         if self.var_type in self.__mpi_types:
             return self.__mpi_types[self.var_type]
@@ -558,16 +567,17 @@ class NLVar:
         """Return the array length (if any) for this NLVar object"""
         return self.__array_lengths
 
+
 ###############################################################################
 class SchemeNamelistInfo:
-###############################################################################
+    ###############################################################################
     """Class to store information related to a scheme's namelist"""
 
     def __init__(self, filename_desc, schema_paths=None, logger=None):
         """Initialize a SchemeNamelistInfo object with a scheme name
         and a path to a namelist definition file.
         """
-        self.__errors = [] # To query after creating all object
+        self.__errors = []  # To query after creating all object
         self.__scheme = None
         self.__namelist_def_file = None
         self.__groups = {}
@@ -575,8 +585,7 @@ class SchemeNamelistInfo:
         # Set the scheme and namelist definition file and module names
         self._parse_scheme_filename(filename_desc)
         # Check to see if the namelist definition file exists and is valid
-        self.validate_namelist_def_file(schema_paths=schema_paths,
-                                        logger=logger)
+        self.validate_namelist_def_file(schema_paths=schema_paths, logger=logger)
         # A standard name for the namelist reading function
         self.__nlread_func = f"autogen_{self.scheme}_readnl"
         self.__metadata_file = None
@@ -584,8 +593,8 @@ class SchemeNamelistInfo:
 
     def validate_namelist_def_file(self, schema_paths=None, logger=None):
         """Check that the namelist definition file for this object
-           exists and is valid
-           Add object errors if detected.
+        exists and is valid
+        Add object errors if detected.
         """
         if not self.errors:
             if not os.path.exists(self.namelist_def_file):
@@ -624,17 +633,18 @@ class SchemeNamelistInfo:
             # end if
             try:
                 emsg = f"Invalid namelist XML file, {self.namelist_def_file}"
-                file_ok = validate_xml_file(self.namelist_def_file,
-                                            schema_file, "", logger)
+                file_ok = validate_xml_file(
+                    self.namelist_def_file, schema_file, "", logger
+                )
             except CCPPError as ccpperr:
-                cemsg = "{}".format(ccpperr).split('\n', maxsplit=1)[0]
-                if cemsg[0:12] == 'Execution of':
+                cemsg = "{}".format(ccpperr).split("\n", maxsplit=1)[0]
+                if cemsg[0:12] == "Execution of":
                     xstart = cemsg.find("'")
                     if xstart >= 0:
-                        xend = cemsg[xstart + 1:].find("'") + xstart + 1
-                        emsg += '\n' + cemsg[xstart + 1:xend]
+                        xend = cemsg[xstart + 1 :].find("'") + xstart + 1
+                        emsg += "\n" + cemsg[xstart + 1 : xend]
                     # end if (else, just keep original message)
-                elif cemsg[0:18] == 'validate_xml_file:':
+                elif cemsg[0:18] == "validate_xml_file:":
                     emsg += "\n" + cemsg
                 # end if
                 file_ok = False
@@ -649,9 +659,9 @@ class SchemeNamelistInfo:
 
     def _write_metadata_file(self, nlvars, outdir, logger):
         """Write the metadata file for the namelist variables for this
-           SchemeNamelistInfo object.
+        SchemeNamelistInfo object.
         """
-        self.__metadata_file = os.path.join(outdir, self.nlread_module+".meta")
+        self.__metadata_file = os.path.join(outdir, self.nlread_module + ".meta")
         if logger:
             logger.info(f"Writing metadata file, {self.__metadata_file}")
         # end if
@@ -674,18 +684,19 @@ class SchemeNamelistInfo:
         file_kinds = set()
         for var in nlvars:
             kind = var.kind
-            if kind and (not is_int(kind)) and (var.var_type != 'character'):
+            if kind and (not is_int(kind)) and (var.var_type != "character"):
                 file_kinds.add(kind)
             # end if
         # end for
         var_types = set()
-        self.__nlread_file = os.path.join(outdir, self.nlread_module+".F90")
+        self.__nlread_file = os.path.join(outdir, self.nlread_module + ".F90")
         if logger:
             logger.info(f"Writing Fortran module, {self.__nlread_file}")
         # end if
 
-        with FortranWriter(self.__nlread_file, "w", file_desc,
-                           self.nlread_module, indent=indent) as ofile:
+        with FortranWriter(
+            self.__nlread_file, "w", file_desc, self.nlread_module, indent=indent
+        ) as ofile:
             # Write out any kinds needed
             for kind in sorted(file_kinds):
                 ofile.write(f"use ccpp_kinds,  only: {kind}", 1)
@@ -711,20 +722,20 @@ class SchemeNamelistInfo:
             args = f"({', '.join(nl_args)})"
             ofile.write(f"subroutine {self.nlread_func}{args}", 1)
             mpi = mpi_obj.mpi_module
-            spc = ' '*(len("cam_abortutils") - len(mpi))
-            mpi_types = ', '.join(sorted(var_types))
+            spc = " " * (len("cam_abortutils") - len(mpi))
+            mpi_types = ", ".join(sorted(var_types))
             ofile.write(f"use {mpi}, {spc}only: {mpi_types}", 2)
-            spc = ' '*(len("cam_abortutils") - len("shr_nl_mod"))
+            spc = " " * (len("cam_abortutils") - len("shr_nl_mod"))
             ofile.write(f"use shr_nl_mod, {spc}only: shr_nl_find_group_name", 2)
-            spc = ' '*(len("cam_abortutils") - len("cam_logfile"))
+            spc = " " * (len("cam_abortutils") - len("cam_logfile"))
             ofile.write(f"use cam_logfile, {spc}only: debug_output, DEBUGOUT_INFO", 2)
-            spc = ' '*(len("cam_abortutils") - len("shr_kind_mod"))
+            spc = " " * (len("cam_abortutils") - len("shr_kind_mod"))
             ofile.write(f"use shr_kind_mod, {spc}only: cl=>shr_kind_cl", 2)
             ofile.write("use cam_abortutils, only: endrun", 2)
             ofile.blank_line()
             ofile.comment("Dummy arguments", 2)
             comm_type = mpi_obj.mpi_commtype()
-            spc = " "*(len(comm_type) - len("integer"))
+            spc = " " * (len(comm_type) - len("integer"))
             ofile.write(f"integer,{spc} intent(in) :: nl_unit", 2)
             ofile.write(f"{comm_type}, intent(in) :: mpicomm", 2)
             ofile.write(f"integer,{spc} intent(in) :: mpiroot", 2)
@@ -737,7 +748,7 @@ class SchemeNamelistInfo:
 
             # Add loop control variables if needed for pretty
             # printing array variables to the log file:
-            #-----------------------------------------
+            # -----------------------------------------
 
             # Determine what the largest number of dimensions
             # is for a given variable, as that is how many
@@ -750,19 +761,18 @@ class SchemeNamelistInfo:
 
             # Write variable declarations needed for looping:
             if max_dims > 0:
-                loop_var_str = ', '.join(_LOOP_VARS[:max_dims])
+                loop_var_str = ", ".join(_LOOP_VARS[:max_dims])
                 ofile.blank_line()
                 ofile.comment("Used for namelist variable logging: ", 2)
                 ofile.write(f"integer :: {loop_var_str}", 2)
-            #-----------------------------------------
+            # -----------------------------------------
 
             substr = "character(len=*), parameter :: subname = '{}'"
             ofile.write(substr.format(self.nlread_func), 2)
             # Declare the namelists
             ofile.blank_line()
             for grpname in self.group_names():
-                grpvars = ", ".join([v.var_name for v in
-                                     self.__groups[grpname]])
+                grpvars = ", ".join([v.var_name for v in self.__groups[grpname]])
                 ofile.write(f"namelist /{grpname}/ {grpvars}", 2)
             # end for
             for grpname in self.group_names():
@@ -787,35 +797,42 @@ class SchemeNamelistInfo:
 
                 ofile.comment("Print out namelist values", 3)
                 ofile.write("if (debug_output >= DEBUGOUT_INFO) then", 3)
-                msg = f"Namelist values from group '{grpname}' for scheme '{self.scheme}'"
+                msg = (
+                    f"Namelist values from group '{grpname}' for scheme '{self.scheme}'"
+                )
                 ofile.write(f'write(logunit, *) "{msg}"', 4)
                 for grpvar in self.__groups[grpname]:
                     if grpvar.array_len:
                         # do loop syntax:
                         for dim_count, alen in enumerate(grpvar.array_len):
-                            ofile.write(f"do {_LOOP_VARS[dim_count]}=1,{alen}", 4+dim_count)
+                            ofile.write(
+                                f"do {_LOOP_VARS[dim_count]}=1,{alen}", 4 + dim_count
+                            )
 
                         # array printing syntax:
-                        loop_var_prt_str = ",',',".join(_LOOP_VARS[:(dim_count+1)])
-                        loop_fmt_str = "a"+",i0,a"*(dim_count+1)
+                        loop_var_prt_str = ",',',".join(_LOOP_VARS[: (dim_count + 1)])
+                        loop_fmt_str = "a" + ",i0,a" * (dim_count + 1)
 
                         # generate actual Fortran write calls
                         msg = f"'{grpvar.var_name}(',{loop_var_prt_str},') = '"
-                        ofile.write(f"write(logunit,'({loop_fmt_str})')  {msg}", 4+(dim_count+1))
+                        ofile.write(
+                            f"write(logunit,'({loop_fmt_str})')  {msg}",
+                            4 + (dim_count + 1),
+                        )
 
-                        loop_var_str = ','.join(_LOOP_VARS[:(dim_count+1)])
+                        loop_var_str = ",".join(_LOOP_VARS[: (dim_count + 1)])
                         msg = f"{grpvar.var_name}({loop_var_str})"
-                        ofile.write(f"write(logunit, *) {msg}",4+(dim_count+1))
+                        ofile.write(f"write(logunit, *) {msg}", 4 + (dim_count + 1))
 
                         # 'end do' syntax (must be done backwards for correct indenting):
                         for dim_count in range(len(grpvar.array_len), 0, -1):
-                            ofile.write(f"end do", 4+(dim_count-1))
+                            ofile.write(f"end do", 4 + (dim_count - 1))
                     else:
                         msg = f"'{grpvar.var_name} = ', {grpvar.var_name}"
                         ofile.write(f"write(logunit, *) {msg}", 4)
                 # end for
-                ofile.write("end if", 3) #log level check
-                ofile.write("end if", 2) #root task check
+                ofile.write("end if", 3)  # log level check
+                ofile.write("end if", 2)  # root task check
 
                 ofile.comment("Broadcast the namelist variables", 2)
                 for grpvar in self.__groups[grpname]:
@@ -849,17 +866,18 @@ class SchemeNamelistInfo:
 
     def process_namelist_def_file(self, outdir, indent, mpi_obj, logger):
         """Read the namelist variables from <nlxml> and produce both a module
-           with a routine that reads these variables into module variables and
-           an associated CCPP metadata file.
-          <outdir> is the directory where the output files are written.
-          <indent> is the number of whitespaces used when doing scope indentation
-          <mpi_obj> is an MpiModuleInfo object used to generate the correct
-             MPI Fortran statements.
-          <logger> is a Python logger.
+         with a routine that reads these variables into module variables and
+         an associated CCPP metadata file.
+        <outdir> is the directory where the output files are written.
+        <indent> is the number of whitespaces used when doing scope indentation
+        <mpi_obj> is an MpiModuleInfo object used to generate the correct
+           MPI Fortran statements.
+        <logger> is a Python logger.
         """
         nlvars = []
-        logger.info("Reading CAM physics namelist definition file, '%s'",
-                    self.namelist_def_file)
+        logger.info(
+            "Reading CAM physics namelist definition file, '%s'", self.namelist_def_file
+        )
         if not self.errors:
             errors = []
             # Throw exception on error (should be validated XML)
@@ -875,13 +893,14 @@ class SchemeNamelistInfo:
                         self.__groups[newgrp] = [newvar]
                     # end if
                 else:
-                    errors.append("{} is missing {}".format(newvar.var_name,
-                                                            newvar.missing()))
+                    errors.append(
+                        "{} is missing {}".format(newvar.var_name, newvar.missing())
+                    )
                 # end if
             # end for
         # end if
         if errors:
-            errstr = '\n'.join(errors)
+            errstr = "\n".join(errors)
             emsg = f"Errors processing {self.namelist_def_file}\n{errstr}"
             logger.error(emsg)
             self.__errors.append(emsg)
@@ -895,7 +914,7 @@ class SchemeNamelistInfo:
 
     def group_names(self):
         """Return a dict_keys object with the group names for the
-           namelist represented by this SchemeNamelistInfo object.
+        namelist represented by this SchemeNamelistInfo object.
         """
         return self.__groups.keys()
 
@@ -946,7 +965,7 @@ class SchemeNamelistInfo:
         If there is no colon, we assume that the argument is a filename
         related to the scheme name, <scheme>[_namelist].xml
         """
-        cargs = arg.split(':')
+        cargs = arg.split(":")
         if len(cargs) == 2:
             self.__scheme, self.__namelist_def_file = cargs
             # Fortran module name matches XML filename
@@ -967,9 +986,10 @@ class SchemeNamelistInfo:
             self.__errors.append(f"Invalid namelist file argument, '{arg}'")
         # end if
 
+
 ###############################################################################
 class NamelistFiles:
-###############################################################################
+    ###############################################################################
     """Class to store runtime options and namelist processing information"""
 
     def __init__(self, args, description, schema_paths=None, logger=None):
@@ -978,8 +998,9 @@ class NamelistFiles:
         self.__scheme_nl_files = {}
         errors = []
         for arg in args.namelist_file_arg:
-            new_info_obj = SchemeNamelistInfo(arg, schema_paths=schema_paths,
-                                              logger=logger)
+            new_info_obj = SchemeNamelistInfo(
+                arg, schema_paths=schema_paths, logger=logger
+            )
             if new_info_obj.errors:
                 errors.extend(new_info_obj.errors)
             else:
@@ -989,8 +1010,9 @@ class NamelistFiles:
         if errors:
             raise NamelistError("\n".join(errors))
         # end if
-        self.__mpi_obj = MpiModuleInfo(args.mpi_comm_arg, args.mpi_root_arg,
-                                       args.mpi_is_root_arg, args.mpi_module)
+        self.__mpi_obj = MpiModuleInfo(
+            args.mpi_comm_arg, args.mpi_root_arg, args.mpi_is_root_arg, args.mpi_module
+        )
         self.__indent = args.indent
         self.__xml_schema_dir = args.xml_schema_dir
         self.__namelist_read_mod = args.namelist_read_mod
@@ -1007,54 +1029,98 @@ class NamelistFiles:
     def _parse_command_line(self, args, description):
         """Parse and return the command line arguments when
         this module is executed"""
-        parser = argparse.ArgumentParser(description=description,
-                                         formatter_class=argparse.RawTextHelpFormatter)
+        parser = argparse.ArgumentParser(
+            description=description, formatter_class=argparse.RawTextHelpFormatter
+        )
 
-        parser.add_argument("--namelist-file-arg", type=str, action='append',
-                            metavar="scheme:namelist_file", default=[],
-                            help="""A colon-separated pair of a scheme name and
-an XML namelist definition filename""")
-        parser.add_argument("--output-dir", type=str, default=None,
-                            help="Directory where output files will be written")
-        parser.add_argument("--mpi-comm-arg", type=str, default="mpi_comm",
-                            help="Name of the MPI communicator input argument")
-        parser.add_argument("--mpi-root-arg", type=str, default="mpi_root",
-                            help="Name of the MPI communicator root input argument")
-        parser.add_argument("--mpi-is-root-arg", type=str, default="mpi_isroot",
-                            help="""Name of the logical communicator root
-                            (.true. if the current task is root) input argument""")
-        parser.add_argument("--indent", type=int, default=3,
-                            help="Indent level for Fortran source code")
-        parser.add_argument("--xml-schema-dir", type=str, default=_XML_SCHEMAS,
-                            help="""Location of schema for validating namelist
-                            XML files""")
-        parser.add_argument("--namelist-read-mod", type=str,
-                            default="cam_ccpp_scheme_namelists",
-                            help="""The name of the module containing the
+        parser.add_argument(
+            "--namelist-file-arg",
+            type=str,
+            action="append",
+            metavar="scheme:namelist_file",
+            default=[],
+            help="""A colon-separated pair of a scheme name and
+an XML namelist definition filename""",
+        )
+        parser.add_argument(
+            "--output-dir",
+            type=str,
+            default=None,
+            help="Directory where output files will be written",
+        )
+        parser.add_argument(
+            "--mpi-comm-arg",
+            type=str,
+            default="mpi_comm",
+            help="Name of the MPI communicator input argument",
+        )
+        parser.add_argument(
+            "--mpi-root-arg",
+            type=str,
+            default="mpi_root",
+            help="Name of the MPI communicator root input argument",
+        )
+        parser.add_argument(
+            "--mpi-is-root-arg",
+            type=str,
+            default="mpi_isroot",
+            help="""Name of the logical communicator root
+                            (.true. if the current task is root) input argument""",
+        )
+        parser.add_argument(
+            "--indent", type=int, default=3, help="Indent level for Fortran source code"
+        )
+        parser.add_argument(
+            "--xml-schema-dir",
+            type=str,
+            default=_XML_SCHEMAS,
+            help="""Location of schema for validating namelist
+                            XML files""",
+        )
+        parser.add_argument(
+            "--namelist-read-mod",
+            type=str,
+            default="cam_ccpp_scheme_namelists",
+            help="""The name of the module containing the
                             routine to read the namelists for all active
-                            schemes.""")
-        parser.add_argument("--namelist-read-subname", type=str,
-                            default="cam_read_ccpp_scheme_namelists",
-                            help="""The name of the subroutine that reads the
-                            namelists for all active schemes.""")
-        parser.add_argument("--mpi-module", type=str, default='mpi',
-                            help="""MPI module version to use.
+                            schemes.""",
+        )
+        parser.add_argument(
+            "--namelist-read-subname",
+            type=str,
+            default="cam_read_ccpp_scheme_namelists",
+            help="""The name of the subroutine that reads the
+                            namelists for all active schemes.""",
+        )
+        parser.add_argument(
+            "--mpi-module",
+            type=str,
+            default="mpi",
+            help="""MPI module version to use.
                             --mpi-module=mpi_f08 uses the Fortran 2008 MPI interfaces,
                             --mpi-module=mpi uses the Fortran 77 interfaces.
-                            (default is Fortran 77""")
+                            (default is Fortran 77""",
+        )
         group = parser.add_mutually_exclusive_group(required=False)
-        group.add_argument("--quiet", action='store_true', default=False,
-                           help="Suppress most log messages")
-        group.add_argument("--debug", action='store_true', default=False,
-                           help="Produce more detailed log messages")
+        group.add_argument(
+            "--quiet",
+            action="store_true",
+            default=False,
+            help="Suppress most log messages",
+        )
+        group.add_argument(
+            "--debug",
+            action="store_true",
+            default=False,
+            help="Produce more detailed log messages",
+        )
         pargs = parser.parse_args(args)
         return pargs
 
     def _write_active_scheme_reader(self, outdir, logger):
         """Write a Fortran module to read the namelists of all the active
-           schemes for a run."""
-        self.__scheme_read_file = os.path.join(outdir,
-                                               self.namelist_read_mod + ".F90")
+        schemes for a run."""
+        self.__scheme_read_file = os.path.join(outdir, self.namelist_read_mod + ".F90")
         file_desc = """Autogenerated file to read the namelists for all
         active CCPP physics schemes."""
         ##XXgoldyXX: v remove this when hash table is implemented
@@ -1062,8 +1128,13 @@ an XML namelist definition filename""")
            algorithm (is_scheme_active) with a hash table to
            improve performance."""
         ##XXgoldyXX: ^ remove this when hash table is implemented
-        with FortranWriter(self.__scheme_read_file, "w", file_desc,
-                           self.namelist_read_mod, indent=self.indent) as ofile:
+        with FortranWriter(
+            self.__scheme_read_file,
+            "w",
+            file_desc,
+            self.namelist_read_mod,
+            indent=self.indent,
+        ) as ofile:
             set_active_schemes = "set_active_schemes"
             is_scheme_active = "is_scheme_active"
             clear_active_schemes = "clear_active_schemes"
@@ -1079,29 +1150,33 @@ an XML namelist definition filename""")
             ofile.write(f"private :: {clear_active_schemes}", 1)
             # Write out module variable declarations
             ofile.comment("Private data", 1)
-            ofile.write("character(len=63), allocatable :: active_schemes(:)",
-                        1)
+            ofile.write("character(len=63), allocatable :: active_schemes(:)", 1)
             # end of module header
             ofile.end_module_header()
             ofile.blank_line()
             # set_active_schemes
-            ofile.write(f"subroutine {set_active_schemes}(active_schemes_in)",
-                        1)
+            ofile.write(f"subroutine {set_active_schemes}(active_schemes_in)", 1)
             ofile.write("use cam_abortutils, only: check_allocate", 2)
             ofile.write("use string_utils,   only: to_str", 2)
             ofile.blank_line()
             ofile.comment("Dummy argument", 2)
-            ofile.write("character(len=*), intent(in) :: active_schemes_in(:)",
-                        2)
+            ofile.write("character(len=*), intent(in) :: active_schemes_in(:)", 2)
             ofile.comment("Local variables", 2)
             ofile.write("integer                     :: istat", 2)
-            ofile.write(f"character(len=*), parameter :: subname = " +        \
-                        f"'{set_active_schemes}'", 2)
+            ofile.write(
+                f"character(len=*), parameter :: subname = "
+                + f"'{set_active_schemes}'",
+                2,
+            )
             ofile.blank_line()
-            ofile.write("allocate(active_schemes(size(active_schemes_in))," + \
-                        " stat=istat)", 2)
-            ofile.write("call check_allocate(istat, subname, " +              \
-                        "'active_schemes', file=__FILE__, line=__LINE__)", 2)
+            ofile.write(
+                "allocate(active_schemes(size(active_schemes_in))," + " stat=istat)", 2
+            )
+            ofile.write(
+                "call check_allocate(istat, subname, "
+                + "'active_schemes', file=__FILE__, line=__LINE__)",
+                2,
+            )
             ofile.write("active_schemes(:) = active_schemes_in(:)", 2)
             ofile.blank_line()
             ofile.write(f"end subroutine {set_active_schemes}", 1)
@@ -1110,15 +1185,15 @@ an XML namelist definition filename""")
             ofile.write(f"logical function {is_scheme_active}(scheme_name)", 1)
             ofile.blank_line()
             ofile.comment("Dummy argument", 2)
-            ofile.write("character(len=*), intent(in) :: scheme_name",
-                        2)
+            ofile.write("character(len=*), intent(in) :: scheme_name", 2)
             ofile.comment("Local variable", 2)
             ofile.write("integer :: index", 2)
             ofile.blank_line()
             ofile.write(f"{is_scheme_active} = .false.", 2)
             ofile.write("do index = 1, size(active_schemes)", 2)
-            ofile.write("if (trim(scheme_name) == "                           \
-                        "trim(active_schemes(index))) then", 3)
+            ofile.write(
+                "if (trim(scheme_name) == " "trim(active_schemes(index))) then", 3
+            )
             ofile.write(f"{is_scheme_active} = .true.", 4)
             ofile.write("exit", 4)
             ofile.write("end if", 3)
@@ -1134,25 +1209,31 @@ an XML namelist definition filename""")
             ofile.write(f"end subroutine {clear_active_schemes}", 1)
             # Main namelist reading module
             # Standard arguments
-            arglist = [self.nlfile_arg, self.active_schemes_arg,
-                       self.mpi_comm_arg, self.mpi_root_arg,
-                       self.mpi_is_root_arg, "logunit"]
+            arglist = [
+                self.nlfile_arg,
+                self.active_schemes_arg,
+                self.mpi_comm_arg,
+                self.mpi_root_arg,
+                self.mpi_is_root_arg,
+                "logunit",
+            ]
             # Host-level namelist parameters
-            #XXgoldyXX: Need a process for this
+            # XXgoldyXX: Need a process for this
             args = ", ".join(arglist)
             ofile.blank_line()
             ofile.write(f"subroutine {self.namelist_read_subname}({args})", 1)
             schemes = self.schemes()
             if schemes:
-                maxmod = max([len(self.__scheme_nl_files[x].nlread_module)
-                              for x in schemes])
+                maxmod = max(
+                    [len(self.__scheme_nl_files[x].nlread_module) for x in schemes]
+                )
             else:
                 maxmod = 0
             # end if
             for scheme_name in schemes:
                 mod_name = self.__scheme_nl_files[scheme_name].nlread_module
                 func_name = self.__scheme_nl_files[scheme_name].nlread_func
-                spc = " "*(maxmod - len(mod_name))
+                spc = " " * (maxmod - len(mod_name))
                 ofile.write(f"use {mod_name},{spc} only: {func_name}", 2)
             # end for
             ofile.blank_line()
@@ -1173,9 +1254,13 @@ an XML namelist definition filename""")
             ofile.write(f"call {set_active_schemes}(active_schemes)", 2)
             open_args = f"newunit=nl_unit, file=trim({self.nlfile_arg})"
             ofile.write(f"open({open_args}, status='old')", 2)
-            nlarglist = ["nl_unit", self.mpi_comm_arg,
-                         self.mpi_root_arg, self.mpi_is_root_arg,
-                         "logunit"]
+            nlarglist = [
+                "nl_unit",
+                self.mpi_comm_arg,
+                self.mpi_root_arg,
+                self.mpi_is_root_arg,
+                "logunit",
+            ]
             nlargs = ", ".join(nlarglist)
             for scheme_name in self.schemes():
                 func_name = self.__scheme_nl_files[scheme_name].nlread_func
@@ -1193,31 +1278,30 @@ an XML namelist definition filename""")
 
     def schemes(self):
         """Return the Scheme names of the SchemeNamelistInfo objects for this
-           NamelistFiles object."""
+        NamelistFiles object."""
         return self.__scheme_nl_files.keys()
 
     def write_nl_files(self, outdir, logger):
         """Write the Fortran namelist reader modules, the associated
-           metadata files, and the active scheme namelist read
-           Fortran module.
+        metadata files, and the active scheme namelist read
+        Fortran module.
         """
         errors = []
         for scheme_name in self.schemes():
             scheme = self.__scheme_nl_files[scheme_name]
-            scheme.process_namelist_def_file(outdir, self.indent,
-                                             self.mpi_obj, logger)
+            scheme.process_namelist_def_file(outdir, self.indent, self.mpi_obj, logger)
             if scheme.errors:
                 errors.extend(scheme.errors)
             # endif
         # end for
         if errors:
-            raise NamelistError('\n'.join(errors))
+            raise NamelistError("\n".join(errors))
         # end if
         self._write_active_scheme_reader(outdir, logger)
 
     def code_files(self):
         """Return all the Fortran source code files which have been created
-           by this object."""
+        by this object."""
         code_files = []
         for scheme_name in self.schemes():
             nlread_file = self.__scheme_nl_files[scheme_name].nlread_file
@@ -1231,7 +1315,7 @@ an XML namelist definition filename""")
 
     def meta_files(self):
         """Return all the CCPP metadata files which have been created
-           by this object."""
+        by this object."""
         meta_files = []
         for scheme_name in self.schemes():
             meta_file = self.__scheme_nl_files[scheme_name].metadata_file
@@ -1242,9 +1326,9 @@ an XML namelist definition filename""")
 
     def groups(self, schemes=None):
         """Return all the namelist groups which have been processed
-           by this object for each scheme in <schemes>
-           (i.e., all namelist groups for configuring <schemes>.
-           If <schemes> is None, include all schemes.
+        by this object for each scheme in <schemes>
+        (i.e., all namelist groups for configuring <schemes>.
+        If <schemes> is None, include all schemes.
         """
         groups = set()
         missing = []
@@ -1272,7 +1356,7 @@ an XML namelist definition filename""")
     @property
     def active_schemes_arg(self):
         """Return the name of the argument containing an array of active
-           scheme names"""
+        scheme names"""
         return self.__active_schemes_arg
 
     @property
@@ -1288,53 +1372,54 @@ an XML namelist definition filename""")
     @property
     def mpi_comm_arg(self):
         """Return the dummy argument name for the MPI communicator to use
-           when broadcasting namelist variable values.
+        when broadcasting namelist variable values.
         """
         return self.__mpi_obj.mpi_comm_arg
 
     @property
     def mpi_root_arg(self):
         """Return the dummy argument name for the MPI root task to use
-           when broadcasting namelist variable values.
+        when broadcasting namelist variable values.
         """
         return self.__mpi_obj.mpi_root_arg
 
     @property
     def mpi_is_root_arg(self):
         """Return the dummy argument name for the logical for determining if
-           this is the task to use for reading the namelist and logging
-           the values.
+        this is the task to use for reading the namelist and logging
+        the values.
         """
         return self.__mpi_obj.mpi_is_root_arg
 
     @property
     def namelist_read_mod(self):
         """Return the name of the module containing the routine to
-           read the namelists for all active schemes.
+        read the namelists for all active schemes.
         """
         return self.__namelist_read_mod
 
     @property
     def namelist_read_subname(self):
         """Return the name of the subroutine that reads the
-           namelists for all active schemes.
+        namelists for all active schemes.
         """
         return self.__namelist_read_subname
 
     @property
     def indent(self):
-        """Return the indent unit size (in spaces) for this NamelistFiles object
-        """
+        """Return the indent unit size (in spaces) for this NamelistFiles object"""
         return self.__indent
+
 
 def gen_namelist_files(args, outdir, logger):
     """Function to execute to generate namelist files.
-       <args> are command-line arguments such as the XML files to process.
-       <outdir> is the directory where output files are written.
-       <logger> is a Python logger.
+    <args> are command-line arguments such as the XML files to process.
+    <outdir> is the directory where output files are written.
+    <logger> is a Python logger.
     """
     namelist_obj = NamelistFiles(args, __doc__, logger=logger)
     namelist_obj.write_nl_files(outdir, logger)
     return namelist_obj
+
 
 ###############################################################################

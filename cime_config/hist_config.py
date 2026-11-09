@@ -14,7 +14,7 @@ import sys
 # Assume we are in <CAMROOT>/src/data and CCPP is in <CAMROOT>/ccpp_framework
 __CURRDIR = os.path.abspath(os.path.dirname(__file__))
 __CAMROOT = os.path.abspath(os.path.join(__CURRDIR, os.pardir))
-__CCPPSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", 'scripts')
+__CCPPSCRIPTS = os.path.join(__CAMROOT, "ccpp_framework", "scripts")
 if __CCPPSCRIPTS not in sys.path:
     sys.path.append(__CCPPSCRIPTS)
 # end if
@@ -22,6 +22,7 @@ if __CCPPSCRIPTS not in sys.path:
 # CCPP framework imports
 # pylint: disable=wrong-import-position
 from parse_tools import ParseObject, context_string, ParseInternalError
+
 # pylint: enable=wrong-import-position
 
 ## Default filename specifications for different history types
@@ -36,13 +37,31 @@ from parse_tools import ParseObject, context_string, ParseInternalError
 
 # Note, these lists should match the corresponding lists in
 #    cam_hist_config_file.F90
-_TIME_PERIODS = ['nsteps', 'nstep', 'nseconds', 'nsecond',
-                 'nminutes', 'nminute', 'nhours', 'nhour', 'ndays',
-                 'nday', 'nmonths', 'nmonth', 'nyears', 'nyear',
-                 'steps', 'seconds', 'minutes', 'hours',
-                 'days', 'months', 'years']
-_OUT_PRECS = ['REAL32', 'REAL64']
-_TRUE_VALUES  = {"true", "t", ".true."}
+_TIME_PERIODS = [
+    "nsteps",
+    "nstep",
+    "nseconds",
+    "nsecond",
+    "nminutes",
+    "nminute",
+    "nhours",
+    "nhour",
+    "ndays",
+    "nday",
+    "nmonths",
+    "nmonth",
+    "nyears",
+    "nyear",
+    "steps",
+    "seconds",
+    "minutes",
+    "hours",
+    "days",
+    "months",
+    "years",
+]
+_OUT_PRECS = ["REAL32", "REAL64"]
+_TRUE_VALUES = {"true", "t", ".true."}
 _FALSE_VALUES = {"false", "f", ".false."}
 # NetCDF variable name requirements:
 #  https://docs.unidata.ucar.edu/netcdf-c/current/programming_notes.html#object_name
@@ -54,9 +73,10 @@ _NETCDF_ID_RE = re.compile(r"^[a-z][\w._@+]{0,256}$", re.IGNORECASE)
 ###
 ##############################################################################
 
+
 ##############################################################################
 class HistoryConfigError(ValueError):
-##############################################################################
+    ##############################################################################
     """Error type specific to history configuration parsing"""
 
     def __init__(self, message):
@@ -64,9 +84,10 @@ class HistoryConfigError(ValueError):
         logging.shutdown()
         super().__init__(message)
 
+
 ##############################################################################
 def _blank_config_line(line):
-##############################################################################
+    ##############################################################################
     """Return True if <line> is a valid history config blank or comment
     line. Also return True if we have reached the end of the file
     (no line)
@@ -82,11 +103,12 @@ def _blank_config_line(line):
     False
     """
     sline = line.strip()
-    return not sline or sline.startswith('!')
+    return not sline or sline.startswith("!")
+
 
 ##############################################################################
 def _is_integer(entry):
-##############################################################################
+    ##############################################################################
     """Return the integer value of the string, <entry>, if it represents a
     valid integer. Otherwise, return None
     Also, return an error string or None if no error is found.
@@ -108,9 +130,10 @@ def _is_integer(entry):
     # end if
     return ival, errmsg
 
+
 ##############################################################################
-def _list_of_idents(entry, sep=','):
-##############################################################################
+def _list_of_idents(entry, sep=","):
+    ##############################################################################
     """Return a list of identifiers if <entry> is a valid list of identifiers.
     Otherwise, return None.
     A valid identifier is something that can be a NetCDF variable
@@ -138,7 +161,9 @@ def _list_of_idents(entry, sep=','):
     """
     if entry.strip():
         potential_list = [x.strip() for x in entry.split(sep)]
-        bad_list = [sample for sample in potential_list if _NETCDF_ID_RE.match(sample) is None]
+        bad_list = [
+            sample for sample in potential_list if _NETCDF_ID_RE.match(sample) is None
+        ]
         if len(bad_list) > 0:
             return (None, "Found invalid identifiers:\n    " + "\n    ".join(bad_list))
         # end if
@@ -146,9 +171,10 @@ def _list_of_idents(entry, sep=','):
     # end if
     return (None, "No identifiers found")
 
+
 ##############################################################################
 def _is_mult_period(entry):
-##############################################################################
+    ##############################################################################
     """Return a tuple (<mult>, <period>), if <entry> is a valid time period
     entry. Otherwise, return None.
     A time-period entry is of the form:
@@ -176,9 +202,9 @@ def _is_mult_period(entry):
     (None, 'frequency must be of the form ([<mult>*]period), found "5*nhours*ndays".  Do you have too many multipliers or periods?')
     """
     if not entry or not entry.strip():
-        return (None, f"frequency ([<mult>*]period) is required, found \"{entry}\"")
+        return (None, f'frequency ([<mult>*]period) is required, found "{entry}"')
     # end if
-    tokens = [x.strip() for x in entry.split('*')]
+    tokens = [x.strip() for x in entry.split("*")]
     num_tokens = len(tokens)
 
     multiplier = 1
@@ -189,26 +215,33 @@ def _is_mult_period(entry):
         multiplier = tokens[0]
         period = tokens[1].lower()
     else:
-        return (None, f"frequency must be of the form ([<mult>*]period), found \"{entry}\".  Do you have too many multipliers or periods?")
+        return (
+            None,
+            f'frequency must be of the form ([<mult>*]period), found "{entry}".  Do you have too many multipliers or periods?',
+        )
     # end if
 
     if period not in _TIME_PERIODS:
         time_periods = ", ".join(_TIME_PERIODS)
-        return (None, f"period (\"{period}\") must be one of {time_periods}")
+        return (None, f'period ("{period}") must be one of {time_periods}')
     # end if
-    (candidate_multiplier, errmsg) = _is_integer(multiplier)
+    candidate_multiplier, errmsg = _is_integer(multiplier)
     if errmsg:
-        return (None, f"\"{multiplier}\" in \"{entry}\" is not a valid integer")
+        return (None, f'"{multiplier}" in "{entry}" is not a valid integer')
     # end if
     if candidate_multiplier <= 0:
-        return (None, f"multiplier (\"{candidate_multiplier}\") must be a positive integer")
+        return (
+            None,
+            f'multiplier ("{candidate_multiplier}") must be a positive integer',
+        )
     # end if
 
     return ((candidate_multiplier, period), None)
 
+
 ##############################################################################
 def _is_prec_str(entry):
-##############################################################################
+    ##############################################################################
     """Return the output-precision represented by <entry> or None if it
     is invalid.
     Also, return an error string or None if no error is found.
@@ -232,9 +265,10 @@ def _is_prec_str(entry):
     # end if
     return ustr, errmsg
 
+
 ##############################################################################
 def _is_string(entry):
-##############################################################################
+    ##############################################################################
     """Return <entry> if it represents a valid history configuration
     filename or None if it is invalid.
     Note, not currently checking this string (just that it is a string).
@@ -251,9 +285,10 @@ def _is_string(entry):
     # end if
     return fval, None
 
+
 ##############################################################################
 def _is_logical(entry):
-##############################################################################
+    ##############################################################################
     """Return <entry> if it represents a valid history configuration
     logical or None if it is invalid.
     Also, return an error string or None if no error is found.
@@ -276,13 +311,16 @@ def _is_logical(entry):
             errmsg = f"hist_write_nstep0 must be one of {out_values}"
         # end if
     else:
-        errmsg = f"hist_write_nstep0 must be a string, not a {type(entry).__name__} type."
+        errmsg = (
+            f"hist_write_nstep0 must be a string, not a {type(entry).__name__} type."
+        )
     # end if
     return fval, errmsg
 
+
 ##############################################################################
 def _parse_hist_config_line(line, no_command_ok=False):
-##############################################################################
+    ##############################################################################
     """Parse <line> if it is a valid history config command line.
     Parse the history configuration command found in <line>.
     Return three arguments:
@@ -328,11 +366,11 @@ def _parse_hist_config_line(line, no_command_ok=False):
     # end if
     return cmd, entry, errmsg
 
+
 ##############################################################################
-class HistFieldList():
-##############################################################################
-    """Class to store information about a history configuration field list.
-    """
+class HistFieldList:
+    ##############################################################################
+    """Class to store information about a history configuration field list."""
 
     def __init__(self, volume, list_type, list_desc):
         """Initialize a named HistFieldList with an empty list.
@@ -362,7 +400,9 @@ class HistFieldList():
                 if self == field_list:
                     # Field is a duplicate, same flag (so this is just a warning)
                     ctx = context_string(pobj)
-                    logger.warning(f"Field, '{item}' already in {self.desc} fields for hist volume, {self.volume}{ctx}")
+                    logger.warning(
+                        f"Field, '{item}' already in {self.desc} fields for hist volume, {self.volume}{ctx}"
+                    )
                     return False
                 else:
                     # Field is a duplicate, different flag (this is an error)
@@ -377,7 +417,9 @@ class HistFieldList():
         self.__max_namelen = max(len(item), self.__max_namelen)
         if logger.getEffectiveLevel() <= logging.DEBUG:
             ctx = context_string(pobj)
-            logger.debug(f"Added {self.desc} field, '{item}' to hist volume, {self.volume}{ctx}")
+            logger.debug(
+                f"Added {self.desc} field, '{item}' to hist volume, {self.volume}{ctx}"
+            )
         # end if
         return True
 
@@ -431,7 +473,7 @@ class HistFieldList():
         max_linelen = 120
         if self.__field_names:
             lhs = f"    {field_varname} = "
-            blank_lhs = ' '*(len(field_varname) + 5)
+            blank_lhs = " " * (len(field_varname) + 5)
             # Break up output into lines
             num_fields = self.num_fields()
             fld_end = -1
@@ -453,8 +495,10 @@ class HistFieldList():
                 # end while
                 # Output this line
                 comma = "," if fld_end < num_fields - 1 else ""
-                quotelist = [f"'{x}{' '*(self.max_namelen - len(x))}'"
-                             for x in self.__field_names[fld_beg:fld_end+1]]
+                quotelist = [
+                    f"'{x}{' '*(self.max_namelen - len(x))}'"
+                    for x in self.__field_names[fld_beg : fld_end + 1]
+                ]
                 outfile.write(f"{lhs}{', '.join(quotelist)}{comma}\n")
                 lhs = blank_lhs
             # end while
@@ -477,8 +521,7 @@ class HistFieldList():
 
     @property
     def max_namelen(self):
-        """Return the length of the longest field in this HistFieldList object.
-        """
+        """Return the length of the longest field in this HistFieldList object."""
         return self.__max_namelen
 
     @property
@@ -486,15 +529,17 @@ class HistFieldList():
         """Return the list of field names"""
         return self.__field_names
 
+
 ##############################################################################
 ###
 ### History configuration types (for parsing history configuration entries
 ###
 ##############################################################################
 
+
 ##############################################################################
-class HistConfigEntry():
-##############################################################################
+class HistConfigEntry:
+    ##############################################################################
     """Object to hold information, checking, and conversion functions for
     a history configuration entry type
     """
@@ -504,6 +549,7 @@ class HistConfigEntry():
     __HIST_LIST_OF_IDENTIFIERS = "(?P<idents>.*)"
     __HIST_ASSIGNMENT_OPERATOR = "(:|=)"
     __HIST_STATEMENT = rf"\s*(;\s*{__HIST_VOL})?\s*{__HIST_ASSIGNMENT_OPERATOR}\s*{__HIST_LIST_OF_IDENTIFIERS}$"
+
     def __init__(self, entry_string, entry_check_fn, process_fn):
         """Set the entry string regular expression and value check function
         for this history configuration entry type
@@ -513,8 +559,9 @@ class HistConfigEntry():
            HistoryConfig object.
         """
         self.__name = entry_string.strip().lower()
-        self.__entry_regexp = re.compile(self.name + self.__HIST_STATEMENT,
-                                         re.IGNORECASE)
+        self.__entry_regexp = re.compile(
+            self.name + self.__HIST_STATEMENT, re.IGNORECASE
+        )
         self.__entry_check_fn = entry_check_fn
         self.__process_fn = process_fn
         # Check that name matches pattern
@@ -556,8 +603,8 @@ class HistConfigEntry():
         if ematch is None:
             return None, f"Invalid {self.name} history config line, '{line.strip()}'"
         groups = ematch.groupdict()
-        vol = groups['vol']
-        entry_val, errmsg = self.__entry_check_fn(groups['idents'])
+        vol = groups["vol"]
+        entry_val, errmsg = self.__entry_check_fn(groups["idents"])
         if entry_val:
             return (entry_val, vol), errmsg
         return None, errmsg
@@ -590,13 +637,13 @@ class HistConfigEntry():
         if cmatch:
             return cmatch.group(0)
         # end if
-        return ''
+        return ""
+
 
 ##############################################################################
-class HistoryVolConfig():
-##############################################################################
-    """Object to hold all history configuration for a history file (volume).
-    """
+class HistoryVolConfig:
+    ##############################################################################
+    """Object to hold all history configuration for a history file (volume)."""
 
     # Note, variable values below must match those in cam_hist_config_file.F90
     #    (without leading undescores)
@@ -605,32 +652,35 @@ class HistoryVolConfig():
     __INITIAL_FILE = "initial_value"
     __HFILE_TYPES = [__HIST_FILE, __SAT_FILE, __INITIAL_FILE]
     # rhfilename_spec is the template for history restart files
-    _DEFAULT_RESTART_HIST_SPEC = '%c.cam.r%u.%y-%m-%d-%s.nc'
+    _DEFAULT_RESTART_HIST_SPEC = "%c.cam.r%u.%y-%m-%d-%s.nc"
     # hfilename_spec is the template for each history file
-    _DEFAULT_HISTORY_SPEC = '%c.cam.%u%f.%y-%m-%d-%s.nc'
+    _DEFAULT_HISTORY_SPEC = "%c.cam.%u%f.%y-%m-%d-%s.nc"
 
     def __init__(self, volume):
         """Initialize a HistoryConfig object to a default state.
         <volume> is the history file descriptor (e.g., h1, i)
         """
         self.__volume = volume
-        self.__inst_fields = HistFieldList(self.volume, 'inst', 'instantaneous')
-        self.__avg_fields = HistFieldList(self.volume, 'avg', 'average')
-        self.__min_fields = HistFieldList(self.volume, 'min', 'minimum sampled')
-        self.__max_fields = HistFieldList(self.volume, 'max', 'maximum sampled')
-        self.__var_fields = HistFieldList(self.volume, 'var',
-                                          'variance of sampled')
-        self.__all_fields = [self.__inst_fields, self.__avg_fields,
-                             self.__min_fields, self.__max_fields,
-                             self.__var_fields]
-        self.__precision = 'REAL32'
+        self.__inst_fields = HistFieldList(self.volume, "inst", "instantaneous")
+        self.__avg_fields = HistFieldList(self.volume, "avg", "average")
+        self.__min_fields = HistFieldList(self.volume, "min", "minimum sampled")
+        self.__max_fields = HistFieldList(self.volume, "max", "maximum sampled")
+        self.__var_fields = HistFieldList(self.volume, "var", "variance of sampled")
+        self.__all_fields = [
+            self.__inst_fields,
+            self.__avg_fields,
+            self.__min_fields,
+            self.__max_fields,
+            self.__var_fields,
+        ]
+        self.__precision = "REAL32"
         self.__precision_set = False
-        if self.__volume == 'h0':
+        if self.__volume == "h0":
             self.__max_frames = 1
-            self.__output_freq = (1, 'month')
+            self.__output_freq = (1, "month")
         else:
             self.__max_frames = 30
-            self.__output_freq = (1, 'day')
+            self.__output_freq = (1, "day")
         # end if
         self.__max_frames_set = False
         self.__file_type = self.__HIST_FILE
@@ -748,7 +798,9 @@ class HistoryVolConfig():
             # end if
             return True
         else:
-            emsg = f"Attempt to set max frames to '{nframes}', must be a positive integer"
+            emsg = (
+                f"Attempt to set max frames to '{nframes}', must be a positive integer"
+            )
             pobj.add_syntax_err(emsg)
             return False
         # end if
@@ -790,14 +842,16 @@ class HistoryVolConfig():
          - multiplier is a positive integer
          - period is in list of valid time periods
         """
-        return isinstance(ofreq, tuple)                   and \
-               (len(ofreq) == 2)                          and \
-               (ofreq[0] > 0)                             and \
-               (ofreq[1].strip().lower() in _TIME_PERIODS)
+        return (
+            isinstance(ofreq, tuple)
+            and (len(ofreq) == 2)
+            and (ofreq[0] > 0)
+            and (ofreq[1].strip().lower() in _TIME_PERIODS)
+        )
 
     def set_output_frequency(self, ofreq, pobj, logger):
         """Modify the output_frequency property of this HistoryVolConfig
-            object. <ofreq> is a tuple consisting of an integer and a period.
+        object. <ofreq> is a tuple consisting of an integer and a period.
         """
         if self.__out_frequency_is_valid(ofreq):
             self.__output_freq = ofreq
@@ -829,7 +883,7 @@ class HistoryVolConfig():
             self.__max_frames = 1
         # end if
         if (ftype == self.__INITIAL_FILE) and (not self.__precision_set):
-            self.__precision = 'REAL64'
+            self.__precision = "REAL64"
         # end if
         if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
             ctx = context_string(pobj)
@@ -849,9 +903,8 @@ class HistoryVolConfig():
         """
         self.__filename_spec = fnspec
         if not self.__restart_fname_spec_set:
-            if '%u' in self.__filename_spec:
-                self.__restart_fname_spec = self.__filename_spec.replace("%u",
-                                                                         "r%u")
+            if "%u" in self.__filename_spec:
+                self.__restart_fname_spec = self.__filename_spec.replace("%u", "r%u")
             # end if
         # end if
         if logger.getEffectiveLevel() <= logging.DEBUG:
@@ -884,17 +937,17 @@ class HistoryVolConfig():
     def num_fields(self, fld_type):
         """Return the number of fields for field list type, <fld_type>."""
         num_flds = 0
-        if fld_type == 'avg':
+        if fld_type == "avg":
             num_flds = self.__avg_fields.num_fields()
-        elif fld_type == 'inst':
+        elif fld_type == "inst":
             num_flds = self.__inst_fields.num_fields()
-        elif fld_type == 'min':
+        elif fld_type == "min":
             num_flds = self.__min_fields.num_fields()
-        elif fld_type == 'max':
+        elif fld_type == "max":
             num_flds = self.__max_fields.num_fields()
-        elif fld_type == 'var':
+        elif fld_type == "var":
             num_flds = self.__var_fields.num_fields()
-        elif fld_type == 'all':
+        elif fld_type == "all":
             num_flds = sum([x.num_fields() for x in self.__all_fields])
         else:
             raise ParseInternalError(f"Unknown fld_type, '{fld_type}'")
@@ -904,7 +957,7 @@ class HistoryVolConfig():
     def output_config_namelist(self, outfile, logger):
         """Write the fortran namelist object for this HistoryVolConfig
         object"""
-        if self.num_fields('all') == 0:
+        if self.num_fields("all") == 0:
             logger.warning(f"WARNING: Volume '{self.volume}' has no fields; skipping")
             return
         # end if
@@ -923,51 +976,52 @@ class HistoryVolConfig():
         outfile.write(f"    hist_write_nstep0 = {self.__write_nstep0}\n")
         outfile.write("/\n")
 
+
 ##############################################################################
 ###  Objects for identifying and processing history config commands
 ##############################################################################
 
-_HIST_CONFIG_ENTRY_TYPES = [HistConfigEntry(r"hist_add_avg_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.add_avg_fields),
-                            HistConfigEntry(r"hist_add_inst_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.add_inst_fields),
-                            HistConfigEntry(r"hist_add_min_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.add_min_fields),
-                            HistConfigEntry(r"hist_add_max_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.add_max_fields),
-                            HistConfigEntry(r"hist_add_var_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.add_var_fields),
-                            HistConfigEntry(r"hist_file_type", _is_string,
-                                            HistoryVolConfig.set_file_type),
-                            HistConfigEntry(r"hist_max_frames", _is_integer,
-                                            HistoryVolConfig.set_max_frames),
-                            HistConfigEntry(r"hist_output_frequency",
-                                            _is_mult_period,
-                                            HistoryVolConfig.set_output_frequency),
-                            HistConfigEntry(r"hist_precision", _is_prec_str,
-                                            HistoryVolConfig.set_precision),
-                            HistConfigEntry(r"hist_diag_file", _is_string,
-                                            None),
-                            HistConfigEntry(r"hist_write_nstep0", _is_logical,
-                                            HistoryVolConfig.set_write_nstep0),
-                            HistConfigEntry(r"hist_filename_template", _is_string,
-                                            HistoryVolConfig.set_filename_spec),
-                            HistConfigEntry(r"hist_remove_fields",
-                                            _list_of_idents,
-                                            HistoryVolConfig.remove_fields)]
+_HIST_CONFIG_ENTRY_TYPES = [
+    HistConfigEntry(
+        r"hist_add_avg_fields", _list_of_idents, HistoryVolConfig.add_avg_fields
+    ),
+    HistConfigEntry(
+        r"hist_add_inst_fields", _list_of_idents, HistoryVolConfig.add_inst_fields
+    ),
+    HistConfigEntry(
+        r"hist_add_min_fields", _list_of_idents, HistoryVolConfig.add_min_fields
+    ),
+    HistConfigEntry(
+        r"hist_add_max_fields", _list_of_idents, HistoryVolConfig.add_max_fields
+    ),
+    HistConfigEntry(
+        r"hist_add_var_fields", _list_of_idents, HistoryVolConfig.add_var_fields
+    ),
+    HistConfigEntry(r"hist_file_type", _is_string, HistoryVolConfig.set_file_type),
+    HistConfigEntry(r"hist_max_frames", _is_integer, HistoryVolConfig.set_max_frames),
+    HistConfigEntry(
+        r"hist_output_frequency", _is_mult_period, HistoryVolConfig.set_output_frequency
+    ),
+    HistConfigEntry(r"hist_precision", _is_prec_str, HistoryVolConfig.set_precision),
+    HistConfigEntry(r"hist_diag_file", _is_string, None),
+    HistConfigEntry(
+        r"hist_write_nstep0", _is_logical, HistoryVolConfig.set_write_nstep0
+    ),
+    HistConfigEntry(
+        r"hist_filename_template", _is_string, HistoryVolConfig.set_filename_spec
+    ),
+    HistConfigEntry(
+        r"hist_remove_fields", _list_of_idents, HistoryVolConfig.remove_fields
+    ),
+]
 
-_HIST_CONFIG_ENTRY_OBJS = {x.name : x for x in _HIST_CONFIG_ENTRY_TYPES}
+_HIST_CONFIG_ENTRY_OBJS = {x.name: x for x in _HIST_CONFIG_ENTRY_TYPES}
+
 
 ##############################################################################
 class HistoryConfig(dict):
-##############################################################################
-    """Object to hold the history configuration for all history files (volumes).
-    """
+    ##############################################################################
+    """Object to hold the history configuration for all history files (volumes)."""
 
     def __init__(self, filename=None, logger=None):
         """Initialize this HistoryConfig object as an empty dictionary.
@@ -995,7 +1049,7 @@ class HistoryConfig(dict):
         """
         # Store directory information for relative paths
         file_dir = os.path.dirname(os.path.abspath(filename))
-        no_comm_ok = volume is None # Can have mixed lines for user_nl_cam
+        no_comm_ok = volume is None  # Can have mixed lines for user_nl_cam
         with open(filename, "r", encoding="UTF-8") as cfile:
             clines = [line.strip() for line in cfile.readlines()]
         # end with
@@ -1003,8 +1057,7 @@ class HistoryConfig(dict):
         pobj = ParseObject(filename, clines)
         curr_line, _ = pobj.curr_line()
         while pobj.valid_line():
-            args = _parse_hist_config_line(curr_line,
-                                               no_command_ok=no_comm_ok)
+            args = _parse_hist_config_line(curr_line, no_command_ok=no_comm_ok)
             cmd, entry, errmsg = args
             hist_config = None
             if errmsg:
@@ -1048,7 +1101,7 @@ class HistoryConfig(dict):
             # end if
             if hist_config:
                 # Process this line's information
-                if cmd == 'hist_diag_file':
+                if cmd == "hist_diag_file":
                     if os.path.exists(cmd_val):
                         dfile = cmd_val
                     elif not os.path.isabs(cmd_val):
@@ -1068,8 +1121,7 @@ class HistoryConfig(dict):
                     # end if
                 else:
                     hconf_entry = _HIST_CONFIG_ENTRY_OBJS[cmd]
-                    hconf_entry.process_data(hist_config, cmd_val,
-                                                        pobj, logger)
+                    hconf_entry.process_data(hist_config, cmd_val, pobj, logger)
                 # end if
             # end if (no else, any error was already generated)
             # Done with this line, move on
@@ -1089,20 +1141,21 @@ class HistoryConfig(dict):
     def output_class_namelist(self, ofile):
         """Write the master class namelist (e.g., num fields)"""
         ofile.write("\n&hist_config_arrays_nl\n")
-        num_fields = self.max_num_fields('inst')
+        num_fields = self.max_num_fields("inst")
         ofile.write(f"    hist_num_inst_fields = {num_fields}\n")
-        num_fields = self.max_num_fields('avg')
+        num_fields = self.max_num_fields("avg")
         ofile.write(f"    hist_num_avg_fields = {num_fields}\n")
-        num_fields = self.max_num_fields('min')
+        num_fields = self.max_num_fields("min")
         ofile.write(f"    hist_num_min_fields = {num_fields}\n")
-        num_fields = self.max_num_fields('max')
+        num_fields = self.max_num_fields("max")
         ofile.write(f"    hist_num_max_fields = {num_fields}\n")
-        num_fields = self.max_num_fields('var')
+        num_fields = self.max_num_fields("var")
         ofile.write(f"    hist_num_var_fields = {num_fields}\n")
         ofile.write("/\n")
 
+
 ##############################################################################
-#IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
+# IGNORE EVERYTHING BELOW HERE UNLESS RUNNING TESTS ON CAM_CONFIG!
 ##############################################################################
 
 # Call testing routine, if script is run directly

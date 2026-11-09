@@ -1,6 +1,4 @@
-"""
-
-"""
+""" """
 
 import argparse
 import csv
@@ -31,23 +29,28 @@ def parse_csv(csv_filepath):
     datamap = defaultdict(set)
     pattern = re.compile(r"\w+")
     print(f"Opening {csv_filepath}")
-    with open(csv_filepath, encoding='ascii') as csvfile:
+    with open(csv_filepath, encoding="ascii") as csvfile:
         csvdata = csv.reader(csvfile)
         for row in csvdata:
             inputname = row[0].split(" ")[0]
             standardname_match = pattern.fullmatch(row[5].split(" ")[0])
-            if csvdata.line_num < 432 and standardname_match and inputname and "Skipping" not in row[5] and "CCPP" not in row[5]:
+            if (
+                csvdata.line_num < 432
+                and standardname_match
+                and inputname
+                and "Skipping" not in row[5]
+                and "CCPP" not in row[5]
+            ):
                 print(f"Adding {inputname} under {standardname_match.string}")
                 datamap[standardname_match.string].add(inputname)
     return datamap
-
 
 
 def generate_stdname_xml(current_dict, output_filename):
     """
     Generates an xml file to be used by a converter script that converts
     input names in a snapshot file to standard names.
-    
+
     For example,
 
     .. code-block::
@@ -85,7 +88,7 @@ def generate_stdname_xml(current_dict, output_filename):
         entry.append(names)
         entries.append(entry)
     xmltree.append(entries)
-    with open(output_filename, "w", encoding='ascii') as xmlout:
+    with open(output_filename, "w", encoding="ascii") as xmlout:
         print(f"Creating new xml file : {output_filename}")
         xmlout.write(xmltree.prettify())
 
@@ -97,11 +100,11 @@ def main():
     .. code-block::
 
       <snapshot file/input name>,...,...,...,...,<standard name>,...
-    
+
     and generates a corresponding xml file of the format
 
     .. code-block:: XML
-    
+
       <entries>
         <entry stdname="stdname">
           <ic_file_input_name>input_name</ic_file_input_name>
@@ -109,11 +112,18 @@ def main():
         </entry>
         ...
       </entries>
- 
+
     """
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--csv-file', type=str, default='CCPP Standard Names - Sheet1.csv', help='')
-    parser.add_argument('--output-map', type=str, default='stdnames_to_inputnames_dictionary_new.xml', help='')
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument(
+        "--csv-file", type=str, default="CCPP Standard Names - Sheet1.csv", help=""
+    )
+    parser.add_argument(
+        "--output-map",
+        type=str,
+        default="stdnames_to_inputnames_dictionary_new.xml",
+        help="",
+    )
 
     args = parser.parse_args()
 
@@ -121,5 +131,5 @@ def main():
     generate_stdname_xml(current_csv_entries, args.output_map)
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

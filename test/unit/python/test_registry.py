@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # Description:  Contains unit tests for testing CAM registry validation
 #               and code generation
 #
@@ -8,7 +8,7 @@
 # Command line arguments: none
 #
 # Usage: python test_registry.py         # run the unit tests
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 """Test gen_registry in generate_registry_data.py"""
 
@@ -28,7 +28,7 @@ _SAMPLE_FILES_DIR = os.path.join(__TEST_DIR, "sample_files")
 _TMP_DIR = os.path.join(__TEST_DIR, "tmp")
 _SRC_MOD_DIR = os.path.join(_TMP_DIR, "SourceMods")
 
-__FILE_OPEN = (lambda x: open(x, 'r', encoding='utf-8'))
+__FILE_OPEN = lambda x: open(x, "r", encoding="utf-8")
 
 if not os.path.exists(__REGISTRY_DIR):
     raise ImportError("Cannot find registry directory")
@@ -43,11 +43,13 @@ from generate_registry_data import gen_registry
 from generate_registry_data import metadata_file_to_files, TypeRegistry
 from framework_env import CCPPFrameworkEnv
 from parse_source import CCPPError
+
 # pylint: enable=wrong-import-position
+
 
 ###############################################################################
 def remove_files(file_list):
-###############################################################################
+    ###############################################################################
     """Remove files in <file_list> if they exist"""
     for fpath in file_list:
         if os.path.exists(fpath):
@@ -55,9 +57,10 @@ def remove_files(file_list):
         # End if
     # End for
 
+
 ###############################################################################
 def read_xml_file(filename):
-###############################################################################
+    ###############################################################################
     """Read XML file, <filename>, and return the XML tree and root
     As this is a test script, errors will throw exceptions."""
     with __FILE_OPEN(filename) as file_:
@@ -66,8 +69,8 @@ def read_xml_file(filename):
     # End with
     return tree, root
 
-class RegistryTest(unittest.TestCase):
 
+class RegistryTest(unittest.TestCase):
     """Tests for `gen_registry`."""
 
     @classmethod
@@ -78,8 +81,8 @@ class RegistryTest(unittest.TestCase):
         if not os.path.exists(_SRC_MOD_DIR):
             os.makedirs(_SRC_MOD_DIR)
 
-        remove_files(glob.iglob(os.path.join(_TMP_DIR, '*.*')))
-        remove_files(glob.iglob(os.path.join(_SRC_MOD_DIR, '*.*')))
+        remove_files(glob.iglob(os.path.join(_TMP_DIR, "*.*")))
+        remove_files(glob.iglob(os.path.join(_SRC_MOD_DIR, "*.*")))
         super(cls, RegistryTest).setUpClass()
 
     def test_good_simple_registry(self):
@@ -91,16 +94,22 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         out_source_name = "physics_types_simple"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files, _, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "fv",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -116,8 +125,7 @@ class RegistryTest(unittest.TestCase):
         amsg = f"{out_meta} does not match {in_meta}"
         self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
-                        msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
     def test_bad_registry_xml(self):
         """Test that the full error messages from xmllint is returned"""
@@ -126,13 +134,19 @@ class RegistryTest(unittest.TestCase):
         out_name = "physics_types_bad"
         # Try to generate the registry
         with self.assertRaises(CCPPError) as cerr:
-            retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                             _SRC_MOD_DIR, _CAM_ROOT,
-                                             loglevel=logging.ERROR,
-                                             error_on_no_validate=True)
+            retcode, files, _ = gen_registry(
+                filename,
+                "se",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # end with
         expected_error = "reg_bad_xml.xml:32: element ic_file_input_name: Schemas validity error : Element 'ic_file_input_name': This element is not expected. Expected is one of ( initial_value, ic_file_input_names )."
-        split_exception = str(cerr.exception).split('\n')
+        split_exception = str(cerr.exception).split("\n")
         amsg = f"Test failure: exception raised is {len(split_exception)} lines long and is expected to be 5"
         self.assertEqual(len(split_exception), 5, msg=amsg)
         # Check that the full xmllint message was returned
@@ -147,21 +161,27 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         out_name = "physics_types_ddt"
-        for dycore in ['fv', 'eul', 'se']:
-            out_source_name = out_name + '_' + dycore + '.F90'
-            out_meta_name = out_name + '_' + dycore + '.meta'
+        for dycore in ["fv", "eul", "se"]:
+            out_source_name = out_name + "_" + dycore + ".F90"
+            out_meta_name = out_name + "_" + dycore + ".meta"
             in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
             in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
-            gen_source = os.path.join(_TMP_DIR, out_name + '.F90')
-            gen_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+            gen_source = os.path.join(_TMP_DIR, out_name + ".F90")
+            gen_meta = os.path.join(_TMP_DIR, out_name + ".meta")
             out_source = os.path.join(_TMP_DIR, out_source_name)
             out_meta = os.path.join(_TMP_DIR, out_meta_name)
             remove_files([out_source, out_meta])
             # Run dycore
-            retcode, files, _, _, _ = gen_registry(filename, dycore, _TMP_DIR, 2,
-                                                   _SRC_MOD_DIR, _CAM_ROOT,
-                                                   loglevel=logging.ERROR,
-                                                   error_on_no_validate=True)
+            retcode, files, _, _, _ = gen_registry(
+                filename,
+                dycore,
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
             # Check return code
             amsg = f"Test failure for dycore = {dycore}, retcode={retcode}"
             self.assertEqual(retcode, 0, msg=amsg)
@@ -181,12 +201,11 @@ class RegistryTest(unittest.TestCase):
             self.assertTrue(os.path.exists(out_source), msg=amsg)
             # For each output file, make sure it matches input file
             amsg = f"{out_meta} does not match {in_meta}"
-            self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                        shallow=False), msg=amsg)
+            self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
             amsg = f"{out_source} does not match {in_source}"
-            self.assertTrue(filecmp.cmp(out_source, in_source,
-                                        shallow=False), msg=amsg)
+            self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
         # End for
+
     def test_good_ddt_registry2(self):
         """Test code and metadata generation from a good registry with DDTs
         with extends and bindC attributes.
@@ -197,18 +216,24 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
         out_name = "physics_types_ddt2"
-        out_source_name = out_name + '.F90'
-        out_meta_name = out_name + '.meta'
+        out_source_name = out_name + ".F90"
+        out_meta_name = out_name + ".meta"
         in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
         in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
         out_source = os.path.join(_TMP_DIR, out_source_name)
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -221,11 +246,9 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         amsg = f"{out_meta} does not match {in_meta}"
-        self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
     def test_good_array(self):
         """Test code and metadata generation from a good registry with DDTs
@@ -237,18 +260,24 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt_array.xml")
         out_name = "physics_types_ddt_array"
-        out_source_name = out_name + '.F90'
-        out_meta_name = out_name + '.meta'
+        out_source_name = out_name + ".F90"
+        out_meta_name = out_name + ".meta"
         in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name)
         in_meta = os.path.join(_SAMPLE_FILES_DIR, out_meta_name)
         out_source = os.path.join(_TMP_DIR, out_source_name)
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         # Run dycore
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -261,11 +290,9 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         amsg = f"{out_meta} does not match {in_meta}"
-        self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
     def test_good_metadata_file_registry(self):
         """Test code and metadata generation from a good registry with a DDT
@@ -277,16 +304,22 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
         out_name = "physics_types_ddt_mf"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_name + ".meta")
         remove_files([out_source, out_meta])
         # generate registry
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                              _SRC_MOD_DIR, _CAM_ROOT,
-                                              loglevel=logging.ERROR,
-                                              error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -299,11 +332,9 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         amsg = f"{out_meta} does not match {in_meta}"
-        self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
         mvars = mfile.variable_list()
@@ -320,15 +351,14 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
         out_name = "physics_types_ddt_mf"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_name + ".meta")
         remove_files([out_source, out_meta])
 
         # Create new directory:
-        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", "python", \
-                                   "sample_files")
+        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", "python", "sample_files")
         if not os.path.exists(tmp_src_dir):
             os.makedirs(tmp_src_dir)
 
@@ -337,10 +367,16 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, tmp_src_dir)
 
         # Generate registry
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _TMP_DIR,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _TMP_DIR,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -353,11 +389,9 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         amsg = f"{out_meta} does not match {in_meta}"
-        self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
         mvars = mfile.variable_list()
@@ -374,15 +408,14 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
         out_name = "physics_types_ddt_mf"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_name + ".meta")
         remove_files([out_source, out_meta])
 
         # Create new directory:
-        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", \
-                                   "sample_files")
+        tmp_src_dir = os.path.join(_TMP_DIR, "test", "unit", "sample_files")
         if not os.path.exists(tmp_src_dir):
             os.makedirs(tmp_src_dir)
 
@@ -394,10 +427,16 @@ class RegistryTest(unittest.TestCase):
         shutil.copy(meta_file, source_mod_file)
 
         # Generate registry
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                               tmp_src_dir, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            tmp_src_dir,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
         # Check return code
         amsg = f"Test failure for SE dycore, retcode={retcode}"
@@ -411,11 +450,9 @@ class RegistryTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # For each output file, make sure it matches input file
         amsg = f"{out_meta} does not match {in_meta}"
-        self.assertTrue(filecmp.cmp(out_meta, in_meta,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source,
-                                    shallow=False), msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
         mvars = mfile.variable_list()
@@ -438,19 +475,25 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_complete.xml")
         out_source_name = "physics_types_complete"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
 
         # Run test
-        retcode, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "se",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
 
-                # Check return code
+        # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
         flen = len(files)
@@ -467,8 +510,7 @@ class RegistryTest(unittest.TestCase):
         amsg = f"{out_meta} does not match {in_meta}"
         self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
-                        msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
         # Check that the metadata file has the correct number of variables
         mfile = files[1]
@@ -484,16 +526,22 @@ class RegistryTest(unittest.TestCase):
         # Setup test
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_self_ref_dim.xml")
         out_source_name = "physics_types_self_ref_dim"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".meta")
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         # Run test
-        retcode, files, _, _, _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "fv",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -509,8 +557,7 @@ class RegistryTest(unittest.TestCase):
         amsg = f"{out_meta} does not match {in_meta}"
         self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
-                        msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
     def test_no_metadata_file_registry(self):
         """Test code and metadata generation from a good registry with
@@ -520,20 +567,21 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_mf.xml")
         filename = os.path.join(_TMP_DIR, "reg_no_mf.xml")
         out_source_name = "physics_types_no_mf"
-        out_source = out_source_name + '.F90'
-        out_meta_name = out_source_name + '.meta'
+        out_source = out_source_name + ".F90"
+        out_meta_name = out_source_name + ".meta"
         out_source = os.path.join(_TMP_DIR, out_source_name)
         out_meta = os.path.join(_TMP_DIR, out_meta_name)
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
-            elif obj.tag == 'metadata_file':
-                bad_filename = os.path.join(_SAMPLE_FILES_DIR,
-                                            'bad_metadata_filename.meta')
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
+            elif obj.tag == "metadata_file":
+                bad_filename = os.path.join(
+                    _SAMPLE_FILES_DIR, "bad_metadata_filename.meta"
+                )
                 obj.text = bad_filename
             # End if
         # End for
@@ -541,14 +589,20 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "se",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # Check exception message
         bad_meta = os.path.abspath(bad_filename)
-        emsg = (f"Metadata file, '{bad_meta}', does not exist")
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        emsg = f"Metadata file, '{bad_meta}', does not exist"
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -561,18 +615,18 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_parameter.xml")
         out_source_name = "physics_types_parameter"
-        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.F90')
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + '.meta')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        in_source = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".F90")
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        in_meta = os.path.join(_SAMPLE_FILES_DIR, out_source_name + ".meta")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename and add a parameter with an initial value
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
                 # Reset the filename
-                obj.set('name', out_source_name)
+                obj.set("name", out_source_name)
                 # Add a new variable with an unknown dimension
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "pver")
@@ -581,16 +635,22 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("type", "integer")
                 new_var.set("allocatable", "parameter")
                 dims_elem = ET.SubElement(new_var, "initial_value")
-                dims_elem.text = '42'
+                dims_elem.text = "42"
                 break
             # End if
         # End for
         tree.write(filename)
         # Run test
-        retcode, files, _, _, _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                                               _SRC_MOD_DIR, _CAM_ROOT,
-                                               loglevel=logging.ERROR,
-                                               error_on_no_validate=True)
+        retcode, files, _, _, _ = gen_registry(
+            filename,
+            "eul",
+            _TMP_DIR,
+            2,
+            _SRC_MOD_DIR,
+            _CAM_ROOT,
+            loglevel=logging.ERROR,
+            error_on_no_validate=True,
+        )
         # Check return code
         amsg = f"Test failure: retcode={retcode}"
         self.assertEqual(retcode, 0, msg=amsg)
@@ -604,8 +664,7 @@ class RegistryTest(unittest.TestCase):
         amsg = f"{out_meta} does not match {in_meta}"
         self.assertTrue(filecmp.cmp(out_meta, in_meta, shallow=False), msg=amsg)
         amsg = f"{out_source} does not match {in_source}"
-        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False),
-                        msg=amsg)
+        self.assertTrue(filecmp.cmp(out_source, in_source, shallow=False), msg=amsg)
 
     def test_bad_registry_version(self):
         """Test a registry with a bad version number.
@@ -615,17 +674,17 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_bad_version.xml")
         out_source_name = "physics_types_bad_ver"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Write bad version number
-        root.set('version', '1.1')
+        root.set("version", "1.1")
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
+                obj.set("name", out_source_name)
                 break
             # End if
         # End for
@@ -633,13 +692,19 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "fv",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # Check exception message
-        emsg = (f"Invalid registry file, {filename}")
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        emsg = f"Invalid registry file, {filename}"
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -659,8 +724,7 @@ class RegistryTest(unittest.TestCase):
         base_root = base_tree.getroot()
 
         # Write new namelist entry with "bad" value:
-        initial_value_tie_string = \
-        """
+        initial_value_tie_string = """
         <variable local_name="myvar" standard_name="variable_with_unclear_initial_value"
                   units="count" type="integer" access="protected">
            <long_name>Number of horizontal columns</long_name>
@@ -682,10 +746,16 @@ class RegistryTest(unittest.TestCase):
 
         # Attempt to generate registry:
         with self.assertRaises(CCPPError) as cerr:
-            retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
-                                             _SRC_MOD_DIR, _CAM_ROOT,
-                                             loglevel=logging.ERROR,
-                                             error_on_no_validate=True)
+            retcode, files, _ = gen_registry(
+                filename,
+                "se",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
 
         # Check exception message
         emsg = "Unclear which initial_value to use for myvar. "
@@ -701,21 +771,21 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_no_std_name.xml")
         out_source_name = "physics_types_no_std_name"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename and remove a standard name
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
                 # Reset the filename
-                obj.set('name', out_source_name)
+                obj.set("name", out_source_name)
                 # Find and remove the standard name for latitude
                 for var in obj:
-                    lname = var.get('local_name')
-                    if (var.tag == 'variable') and (lname == 'latitude'):
-                        del var.attrib['standard_name']
+                    lname = var.get("local_name")
+                    if (var.tag == "variable") and (lname == "latitude"):
+                        del var.attrib["standard_name"]
                         break
                     # End if
                 # End for
@@ -726,13 +796,19 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'fv', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "fv",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # Check exception message
-        emsg = (f"Invalid registry file, {filename}")
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        emsg = f"Invalid registry file, {filename}"
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -745,16 +821,16 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_bad_dimensions.xml")
         out_source_name = "physics_types_bad_dimensions"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename and add a new variable with bad dimensions
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
                 # Reset the filename
-                obj.set('name', out_source_name)
+                obj.set("name", out_source_name)
                 # Add a new variable with bad dimensions
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "u")
@@ -763,20 +839,26 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("type", "real")
                 new_var.set("kind", "kind_phys")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'ccpp_constant_one:horizontal_dimension:two'
+                dims_elem.text = "ccpp_constant_one:horizontal_dimension:two"
                 break
             # End if
         # End for
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # Check exception message
-        emsg = (f"Invalid registry file, {filename}")
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        emsg = f"Invalid registry file, {filename}"
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
         self.assertFalse(os.path.exists(out_source))
@@ -789,16 +871,16 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_unknown_dimension.xml")
         out_source_name = "physics_types_unknown_dimension"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename and add a variable with an unknown dimension
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
                 # Reset the filename
-                obj.set('name', out_source_name)
+                obj.set("name", out_source_name)
                 # Add a new variable with an unknown dimension
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "u")
@@ -808,7 +890,7 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("kind", "kind_phys")
                 new_var.set("allocatable", "target")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'horizontal_dimension vertical_dimension'
+                dims_elem.text = "horizontal_dimension vertical_dimension"
                 break
             # End if
         # End for
@@ -816,10 +898,16 @@ class RegistryTest(unittest.TestCase):
         # Run test
 
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "Dimension, 'vertical_dimension', not found for 'u'"
@@ -836,16 +924,16 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_no_init_value.xml")
         out_source_name = "physics_types_no_init_value"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename and add a parameter with no initial value
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
                 # Reset the filename
-                obj.set('name', out_source_name)
+                obj.set("name", out_source_name)
                 # Add a new variable with an unknown dimension
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "u")
@@ -855,17 +943,23 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("kind", "kind_phys")
                 new_var.set("allocatable", "parameter")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'horizontal_dimension'
+                dims_elem.text = "horizontal_dimension"
                 break
             # End if
         # End for
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "parameter, 'u', does not have an initial value"
@@ -882,27 +976,27 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         filename = os.path.join(_TMP_DIR, "reg_dup_ddt.xml")
         out_source_name = "physics_types_dup_ddt"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
                 for var in obj:
-                    dtype = var.get('type')
-                    if (var.tag == 'ddt') and (dtype == "physics_state"):
+                    dtype = var.get("type")
+                    if (var.tag == "ddt") and (dtype == "physics_state"):
                         # Add a second DDT
                         new_ddt = ET.SubElement(obj, "ddt")
                         new_ddt.set("type", dtype)
                         data_elem = ET.SubElement(new_ddt, "data")
                         data_elem.set("dyn", "EUL")
-                        data_elem.text = 'latitude'
+                        data_elem.text = "latitude"
                         data_elem = ET.SubElement(new_ddt, "data")
                         data_elem.set("dyn", "EUL")
-                        data_elem.text = 'longitude'
+                        data_elem.text = "longitude"
                         break
                     # End if
                 # End for
@@ -911,15 +1005,21 @@ class RegistryTest(unittest.TestCase):
         # End for
         tree.write(filename)
         # Run test
-        vmsg = 'Failed to flag a duplicate DDT type'
+        vmsg = "Failed to flag a duplicate DDT type"
         with self.assertRaises(ValueError, msg=vmsg) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
-        emsg = 'Duplicate DDT entry, physics_state'
+        emsg = "Duplicate DDT entry, physics_state"
         self.assertEqual(emsg, str(verr.exception))
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
@@ -933,19 +1033,19 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         filename = os.path.join(_TMP_DIR, "reg_ddt_with_kind.xml")
         out_source_name = "physics_types_ddt_with_kind"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
                 for var in obj:
-                    lname = var.get('local_name')
-                    if (var.tag == 'variable') and (lname == "phys_state"):
-                        var.set('kind', 'ddt')
+                    lname = var.get("local_name")
+                    if (var.tag == "variable") and (lname == "phys_state"):
+                        var.set("kind", "ddt")
                         break
                     # End if
                 # End for
@@ -955,10 +1055,16 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "kind attribute illegal for DDT type physics_state"
@@ -975,19 +1081,19 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         filename = os.path.join(_TMP_DIR, "reg_ddt_var_unknown.xml")
         out_source_name = "physics_types_ddt_var_unknown_type"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
                 for var in obj:
-                    lname = var.get('local_name')
-                    if (var.tag == 'variable') and (lname == "phys_state"):
-                        var.set('type', 'physics_tend')
+                    lname = var.get("local_name")
+                    if (var.tag == "variable") and (lname == "phys_state"):
+                        var.set("type", "physics_tend")
                         break
                     # End if
                 # End for
@@ -997,10 +1103,16 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "phys_state is an unknown Variable type, physics_tend"
@@ -1018,19 +1130,19 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         filename = os.path.join(_TMP_DIR, "reg_ddt_unknown_extends.xml")
         out_source_name = "physics_types_ddt_unknown_extends"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
                 for var in obj:
-                    ltype = var.get('type')
-                    if (var.tag == 'ddt') and (ltype == "physics_state"):
-                        var.set('extends', 'physics_tend')
+                    ltype = var.get("type")
+                    if (var.tag == "ddt") and (ltype == "physics_state"):
+                        var.set("extends", "physics_tend")
                         break
                     # End if
                 # End for
@@ -1040,14 +1152,22 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
-        emsg = ("DDT, 'physics_state', extends type 'physics_tend', "
-                "however, this type is not known")
+        emsg = (
+            "DDT, 'physics_state', extends type 'physics_tend', "
+            "however, this type is not known"
+        )
         self.assertEqual(emsg, str(verr.exception))
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
@@ -1062,22 +1182,22 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt2.xml")
         filename = os.path.join(_TMP_DIR, "reg_ddt_incompatible_attributes.xml")
         out_source_name = "physics_types_ddt_incompatible_attributes"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         found_file = False
         found_ddt = False
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt2'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt2"):
+                obj.set("name", out_source_name)
                 found_file = True
                 for var in obj:
-                    ltype = var.get('type')
-                    if (var.tag == 'ddt') and (ltype == "physics_state"):
-                        var.set('bindC', "true")
+                    ltype = var.get("type")
+                    if (var.tag == "ddt") and (ltype == "physics_state"):
+                        var.set("bindC", "true")
                         found_ddt = True
                         break
                     # End if
@@ -1090,14 +1210,21 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
-        emsg = ("DDT, 'physics_state', cannot have both 'extends' and "
-                "'bindC' attributes")
+        emsg = (
+            "DDT, 'physics_state', cannot have both 'extends' and " "'bindC' attributes"
+        )
         self.assertEqual(emsg, str(verr.exception))
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
@@ -1112,20 +1239,20 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_ddt.xml")
         filename = os.path.join(_TMP_DIR, "reg_ddt_unknown_variable.xml")
         out_source_name = "physics_types_ddt_unknown_variable"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_ddt'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_ddt"):
+                obj.set("name", out_source_name)
                 for var in obj:
-                    ltype = var.get('type')
-                    if (var.tag == 'ddt') and (ltype == "physics_state"):
+                    ltype = var.get("type")
+                    if (var.tag == "ddt") and (ltype == "physics_state"):
                         data_elem = ET.SubElement(var, "data")
-                        data_elem.text = 'ice_cream'
+                        data_elem.text = "ice_cream"
                         break
                     # End if
                 # End for
@@ -1135,14 +1262,22 @@ class RegistryTest(unittest.TestCase):
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul',_TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
-        emsg = ("Variable, 'ice_cream', not found for DDT, 'physics_state', "
-                "in 'physics_types_ddt_unknown_variable'")
+        emsg = (
+            "Variable, 'ice_cream', not found for DDT, 'physics_state', "
+            "in 'physics_types_ddt_unknown_variable'"
+        )
         self.assertEqual(emsg, str(verr.exception))
         # Make sure no output files were created
         self.assertFalse(os.path.exists(out_meta))
@@ -1156,15 +1291,15 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_duplicate_local_name.xml")
         out_source_name = "physics_types_duplicate_local_name"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
+                obj.set("name", out_source_name)
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "latitude")
                 new_var.set("standard_name", "east_wind")
@@ -1172,17 +1307,23 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("type", "real")
                 new_var.set("kind", "kind_phys")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'horizontal_dimension'
+                dims_elem.text = "horizontal_dimension"
                 break
             # End if
         # End for
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "duplicate variable local_name, 'latitude', in "
@@ -1201,15 +1342,15 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_simple.xml")
         filename = os.path.join(_TMP_DIR, "reg_duplicate_standard_name.xml")
         out_source_name = "physics_types_duplicate_standard_name"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Change output filename
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_simple'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_simple"):
+                obj.set("name", out_source_name)
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "french_fries")
                 new_var.set("standard_name", "latitude")
@@ -1217,7 +1358,7 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("type", "real")
                 new_var.set("kind", "kind_phys")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'horizontal_dimension'
+                dims_elem.text = "horizontal_dimension"
                 break
             # End if
         # End for
@@ -1225,10 +1366,16 @@ class RegistryTest(unittest.TestCase):
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "duplicate variable standard_name, 'latitude' from "
@@ -1247,15 +1394,15 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, "reg_good_complete.xml")
         filename = os.path.join(_TMP_DIR, "reg_missing_use.xml")
         out_source_name = "physics_types_missing_use"
-        out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
-        out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
+        out_source = os.path.join(_TMP_DIR, out_source_name + ".F90")
+        out_meta = os.path.join(_TMP_DIR, out_source_name + ".meta")
         remove_files([out_source, out_meta])
         tree, root = read_xml_file(infilename)
         # Add a new variable that uses a non-"used" physconst variable
         for obj in root:
-            oname = obj.get('name')
-            if (obj.tag == 'file') and (oname == 'physics_types_complete'):
-                obj.set('name', out_source_name)
+            oname = obj.get("name")
+            if (obj.tag == "file") and (oname == "physics_types_complete"):
+                obj.set("name", out_source_name)
                 new_var = ET.SubElement(obj, "variable")
                 new_var.set("local_name", "french_fries")
                 new_var.set("standard_name", "french_fried_potaters")
@@ -1264,19 +1411,25 @@ class RegistryTest(unittest.TestCase):
                 new_var.set("kind", "kind_phys")
                 new_var.set("allocatable", "allocatable")
                 dims_elem = ET.SubElement(new_var, "dimensions")
-                dims_elem.text = 'horizontal_dimension'
+                dims_elem.text = "horizontal_dimension"
                 initial_elem = ET.SubElement(new_var, "initial_value")
-                initial_elem.text = 'zvir'
+                initial_elem.text = "zvir"
                 break
             # End if
         # End for
         tree.write(filename)
         # Run test
         with self.assertRaises(ValueError) as verr:
-            _ = gen_registry(filename, 'eul', _TMP_DIR, 2,
-                             _SRC_MOD_DIR, _CAM_ROOT,
-                             loglevel=logging.ERROR,
-                             error_on_no_validate=True)
+            _ = gen_registry(
+                filename,
+                "eul",
+                _TMP_DIR,
+                2,
+                _SRC_MOD_DIR,
+                _CAM_ROOT,
+                loglevel=logging.ERROR,
+                error_on_no_validate=True,
+            )
         # End with
         # Check exception message
         emsg = "Initial value 'zvir' is not a physconst variable or does not have necessary use statement"
@@ -1289,19 +1442,19 @@ class RegistryTest(unittest.TestCase):
         """Test response to bad metadata file with a duplicate section.
         Check that the correct error is raised."""
         # Setup test
-        infilename = os.path.join(_SAMPLE_FILES_DIR,
-                                  "phys_types_dup_section.meta")
+        infilename = os.path.join(_SAMPLE_FILES_DIR, "phys_types_dup_section.meta")
         # Create fake CCPPFrameworkEnv object to contain the logger
-        run_env = CCPPFrameworkEnv(logging.getLogger("badmf"), host_files='',
-                                   scheme_files='', suites='')
+        run_env = CCPPFrameworkEnv(
+            logging.getLogger("badmf"), host_files="", scheme_files="", suites=""
+        )
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            metadata_file_to_files(infilename, TypeRegistry(), 'eul', run_env)
+            metadata_file_to_files(infilename, TypeRegistry(), "eul", run_env)
         # Check exception message
         emsg = "module, 'physics_types_simple', table already contains "
         emsg += f"'physics_types_simple', at {infilename}:36"
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
 
     def test_bad_metadata_file_no_table(self):
         """Test response to bad metadata file with no table.
@@ -1311,15 +1464,17 @@ class RegistryTest(unittest.TestCase):
         infilename = os.path.join(_SAMPLE_FILES_DIR, table_name)
 
         # Create fake CCPPFrameworkEnv object to contain the logger
-        run_env = CCPPFrameworkEnv(logging.getLogger("badmf"), host_files='',
-                                   scheme_files='', suites='')
+        run_env = CCPPFrameworkEnv(
+            logging.getLogger("badmf"), host_files="", scheme_files="", suites=""
+        )
 
         # Run test
         with self.assertRaises(ValueError) as verr:
-            metadata_file_to_files(infilename, TypeRegistry(), 'eul', run_env)
+            metadata_file_to_files(infilename, TypeRegistry(), "eul", run_env)
         # Check exception message
         emsg = "Missing metadata section ([ccpp-arg-table]) for physics_types_simple"
-        self.assertEqual(emsg, str(verr.exception).split('\n', maxsplit=1)[0])
+        self.assertEqual(emsg, str(verr.exception).split("\n", maxsplit=1)[0])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
