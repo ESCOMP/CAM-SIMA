@@ -821,13 +821,16 @@
     <!-- data_flux_fuel is being intentionally ignored as it will only be needed for the online carbon cycle -->
     <!-- data_flux_ocn is being intentionally ignored as it will only be needed for the online carbon cycle -->
 
-    <!-- CLM computes and sends Sl_ddvel in cm/s; gas dry deposition
-         consumes it as-is in the Wesely land-type merge. -->
     <variable local_name="depvel"
-              standard_name="dry_deposition_velocity_from_coupler"
+              standard_name="dry_deposition_velocity_of_dry_deposited_species_from_coupler"
               units="cm s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension number_of_dry_deposition_species</dimensions>
+      <!-- dry deposition velocities from the land model (Sl_ddvel) are in cm s-1
+           and are used by gas-phase Weseley dry-deposition scheme over land.
+           these are merged with the velocities computed within the atmosphere model for seaice and ocean.
+           usually aerosol deposition (MAM/CARMA) are handled separately, except in prognostic BAM,
+           thus this might not just be gas-phase species, hence the "verbose" standard name. -->
+      <dimensions>horizontal_dimension number_of_dry_deposited_species_from_coupler</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
     </variable>
 

@@ -6,7 +6,7 @@
   name  = drydep_coupling
   type  = module
 [ n_drydep ]
-  standard_name = number_of_dry_deposition_species
+  standard_name = number_of_dry_deposited_species_from_coupler
   units = count
   type = integer
   dimensions = ()
