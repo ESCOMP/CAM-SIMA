@@ -2384,8 +2384,10 @@ contains
             allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
             call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
                     file=__FILE__, line=__LINE__-1)
+            ! existOK=.true.: shared same-named attribute across sibling grids
+            ! (see write_cam_grid_attr_1d_r8) - reuse rather than redefine.
             call cam_pio_def_var(File, trim(attr%name), pio_int,              &
-                 attr%vardesc(file_index_loc)%p, existOK=.false.)
+                 attr%vardesc(file_index_loc)%p, existOK=.true.)
             ierr= pio_put_att(File, attr%vardesc(file_index_loc)%p,           &
                  '_FillValue', int(grid_fill_value))
             call cam_pio_handle_error(ierr,                                   &
@@ -2505,8 +2507,10 @@ contains
          allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
          call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
                  file=__FILE__, line=__LINE__-1)
+         ! existOK=.true.: shared same-named attribute across sibling grids (see
+         ! write_cam_grid_attr_1d_r8) - reuse rather than redefine.
          call cam_pio_def_var(File, trim(attr%name), pio_int, (/dimid/),      &
-              attr%vardesc(file_index_loc)%p, existOK=.false.)
+              attr%vardesc(file_index_loc)%p, existOK=.true.)
          ierr = pio_put_att(File, attr%vardesc(file_index_loc)%p,             &
               '_FillValue', int(grid_fill_value))
          call cam_pio_handle_error(ierr,                                      &
@@ -2567,8 +2571,12 @@ contains
          allocate(attr%vardesc(file_index_loc)%p, stat=ierr)
          call check_allocate(ierr, subname, 'attr%vardesc(file_index_loc)%p', &
                  file=__FILE__, line=__LINE__-1)
+         ! existOK=.true.: more than one grid may define a same-named, shared
+         ! attribute variable (e.g. the SE 'GLL' and 'GLL_hist' grids both carry
+         ! 'area'). Reuse the existing variable instead of erroring when a
+         ! sibling grid already defined it in this file.
          call cam_pio_def_var(File, trim(attr%name), pio_double,              &
-              (/dimid/), attr%vardesc(file_index_loc)%p, existOK=.false.)
+              (/dimid/), attr%vardesc(file_index_loc)%p, existOK=.true.)
          ! fill value
          ierr =  pio_put_att(File, attr%vardesc(file_index_loc)%p,            &
               '_FillValue', grid_fill_value)

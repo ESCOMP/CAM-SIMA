@@ -637,7 +637,7 @@ contains
 
 !===========================================================================
 
-   subroutine history_out_field_1d(diagnostic_name, field_values)
+   subroutine history_out_field_1d(diagnostic_name, field_values, element_index)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Accumulate active fields - 1d fields
@@ -652,15 +652,28 @@ contains
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       real(r8),         intent(in) :: field_values(:)
+      ! Index of the contiguous, equally-sized horizontal chunk covered by
+      ! <field_values> when a decomposed field is written one chunk per call
+      ! (e.g. one SE element per call, mirroring CAM's outfld(..., idim, c)).
+      ! Chunk n occupies columns (n-1)*size(field_values)+1 : n*size(field_values)
+      ! of the local history buffer. When absent, <field_values> must span the
+      ! field's full local column dimension in a single call.
+      integer, optional, intent(in) :: element_index
 
       ! Local variables
       integer :: file_idx
+      integer :: col_beg
+      integer :: col_end
       character(len=cl) :: errmsg
       type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_1d: '
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
+      if (present(element_index)) then
+         col_beg = (element_index - 1)*size(field_values) + 1
+         col_end = element_index*size(field_values)
+      end if
 
       do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
@@ -673,7 +686,12 @@ contains
             cycle
          end if
          ! Field is active on this file - accumulate!
-         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (present(element_index)) then
+            call hist_field_accumulate(field_info, field_values, col_beg,     &
+                 cole=col_end, logger=logger)
+         else
+            call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         end if
          if (masterproc) then
             call logger%output(iulog)
             if (logger%num_errors() > 0) then
@@ -688,7 +706,7 @@ contains
 
 !===========================================================================
 
-   subroutine history_out_field_2d(diagnostic_name, field_values)
+   subroutine history_out_field_2d(diagnostic_name, field_values, element_index)
       !-----------------------------------------------------------------------
       !
       ! Purpose: Accumulate active fields - 2d fields
@@ -703,15 +721,29 @@ contains
       ! Dummy variables
       character(len=*), intent(in) :: diagnostic_name
       real(r8),         intent(in) :: field_values(:,:)
+      ! Index of the contiguous, equally-sized horizontal chunk covered by
+      ! <field_values> when a decomposed field is written one chunk per call
+      ! (e.g. one SE element per call, mirroring CAM's outfld(..., idim, c)).
+      ! The first dimension of <field_values> is horizontal; chunk n occupies
+      ! columns (n-1)*size(field_values,1)+1 : n*size(field_values,1) of the
+      ! local history buffer. When absent, <field_values> must span the
+      ! field's full local column dimension in a single call.
+      integer, optional, intent(in) :: element_index
 
       ! Local variables
       integer :: file_idx
+      integer :: col_beg
+      integer :: col_end
       character(len=cl) :: errmsg
       type(hist_log_messages) :: logger
       character(len=*), parameter :: subname = 'history_out_field_2d: '
       class(hist_field_info_t), pointer :: field_info
 
       errmsg = ''
+      if (present(element_index)) then
+         col_beg = (element_index - 1)*size(field_values, 1) + 1
+         col_end = element_index*size(field_values, 1)
+      end if
 
       do file_idx = 1, size(hist_configs)
          ! Check if the field is on the current file
@@ -724,7 +756,12 @@ contains
             cycle
          end if
          ! Field is active on this file - accumulate!
-         call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         if (present(element_index)) then
+            call hist_field_accumulate(field_info, field_values, col_beg,     &
+                 cole=col_end, logger=logger)
+         else
+            call hist_field_accumulate(field_info, field_values, 1, logger=logger)
+         end if
          if (masterproc) then
             call logger%output(iulog)
             if (logger%num_errors() > 0) then

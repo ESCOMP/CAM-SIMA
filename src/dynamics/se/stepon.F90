@@ -46,22 +46,22 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
    ! These fields on dynamics grid are output before the call to d_p_coupling.
    do m_cnst = 1, qsize
      call history_add_field(trim(cnst_diag_name_gll(m_cnst))//'_gll',  trim(cnst_longname_gll(m_cnst)), &
-         'lev', 'inst', 'kg kg-1', gridname='GLL')
+         'lev', 'inst', 'kg kg-1', gridname='GLL_hist')
      call history_add_field(trim(cnst_diag_name_gll(m_cnst))//'dp_gll', trim(cnst_longname_gll(m_cnst))//'*dp', &
-         'lev', 'inst', 'kg kg-1', gridname='GLL')
+         'lev', 'inst', 'kg kg-1', gridname='GLL_hist')
    end do
 
-   call history_add_field('U_gll'      ,'U wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL')
-   call history_add_field('V_gll'      ,'V wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL')
-   call history_add_field('T_gll'      ,'T on gll grid'              ,'lev'      , 'inst', 'K '    ,gridname='GLL')
-   call history_add_field('dp_ref_gll' ,'dp dry / dp_ref on gll grid','lev'      , 'inst', '1'     ,gridname='GLL')
-   call history_add_field('PSDRY_gll'  ,'psdry on gll grid'          ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
-   call history_add_field('PS_gll'     ,'ps on gll grid'             ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
-   call history_add_field('PHIS_gll'   ,'PHIS on gll grid'           ,horiz_only , 'inst', 'Pa '   ,gridname='GLL')
+   call history_add_field('U_gll'      ,'U wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL_hist')
+   call history_add_field('V_gll'      ,'V wind on gll grid'         ,'lev'      , 'inst', 'm s-1 ',gridname='GLL_hist')
+   call history_add_field('T_gll'      ,'T on gll grid'              ,'lev'      , 'inst', 'K '    ,gridname='GLL_hist')
+   call history_add_field('dp_ref_gll' ,'dp dry / dp_ref on gll grid','lev'      , 'inst', '1'     ,gridname='GLL_hist')
+   call history_add_field('PSDRY_gll'  ,'psdry on gll grid'          ,horiz_only , 'inst', 'Pa '   ,gridname='GLL_hist')
+   call history_add_field('PS_gll'     ,'ps on gll grid'             ,horiz_only , 'inst', 'Pa '   ,gridname='GLL_hist')
+   call history_add_field('PHIS_gll'   ,'PHIS on gll grid'           ,horiz_only , 'inst', 'Pa '   ,gridname='GLL_hist')
 
    ! Fields for initial condition files
-   call history_add_field('U&IC',  'Zonal wind'      ,'lev' ,  'inst', 'm s-1', gridname='GLL')
-   call history_add_field('V&IC',  'Meridional wind' ,'lev' ,  'inst', 'm s-1', gridname='GLL')
+   call history_add_field('U&IC',  'Zonal wind'      ,'lev' ,  'inst', 'm s-1', gridname='GLL_hist')
+   call history_add_field('V&IC',  'Meridional wind' ,'lev' ,  'inst', 'm s-1', gridname='GLL_hist')
 
    ! Don't need to register U&IC V&IC as vector components since we don't interpolate IC files
    !Uncomment or delete once history output "groups" have been
@@ -69,8 +69,8 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
    !call add_default('U&IC',0, 'inst')
    !call add_default('V&IC',0, 'inst')
 
-   call history_add_field('PS&IC', 'Surface pressure' ,horiz_only , 'inst', 'Pa', gridname='GLL')
-   call history_add_field('T&IC',  'Temperature'      ,'lev'      , 'inst', 'K ', gridname='GLL')
+   call history_add_field('PS&IC', 'Surface pressure' ,horiz_only , 'inst', 'Pa', gridname='GLL_hist')
+   call history_add_field('T&IC',  'Temperature'      ,'lev'      , 'inst', 'K ', gridname='GLL_hist')
 
    !Uncomment or delete once history output "groups" have been
    !implemented in CAM-SIMA -JN:
@@ -79,7 +79,7 @@ subroutine stepon_init(cam_runtime_opts, dyn_in, dyn_out)
 
    do m_cnst = 1, num_constituents
       call history_add_field(trim(const_diag_name(m_cnst))//'&IC', trim(const_longname(m_cnst)), &
-                  'lev', 'inst', 'kg kg-1', gridname='GLL')
+                  'lev', 'inst', 'kg kg-1', gridname='GLL_hist')
 
       !Uncomment or delete once history output "groups" have been
       !implemented in CAM-SIMA -JN:
@@ -383,7 +383,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                   elem(ie)%state%dp3d(i,j,:,tl_f)
            end do
          end do
-         call history_out_field(tfname, ftmp(:,:,1))
+         call history_out_field(tfname, ftmp(:,:,1), element_index=ie)
        end do
      end if
    end do
@@ -397,7 +397,7 @@ subroutine diag_dynvar_ic(elem, fvm)
              ftmp(i+(j-1)*np,:,1) = elem(ie)%state%Qdp(i,j,:,m_cnst,tl_qdp)
            end do
          end do
-         call history_out_field(tfname, ftmp(:,:,1))
+         call history_out_field(tfname, ftmp(:,:,1), element_index=ie)
        end do
      end if
    end do
@@ -410,8 +410,8 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,:,2) = elem(ie)%state%v(i,j,2,:,tl_f)
             end do
          end do
-         call history_out_field('U_gll', ftmp(:,:,1))
-         call history_out_field('V_gll', ftmp(:,:,2))
+         call history_out_field('U_gll', ftmp(:,:,1), element_index=ie)
+         call history_out_field('V_gll', ftmp(:,:,2), element_index=ie)
       end do
    end if
 
@@ -422,7 +422,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,:,1) = elem(ie)%state%T(i,j,:,tl_f)
             end do
          end do
-         call history_out_field('T_gll', ftmp(:,:,1))
+         call history_out_field('T_gll', ftmp(:,:,1), element_index=ie)
       end do
    end if
 
@@ -434,7 +434,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,:,1) = elem(ie)%state%dp3d(i,j,:,tl_f)/dp_ref(i,j,:)
             end do
          end do
-         call history_out_field('dp_ref_gll', ftmp(:,:,1))
+         call history_out_field('dp_ref_gll', ftmp(:,:,1), element_index=ie)
       end do
    end if
 
@@ -445,7 +445,7 @@ subroutine diag_dynvar_ic(elem, fvm)
                ftmp(i+(j-1)*np,1,1) = elem(ie)%state%psdry(i,j)
             end do
          end do
-         call history_out_field('PSDRY_gll', ftmp(:,1,1))
+         call history_out_field('PSDRY_gll', ftmp(:,1,1), element_index=ie)
       end do
    end if
 
@@ -462,7 +462,7 @@ subroutine diag_dynvar_ic(elem, fvm)
               ftmp(i+(j-1)*np,1,1) = fld_2d(i,j)
             end do
          end do
-         call history_out_field('PS_gll', ftmp(:,1,1))
+         call history_out_field('PS_gll', ftmp(:,1,1), element_index=ie)
 
        end do
        deallocate(fld_2d)
@@ -470,7 +470,7 @@ subroutine diag_dynvar_ic(elem, fvm)
 
    if (is_history_field_active('PHIS_gll')) then
       do ie = 1, nelemd
-         call history_out_field('PHIS_gll', RESHAPE(elem(ie)%state%phis, (/np*np/)))
+         call history_out_field('PHIS_gll', RESHAPE(elem(ie)%state%phis, [np*np]), element_index=ie)
       end do
    end if
 
@@ -488,7 +488,7 @@ subroutine diag_dynvar_ic(elem, fvm)
            ftmp(i+(j-1)*np,1,1) = fld_2d(i,j)
          end do
        end do
-       call history_out_field('PS&IC', ftmp(:,1,1))
+       call history_out_field('PS&IC', ftmp(:,1,1), element_index=ie)
      end do
      deallocate(fld_2d)
      if (fv_nphys < 1) then
@@ -499,9 +499,9 @@ subroutine diag_dynvar_ic(elem, fvm)
 
      do ie = 1, nelemd
 
-         call history_out_field('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   (/npsq,nlev/)))
-         call history_out_field('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), (/npsq,nlev/)))
-         call history_out_field('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), (/npsq,nlev/)))
+         call history_out_field('T&IC', RESHAPE(elem(ie)%state%T(:,:,:,tl_f),   [npsq,nlev]), element_index=ie)
+         call history_out_field('U&IC', RESHAPE(elem(ie)%state%v(:,:,1,:,tl_f), [npsq,nlev]), element_index=ie)
+         call history_out_field('V&IC', RESHAPE(elem(ie)%state%v(:,:,2,:,tl_f), [npsq,nlev]), element_index=ie)
 
          if (fv_nphys < 1) then
             call get_sum_species(elem(ie)%state%Qdp(:,:,:,:,tl_qdp), &
@@ -511,11 +511,11 @@ subroutine diag_dynvar_ic(elem, fvm)
                if (const_is_wet(advected_constituent_index(m_cnst))) then
                   call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(factor_array(:,:,:)*elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
+                       elem(ie)%state%dp3d(:,:,:,tl_f), [npsq,nlev]), element_index=ie)
                else
                   call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
                        RESHAPE(elem(ie)%state%Qdp(:,:,:,m_cnst,tl_qdp)/&
-                       elem(ie)%state%dp3d(:,:,:,tl_f), (/npsq,nlev/)))
+                       elem(ie)%state%dp3d(:,:,:,tl_f), [npsq,nlev]), element_index=ie)
                end if
             end do
          end if
@@ -565,7 +565,7 @@ subroutine diag_dynvar_ic(elem, fvm)
          do ie = nets, nete
             do m_cnst = 1, ntrac
                call history_out_field(trim(const_diag_name(m_cnst))//'&IC', &
-                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), (/npsq,nlev/)))
+                    RESHAPE(fld_gll(:,:,:,m_cnst,ie), [npsq,nlev]), element_index=ie)
             end do
          end do
 

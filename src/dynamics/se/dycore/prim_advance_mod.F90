@@ -777,7 +777,7 @@ contains
           do k=1,ksponge_end
             tmp_kmvis(:,:,k) = kmvis(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call history_out_field('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), [npsq,nlev]))
+          call history_out_field('nu_kmvis',RESHAPE(tmp_kmvis(:,:,:), [npsq,nlev]), element_index=ie)
         end do
       end if
       if (is_history_field_active('nu_kmcnd')) then
@@ -786,7 +786,7 @@ contains
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)*inv_cp_full(:,:,k,ie)/rho_dry(:,:,k,ie)
           end do
-          call history_out_field('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]))
+          call history_out_field('nu_kmcnd',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]), element_index=ie)
         end do
       end if
       if (is_history_field_active('nu_kmcnd_dp')) then
@@ -795,7 +795,7 @@ contains
           do k=1,ksponge_end
             tmp_kmcnd(:,:,k) = kmcnd(:,:,k,ie)/(cpair*rho_ref(k))
           end do
-          call history_out_field('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]))
+          call history_out_field('nu_kmcnd_dp',RESHAPE(tmp_kmcnd(:,:,:), [npsq,nlev]), element_index=ie)
         end do
       end if
 
@@ -1593,10 +1593,10 @@ contains
         !
         ! Output energy diagnostics on GLL grid
         !
-        call history_out_field(name_out(poidx)  ,po)
-        call history_out_field(name_out(seidx)  ,se)
-        call history_out_field(name_out(keidx)  ,ke)
-        call history_out_field(name_out(teidx)  ,ke+se+po)
+        call history_out_field(name_out(poidx)  ,RESHAPE(po,       [npsq]), element_index=ie)
+        call history_out_field(name_out(seidx)  ,RESHAPE(se,       [npsq]), element_index=ie)
+        call history_out_field(name_out(keidx)  ,RESHAPE(ke,       [npsq]), element_index=ie)
+        call history_out_field(name_out(teidx)  ,RESHAPE(ke+se+po, [npsq]), element_index=ie)
         !
         ! mass variables are output on CSLAM grid if using CSLAM else GLL grid
         !
@@ -1695,8 +1695,8 @@ contains
             end do
           end do
         end do
-        call history_out_field(name_out(mridx), mr)
-        call history_out_field(name_out(moidx), mo)
+        call history_out_field(name_out(mridx), mr, element_index=ie)
+        call history_out_field(name_out(moidx), mo, element_index=ie)
       end do
    end if ! if thermo budget history
 #endif
@@ -1765,7 +1765,7 @@ contains
         end do
       end do
       f_out = f_out*rga
-      call history_out_field(name_out,f_out)
+      call history_out_field(name_out,f_out, element_index=ie)
     end if
 
   end subroutine util_function
