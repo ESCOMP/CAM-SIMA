@@ -5,7 +5,6 @@ ncdata = 'atm/cam/inic/se/ape_topo_cam4_ne16np4_L32_c171020.nc'
 use_topo_file = .false.
 
 ! History configuration
-hist_no_defaults: True
 hist_diag_file;h0: amwg_hist_config
 hist_remove_fields;h0: TAUTMSX, TAUTMSY
 hist_output_frequency;h0: 1*nmonths
