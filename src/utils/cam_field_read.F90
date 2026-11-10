@@ -156,7 +156,7 @@ CONTAINS
 
    end subroutine print_input_field_info
 
-   integer function num_target_dims(num_field_dims, unstruct)
+   integer function num_target_dims(num_field_dims, unstruct) result(num_dims)
       ! Find the number of expected file dimensions (minus time) given
       ! field and grid information
 
@@ -164,12 +164,12 @@ CONTAINS
       integer, intent(in) :: num_field_dims
       logical, intent(in) :: unstruct
 
-      num_target_dims = num_field_dims ! Rank of data
+      num_dims = num_field_dims ! Rank of data
       if (unstruct) then
          ! File has one horizontal dimension
-         num_target_dims = num_target_dims - 1
+         num_dims = num_dims - 1
       end if
-      if (num_target_dims < 1) then
+      if (num_dims < 1) then
          call safe_endrun('num_target_dims, bad inputs')
       end if
    end function num_target_dims

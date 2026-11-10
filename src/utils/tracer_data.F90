@@ -2454,12 +2454,12 @@ contains
 
     do idx = 1, num_trc_restart_entries
       associate(rst => trc_restart_entries(idx))
-        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'curr'), pio_char, (/mcdimid/), rst%currfnameid)
+        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'curr'), pio_char, [mcdimid], rst%currfnameid)
         ioerr = pio_put_att(piofile, rst%currfnameid, 'namelist_file', trim(rst%namelist_file))
         ioerr = pio_put_att(piofile, rst%currfnameid, 'offset_time', rst%offset_time)
         ioerr = pio_put_att(piofile, rst%currfnameid, 'actual_len', len_trim(rst%curr_filename))
 
-        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'next'), pio_char, (/mcdimid/), rst%nextfnameid)
+        ioerr = pio_def_var(piofile, trc_restart_var_name(idx, 'next'), pio_char, [mcdimid], rst%nextfnameid)
         ioerr = pio_put_att(piofile, rst%nextfnameid, 'actual_len', len_trim(rst%next_filename))
       end associate
     end do

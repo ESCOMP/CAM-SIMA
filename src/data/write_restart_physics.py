@@ -457,7 +457,7 @@ def write_read_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
     for key, value in required_vars.items():
         if len(value['dims']) == 1 and 'horizontal_dimension' in value['dims'][0]:
             outfile.comment("Handle horizontal-only field", 2)
-            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), timestep, {key})", 2)
+            outfile.write(f"call read_field(file, '{value['stdname']}', ['{value['diag_name']}'], timestep, {key})", 2)
         else:
             # PEVERWHEE - TODO: handle nonstandard dimensions!
             if 'layer' in value['dims'][1]:
@@ -466,7 +466,7 @@ def write_read_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
                 vertdim = 'ilev'
             # end if
             outfile.comment(f"Read required restart variable '{value['stdname']}' from file", 2)
-            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), '{vertdim}', timestep, {key})", 2)
+            outfile.write(f"call read_field(file, '{value['stdname']}', ['{value['diag_name']}'], '{vertdim}', timestep, {key})", 2)
             outfile.blank_line()
         # end if
     # end for
@@ -480,7 +480,7 @@ def write_read_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
             outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
             outfile.write("do constituent_idx = 1, size(const_props)", 2)
             outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 3)
-            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}_'//trim(const_diag_name)/), timestep, {key}(:,constituent_idx), mark_as_read=.false.)", 3)
+            outfile.write(f"call read_field(file, '{value['stdname']}', ['{value['diag_name']}_'//trim(const_diag_name)], timestep, {key}(:,constituent_idx), mark_as_read=.false.)", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
         # end for
@@ -494,7 +494,7 @@ def write_read_restart_physics(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("if (.not. advected) then", 3)
     outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 4)
     outfile.write("call const_props(constituent_idx)%standard_name(const_std_name)", 4)
-    outfile.write("call read_field(file, trim(const_std_name), (/trim(const_diag_name)/), 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 4)
+    outfile.write("call read_field(file, trim(const_std_name), [trim(const_diag_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.)", 4)
     outfile.write("end if", 3)
     outfile.write("end do", 2)
 

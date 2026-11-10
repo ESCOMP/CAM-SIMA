@@ -219,14 +219,14 @@ contains
       ! Handling for constituent-dimensioned variable 'cool_cat_for_each_const'
       do constituent_idx = 1, size(const_props)
          call const_props(constituent_idx)%diagnostic_name(const_diag_name)
-         call read_field(file, 'super_cool_cat_every_const', (/'cool_cat_for_each_const_'//trim(const_diag_name)/), timestep, &
+         call read_field(file, 'super_cool_cat_every_const', ['cool_cat_for_each_const_'//trim(const_diag_name)], timestep, &
              cool_cat_for_each_const(:,constituent_idx), mark_as_read=.false.)
       end do
 
       ! Handling for constituent-dimensioned variable 'cool_default_cat_for_each_const'
       do constituent_idx = 1, size(const_props)
          call const_props(constituent_idx)%diagnostic_name(const_diag_name)
-         call read_field(file, 'super_cool_cat_with_default_every_const', (/'cool_default_cat_for_each_const_'//trim(const_diag_name)/), timestep, &
+         call read_field(file, 'super_cool_cat_with_default_every_const', ['cool_default_cat_for_each_const_'//trim(const_diag_name)], timestep, &
              cool_default_cat_for_each_const(:,constituent_idx), mark_as_read=.false.)
       end do
 
@@ -237,7 +237,7 @@ contains
          if (.not. advected) then
             call const_props(constituent_idx)%diagnostic_name(const_diag_name)
             call const_props(constituent_idx)%standard_name(const_std_name)
-            call read_field(file, trim(const_std_name), (/trim(const_diag_name)/), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+            call read_field(file, trim(const_std_name), [trim(const_diag_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
                 mark_as_read=.false.)
          end if
       end do

@@ -533,7 +533,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    use control_mod,      only: qsplit
    use bndry_mod,        only: bndry_exchange
    use cam_abortutils,   only: endrun
-   use dyn_comp,         only: dyn_init
+   use dyn_comp,         only: dyn_init, advected_constituent_index
    use runtime_obj,      only: cam_runtime_opts
    use se_dyn_time_mod,  only: TimeLevel_Qdp
    use cam_ccpp_cap,     only: cam_model_const_properties, cam_ccpp_number_constituents
@@ -554,7 +554,6 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    integer :: hdim_len, ncols_fvm
 
    integer :: num_advected_const
-   integer :: advected_index
 
    integer :: nlev_dimid
    integer :: ncol_dimid
@@ -623,21 +622,16 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    call cam_pio_handle_error(ierr, subname//': cannot find T')
    ierr = PIO_Inq_varid(restart_file, 'PSDRY', psdry_desc)
    call cam_pio_handle_error(ierr, subname//': cannot find PSDRY')
+
    const_props => cam_model_const_properties()
-   call cam_ccpp_number_constituents(num_advected_const, advected=.true., errcode=ierr, errmsg=errmsg)
+   num_advected_const = size(advected_constituent_index)
    allocate(qdesc_dp(num_advected_const), stat=ierr, errmsg=errmsg)
    call check_allocate(ierr, subname, 'qdesc_dp', &
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
-   advected_index = 1
-   do m = 1, size(const_props)
-      call const_props(m)%is_advected(advected)
-      if (.not. advected) then
-         cycle
-      end if
-      call const_props(m)%diagnostic_name(const_diag_name)
-      ierr = PIO_Inq_varid(restart_file, "dp"//trim(const_diag_name), Qdesc_dp(advected_index))
+   do m = 1, num_advected_const
+      call const_props(advected(constituent_index(m))%diagnostic_name(const_diag_name)
+      ierr = PIO_Inq_varid(restart_file, "dp"//trim(const_diag_name), Qdesc_dp(m))
       call cam_pio_handle_error(ierr, subname//': cannot find dp'//trim(const_diag_name))
-      advected_index = advected_index + 1
    end do
 
    ! check whether the restart fields on the GLL grid contain unique columns
@@ -701,7 +695,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
       var3d_fvm = 0._r8
 
       ! dp_fvm
-      call cam_read_field('dp_fvm', restart_file, var3d_fvm, readvar, 'lev', (/1, nlev/), gridname='FVM', timelevel=int(t_idx))
+      call cam_read_field('dp_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], gridname='FVM', timelevel=int(t_idx))
       do ie = 1, nelemd
          do k = 1, nlev
             ii = 1
@@ -715,27 +709,21 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
       end do
 
       ! tracers
-      advected_index = 1
-      do m = 1, size(const_props)
-         call const_props(m)%is_advected(advected)
-         if (.not. advected) then
-            cycle
-         end if
-         call const_props(m)%diagnostic_name(const_diag_name)
-         call cam_read_field(trim(const_diag_name)//'_fvm', restart_file, var3d_fvm, readvar, 'lev', (/1, nlev/), &
+      do m = 1, num_advected_const
+         call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+         call cam_read_field(trim(const_diag_name)//'_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], &
                  gridname='FVM', timelevel=int(t_idx))
          do ie = 1, nelemd
             do k = 1, nlev
                ii = 1
                do j = 1, nc
                   do i = 1, nc
-                     fvm(ie)%c(i,j,k,advected_index) = var3d_fvm(ii,k,ie)
+                     fvm(ie)%c(i,j,k,m) = var3d_fvm(ii,k,ie)
                      ii = ii + 1
                   end do
                end do
             end do
          end do
-         advected_index = advected_index + 1
       end do
 
       ! compute dry surface pressure (a derived quantity)
@@ -770,7 +758,6 @@ subroutine read_elem()
    type(io_desc_t) :: iodesc2d, iodesc3d
    real(r8), allocatable :: var3d(:), var2d(:)
    logical :: found, advected
-   integer :: advected_index
 
    character(len=*), parameter :: sub='read_elem'
    !----------------------------------------------------------------------------
@@ -779,15 +766,16 @@ subroutine read_elem()
    call cam_pio_handle_error(ierr, sub//': reading nenpnp')
 
    ldof => get_restart_decomp(elem, 1)
-   call PIO_InitDecomp(pio_subsystem, pio_double, (/ncol/), ldof, iodesc2d)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [ncol], ldof, iodesc2d)
    deallocate(ldof)
 
    ldof => get_restart_decomp(elem, nlev)
-   call PIO_InitDecomp(pio_subsystem, pio_double, (/ncol,nlev/), ldof, iodesc3d)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [ncol,nlev], ldof, iodesc3d)
    deallocate(ldof)
 
-   allocate(var2d(nelemd*np*np), stat=ierr)
-   if (ierr/=0) call endrun( sub//': not able to allocate var2d' )
+   allocate(var2d(nelemd*np*np), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, 'read_elem', 'var2d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
    var2d = 0._r8
 
    call pio_setframe(restart_file, psdry_desc, t_idx)
@@ -804,8 +792,9 @@ subroutine read_elem()
    end do
 
    deallocate(var2d)
-   allocate(var3d(nelemd*np*np*nlev), stat=ierr)
-   if (ierr/=0) call endrun( sub//': not able to allocate var3d' )
+   allocate(var3d(nelemd*np*np*nlev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, 'read_elem', 'var3d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
    var3d = 0._r8
 
    call pio_setframe(restart_file, udesc, t_idx)
@@ -853,15 +842,10 @@ subroutine read_elem()
       end do
    end do
 
-   advected_index = 1
-   do m = 1, size(const_props)
-      call const_props(m)%is_advected(advected)
-      if (.not. advected) then
-         cycle
-      end if
-      call const_props(m)%diagnostic_name(const_diag_name)
-      call pio_setframe(restart_file, qdesc_dp(advected_index), t_idx)
-      call pio_read_darray(restart_file, qdesc_dp(advected_index), iodesc3d, var3d, ierr)
+   do m = 1, num_advected_const
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+      call pio_setframe(restart_file, qdesc_dp(m), t_idx)
+      call pio_read_darray(restart_file, qdesc_dp(m), iodesc3d, var3d, ierr)
       call cam_pio_handle_error(ierr, sub//': reading dp'//trim(const_diag_name))
       ii = 0
       do k = 1, nlev
@@ -869,12 +853,11 @@ subroutine read_elem()
             do j = 1, np
                do i = 1, np
                   ii = ii + 1
-                  elem(ie)%state%Qdp(i,j,k,advected_index,tlQdp) = var3d(ii)
+                  elem(ie)%state%Qdp(i,j,k,m,tlQdp) = var3d(ii)
                end do
             end do
          end do
       end do
-      advected_index = advected_index + 1
    end do
 
 
@@ -1047,7 +1030,7 @@ subroutine read_3d(fieldname, buffer)
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-   call cam_read_field(trim(fieldname), restart_file, buffer, found, 'lev', (/1, nlev/), gridname='GLL', timelevel=int(t_idx))
+   call cam_read_field(trim(fieldname), restart_file, buffer, found, 'lev', [1, nlev], gridname='GLL', timelevel=int(t_idx))
 !   call infld(trim(fieldname), file, dimname1, 'lev', 1, npsq, 1, nlev, &
 !              1, nelemd, buffer, found, gridname='GLL', timelevel=int(t_idx))
    if (.not. found) then

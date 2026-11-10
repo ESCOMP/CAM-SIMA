@@ -197,12 +197,12 @@ contains
       timestep = 0
 
       ! Read required restart variable 'potential_temperature' from file
-      call read_field(file, 'potential_temperature', (/'theta'/), 'lev', timestep, theta)
+      call read_field(file, 'potential_temperature', ['theta'], 'lev', timestep, theta)
 
       ! Handle horizontal-only field
-      call read_field(file, 'air_pressure_at_sea_level', (/'slp'/), timestep, slp)
+      call read_field(file, 'air_pressure_at_sea_level', ['slp'], timestep, slp)
       ! Handle horizontal-only field
-      call read_field(file, 'tendency_of_peverwhee', (/'ptend'/), timestep, ptend)
+      call read_field(file, 'tendency_of_peverwhee', ['ptend'], timestep, ptend)
       const_props => cam_model_const_properties()
 
       ! Handling for non-advected constituent vars (advected constituents handled by dynamics restart)
@@ -212,7 +212,7 @@ contains
          if (.not. advected) then
             call const_props(constituent_idx)%diagnostic_name(const_diag_name)
             call const_props(constituent_idx)%standard_name(const_std_name)
-            call read_field(file, trim(const_std_name), (/trim(const_diag_name)/), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+            call read_field(file, trim(const_std_name), [trim(const_diag_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
                 mark_as_read=.false.)
          end if
       end do

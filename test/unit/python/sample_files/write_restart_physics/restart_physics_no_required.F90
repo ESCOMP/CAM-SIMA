@@ -177,7 +177,7 @@ contains
          if (.not. advected) then
             call const_props(constituent_idx)%diagnostic_name(const_diag_name)
             call const_props(constituent_idx)%standard_name(const_std_name)
-            call read_field(file, trim(const_std_name), (/trim(const_diag_name)/), 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+            call read_field(file, trim(const_std_name), [trim(const_diag_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
                 mark_as_read=.false.)
          end if
       end do
