@@ -367,6 +367,13 @@ contains
                  iret)
             call cam_pio_handle_error(iret,                                   &
                  subname//': Unable to read longitude')
+
+            ! Prefer physics grid coordinates in radians when available for
+            ! CAM snapshot tests.
+            call read_radians_coord(fh_ini, 'lat_rad', iodesc,                &
+                 num_global_columns, num_local_columns, local_lats_rad)
+            call read_radians_coord(fh_ini, 'lon_rad', iodesc,                &
+                 num_global_columns, num_local_columns, local_lons_rad)
          else
             call endrun(subname//': bad units error trap')
          end if
@@ -531,6 +538,69 @@ contains
       end do
 
    end subroutine set_dyn_col_values
+
+   !===========================================================================
+
+   subroutine read_radians_coord(file, var_name, iodesc, num_global_columns,  &
+        num_local_columns, coord_rad)
+      ! Read and validate column coordinates in radians from CAM snapshots.
+      ! coord_rad is left unallocated when the variable is unavailable so we can
+      ! fallback to the degree units in the file.
+      use shr_kind_mod,   only: SHR_KIND_CL
+      use pio,            only: file_desc_t, var_desc_t, io_desc_t
+      use pio,            only: pio_setframe, pio_read_darray, PIO_OFFSET_KIND
+      use cam_pio_utils,  only: cam_pio_find_var, cam_pio_var_info
+      use cam_pio_utils,  only: cam_pio_handle_error
+      use cam_abortutils, only: check_allocate
+
+      ! Dummy arguments
+      type(file_desc_t),     intent(inout) :: file
+      character(len=*),      intent(in)    :: var_name
+      type(io_desc_t),       intent(inout) :: iodesc
+      integer,               intent(in)    :: num_global_columns
+      integer,               intent(in)    :: num_local_columns
+      real(r8), allocatable, intent(out)   :: coord_rad(:)
+      ! Local variables
+      type(var_desc_t)             :: vardesc
+      logical                      :: var_found
+      integer                      :: num_var_dims
+      integer                      :: dimids(MAX_DIMS)
+      integer                      :: dimlens(MAX_DIMS)
+      character(len=SHR_KIND_CL)   :: dimnames(MAX_DIMS)
+      character(len=SHR_KIND_CL)   :: found_name
+      integer                      :: ierr
+      character(len=SHR_KIND_CL)   :: errmsg
+      character(len=*), parameter  :: subname = 'read_radians_coord'
+
+      call cam_pio_find_var(file, [var_name], found_name, vardesc, var_found)
+      if (.not. var_found) then
+         return
+      end if
+      dimnames = ''
+      call cam_pio_var_info(file, vardesc, num_var_dims, dimids, dimlens,     &
+           dimnames=dimnames)
+      if ((index(dimnames(1), 'ncol') <= 0) .or.                              &
+           (dimlens(1) /= num_global_columns)) then
+         if (masterproc) then
+            write(iulog, '(4a)') subname, ': ignoring ', trim(var_name),      &
+                 ', it is not on the column dimension'
+         end if
+         return
+      end if
+      allocate(coord_rad(num_local_columns), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'coord_rad(num_local_columns)',       &
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
+      if (num_var_dims > 1) then
+         call pio_setframe(file, vardesc, int(1, kind=PIO_OFFSET_KIND))
+      end if
+      call pio_read_darray(file, vardesc, iodesc, coord_rad, ierr)
+      call cam_pio_handle_error(ierr, subname//': Unable to read '//trim(var_name))
+      if (masterproc) then
+         write(iulog, '(4a)') subname, ': using ', trim(var_name),            &
+              ' from the initial file for the physics grid (radians)'
+      end if
+
+   end subroutine read_radians_coord
 
    !===========================================================================
 
