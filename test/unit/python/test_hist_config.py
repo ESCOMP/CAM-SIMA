@@ -7,7 +7,7 @@
 #
 # Command line arguments: none
 #
-# Usage: python3 test_registry.py         # run the unit tests
+# Usage: python3 test_hist_config.py         # run the unit tests
 #-----------------------------------------------------------------------
 
 """Test parse_hist_config_file in hist_config.py"""
@@ -131,7 +131,7 @@ class HistConfigTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
         amsg = f"{out_source} does not match {out_test}"
-        self.assertTrue(filecmp.cmp(out_test, out_source, shallow='.false.'),
+        self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 
     def test_multi_user_nl_cam(self):
@@ -171,7 +171,7 @@ class HistConfigTest(unittest.TestCase):
         self.assertTrue(os.path.exists(out_source), msg=amsg)
         # Make sure the output file is correct
         amsg = f"{out_source} does not match {out_test}"
-        self.assertTrue(filecmp.cmp(out_test, out_source, shallow='.false.'),
+        self.assertTrue(filecmp.cmp(out_test, out_source, shallow=False),
                         msg=amsg)
 
     def test_bad_user_nl_cam(self):
@@ -188,14 +188,14 @@ class HistConfigTest(unittest.TestCase):
             # Read in file:
             file_lines = old_file.readlines()
             # Edit to add bad lines
-            file_lines[8] = "hist_add_inst_fields;h3: T\n"
-            file_lines[9] = "hist_remove_fields;h0:\n"
-            file_lines[10] = "hist_output_frequency;h0: 1+nmonths\n"
-            file_lines[11] = "hist_precision;h0: REAL34\n"
-            file_lines[13] = "hist_add_inst_fields;h3: T&U&V\n"
-            file_lines[16] = "hist_max_frames;h3: -24\n"
-            file_lines[17] = "hist_write_nstep0;h3: treu\n"
-            file_lines[18] = "hist_add_avg_fields;h3: T\n"
+            file_lines[7] = "hist_add_inst_fields;h3: T\n"
+            file_lines[8] = "hist_remove_fields;h0:\n"
+            file_lines[9] = "hist_output_frequency;h0: 1+nmonths\n"
+            file_lines[10] = "hist_precision;h0: REAL34\n"
+            file_lines[12] = "hist_add_inst_fields;h3: T&U&V\n"
+            file_lines[15] = "hist_max_frames;h3: -24\n"
+            file_lines[16] = "hist_write_nstep0;h3: treu\n"
+            file_lines[17] = "hist_add_avg_fields;h3: T\n"
         # end with
 
         # Create a new modified version of the file with the bad entries

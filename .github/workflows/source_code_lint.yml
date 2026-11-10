@@ -11,10 +11,10 @@ jobs:
   #collects all modified files, and then passes those files
   #off to additional scripts to run the actual tests.
   source_code_tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
     # acquire github action routines
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     # acquire specific version of python
     - name: Set up Python 3.10
       uses: actions/setup-python@v6

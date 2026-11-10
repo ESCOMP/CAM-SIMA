@@ -84,6 +84,7 @@ def _build_cam():
         dycore = config.get_value('dyn')
         reg_dir = config.get_value('reg_dir')
         init_dir = config.get_value('init_dir')
+        restart_dir = config.get_value('restart_dir')
         phys_dirs_str = config.get_value('phys_dirs')
 
         #Convert the phys_dirs_str into a proper list:
@@ -96,13 +97,14 @@ def _build_cam():
         filepath_src = os.path.join(caseroot, "Buildconf",
                                     "camconf", "Filepath")
         filepath_dst = os.path.join(bldroot, "Filepath")
-        paths = [source_mods_dir, reg_dir, init_dir,
+        paths = [source_mods_dir, reg_dir, init_dir, restart_dir,
                  os.path.join(atm_root, "src", "data"),
                  os.path.join(atm_root, "src", "control"),
                  os.path.join(atm_root, "src", "cpl",
                               case.get_value("COMP_INTERFACE")),
                  os.path.join(atm_root, "src", "dynamics", "utils"),
                  os.path.join(atm_root, "src", "physics", "utils"),
+                 os.path.join(atm_root, "src", "aerosol"),
                  os.path.join(atm_root, "src", "history"),
                  os.path.join(atm_root, "src", "history", "buffers", "src"),
                  os.path.join(atm_root, "src", "history", "buffers", "src", "hash"),
@@ -349,7 +351,7 @@ def _build_musica(clone_dest: str) -> str:
         "cmake",
         f"-D CMAKE_INSTALL_PREFIX={install_dir}",
         f"-D CMAKE_BUILD_TYPE={cmake_build_type}",
-        f"-D CMAKE_Fotran_FLAGS={arg_dict['FFLAGS']}",
+        f"-D CMAKE_Fortran_FLAGS={arg_dict['FFLAGS']}",
         "-D MUSICA_ENABLE_TESTS=OFF",
         "-D MUSICA_BUILD_FORTRAN_INTERFACE=ON",
         "-D MUSICA_SET_MICM_DEFAULT_VECTOR_SIZE=128",
