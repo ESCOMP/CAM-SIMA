@@ -26,6 +26,7 @@ CONTAINS
     use cam_abortutils,   only: safe_endrun
     use shr_kind_mod,     only: cl=>shr_kind_cl
     use runtime_obj,      only: cam_runtime_opts
+    use tracer_data,      only: tracer_data_define_restart, tracer_data_write_restart
 
     ! Arguments
     type(dyn_export_t),      intent(in) :: dyn_out
@@ -117,11 +118,11 @@ CONTAINS
     use cam_initfiles,    only: initial_file_get_id
     use pio,              only: file_desc_t
     use cam_control_mod,  only: restart_run
-    use restart_physics,  only: restart_physics_read
+    use restart_physics,  only: read_restart_physics
     use restart_dynamics, only: read_restart_dynamics
     use cam_abortutils,   only: endrun
     use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
-    use cam_history,      only: history_restart_read
+    use cam_history,      only: read_restart_history
     type(dyn_import_t), intent(inout) :: dyn_in
     type(dyn_export_t), intent(inout) :: dyn_out
     integer,            intent(in)    :: stop_ymd
@@ -136,10 +137,10 @@ CONTAINS
 
     call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
 
-    call restart_physics_read(fh_restart)
+    call read_restart_physics(fh_restart)
 
     if (restart_run) then
-       call history_restart_read(fh_restart)
+       call read_restart_history(fh_restart)
     end if
 
   end subroutine cam_read_restart

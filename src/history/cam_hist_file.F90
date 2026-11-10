@@ -68,7 +68,6 @@ module cam_hist_file
       ! History file configuration information
       character(len=vlen),           private :: volume = UNSET_C
       type(file_desc_t),             private :: hist_files(max_split_files) ! PIO file ids
-      type(file_desc_t),             private :: restart_file                ! PIO file id for restart file
       integer,                       private :: rl_kind = OUTPUT_DEF
       integer,                       private :: max_frames = UNSET_I
       integer,                       private :: output_freq_mult = UNSET_I
@@ -80,8 +79,6 @@ module cam_hist_file
       character(len=max_fldlen), allocatable, private :: field_names(:)
       character(len=max_avgflag_len), allocatable, private :: accumulate_types(:)
       type(var_desc_t), allocatable, private :: file_varids(:,:)
-      type(var_desc_t), allocatable, private :: nacs_varids(:,:)
-      type(var_desc_t), allocatable, private :: varbuff_varids(:,:)
       integer, allocatable,          private :: grids(:)
       integer,                       private :: hfile_type = hfile_type_default
       logical,                       private :: collect_patch_output = PATCH_DEF
@@ -151,7 +148,6 @@ module cam_hist_file
       procedure :: write_time_dependent_variables => config_write_time_dependent_variables
       ! Setters
       procedure :: set_filenames => config_set_filenames
-      procedure :: set_restart_filename => config_set_restart_filename
       procedure :: set_last_month_written => config_set_last_month_written
       procedure :: set_last_year_written => config_set_last_year_written
       procedure :: set_up_fields => config_set_up_fields
@@ -160,7 +156,6 @@ module cam_hist_file
       procedure :: read_rh_file => config_read_rh_file
       procedure :: define_restart_file => config_define_restart_file
       procedure :: write_restart_file => config_write_restart_file
-      procedure :: close_restart_file => config_close_restart_file
       procedure :: check_restart_consistency => config_check_restart_consistency
       ! Clean-up methods
       procedure :: close_files => config_close_files
@@ -417,17 +412,15 @@ contains
 
       if (allocated(this%field_names)) then
          allocate(field_list(size(this%field_names)), stat=ierr, errmsg=errmsg)
-         if (ierr /= 0) then
-            call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
-         end if
+         call check_allocate(ierr, 'config_get_field_list', 'field_list', &
+              file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          do idx = 1, size(this%field_names)
             field_list(idx) = this%field_names(idx)
          end do
       else
          allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
-         if (ierr /= 0) then
-            call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
-         end if
+         call check_allocate(ierr, 'config_get_field_list', 'field_list', &
+              file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          do idx = 1, size(this%field_list)
             field_list(idx) = this%field_list(idx)%diag_name()
          end do
@@ -451,17 +444,15 @@ contains
 
       if (allocated(this%accumulate_types)) then
          allocate(avgflags(size(this%accumulate_types)), stat=ierr, errmsg=errmsg)
-         if (ierr /= 0) then
-            call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
-         end if
+         call check_allocate(ierr, 'config_get_averaging_flags', 'avgflags', &
+              file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          do idx = 1, size(this%accumulate_types)
             avgflags(idx) = this%accumulate_types(idx)
          end do
       else
          allocate(avgflags(size(this%field_list)), stat=ierr, errmsg=errmsg)
-         if (ierr /= 0) then
-            call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
-         end if
+         call check_allocate(ierr, 'config_get_averaging_flags', 'avgflags', &
+              file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          do idx = 1, size(this%field_list)
             avgflags(idx) = this%field_list(idx)%accumulate_type()
          end do
@@ -1525,10 +1516,6 @@ contains
          deallocate(header_info)
       end if
 
-      if (allocated(dimindex)) then
-         deallocate(dimindex)
-      end if
-
    end subroutine config_define_file
 
    ! ========================================================================
@@ -1559,6 +1546,8 @@ contains
       integer :: timdim, bnddim, chardim
       logical :: varid_set
       logical :: restart, split_file
+      integer, parameter :: nsbase = 0 ! seconds component of base time
+      integer, parameter :: ndbase = 0 ! days component of base time
       character(len=max_chars) :: calendar  ! Calendar type
       character(len=cl)        :: errmsg
       integer, allocatable :: dimindex(:)    ! dimension ids for variable declaration
@@ -1850,7 +1839,7 @@ contains
       character(len=*),   intent(in)    :: calendar  ! Calendar type
       type(pio_ids_t),    intent(inout) :: pio_ids
       ! Local variables
-      integer :: dimenchar(2), ierr
+      integer :: dimenchar(2)
       integer :: ierr
       character(len=max_chars) :: str       ! character temporary
 
@@ -2449,16 +2438,16 @@ contains
             ! for the other file
             if ((this%field_list(field_idx)%accumulate_type() == 'lst') .and. &
                split_file_index == accumulated_file_index) then
-               cycle
+               cycle fields
             else if ((this%field_list(field_idx)%accumulate_type() /= 'lst') .and. &
                split_file_index == instantaneous_file_index) then
-               cycle
+               cycle fields
             end if
             call this%write_field(this%hist_files(split_file_index), this%field_list(field_idx), start, field_idx, &
                this%precision(), accumulate, this%file_varids)
             ! Clear the buffers
             call this%field_list(field_idx)%clear_buffers()
-         end do
+         end do fields
          call pio_seterrorhandling(this%hist_files(split_file_index), PIO_INTERNAL_ERROR)
       end do
       call t_stopf  ('write_field')

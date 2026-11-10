@@ -10,7 +10,7 @@ private
 
 public :: &
    init_restart_dynamics,  &
-   write_restart_dynamics
+   write_restart_dynamics, &
    read_restart_dynamics
 
 !=========================================================================================

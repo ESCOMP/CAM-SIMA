@@ -3,10 +3,9 @@ module restart_dynamics
 implicit none
 private
 
-public :: &
-   init_restart_dynamics,  &
-   write_restart_dynamics
-   read_restart_dynamics
+public :: init_restart_dynamics
+public :: write_restart_dynamics
+public :: read_restart_dynamics
 
 !=========================================================================================
 contains

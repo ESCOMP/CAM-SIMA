@@ -522,8 +522,6 @@ contains
 
    end subroutine hist_restart_read
 
-=======
->>>>>>> ESCOMP/development
    subroutine set_restart_variable_names()
       use pio, only: pio_int, pio_double, pio_char
       integer :: rvar_index

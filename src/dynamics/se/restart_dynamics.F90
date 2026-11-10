@@ -629,7 +629,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    call check_allocate(ierr, subname, 'qdesc_dp', &
                            file=__FILE__, line=__LINE__, errmsg=errmsg)
    do m = 1, num_advected_const
-      call const_props(advected(constituent_index(m))%diagnostic_name(const_diag_name)
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
       ierr = PIO_Inq_varid(restart_file, "dp"//trim(const_diag_name), Qdesc_dp(m))
       call cam_pio_handle_error(ierr, subname//': cannot find dp'//trim(const_diag_name))
    end do
