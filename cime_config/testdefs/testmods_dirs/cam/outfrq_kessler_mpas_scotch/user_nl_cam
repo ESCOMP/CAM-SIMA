@@ -1,0 +1,4 @@
+hist_add_inst_fields;h2: U,V,OMEGA,PS,T,Q
+hist_output_frequency;h2: nsteps
+hist_write_nstep0;h2: .true.
+mpas_block_decomp_file_prefix = "scotch.graph.info.part."
