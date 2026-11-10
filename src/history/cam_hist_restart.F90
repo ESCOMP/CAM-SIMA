@@ -250,7 +250,7 @@ contains
       use cam_abortutils, only: endrun, check_allocate
       use cam_logfile,    only: iulog
       use spmd_utils,     only: masterproc
-      use cam_history_support, only: max_chars, max_string_len, registeredmdims
+      use cam_history_support, only: max_chars, max_string_len, registeredmdims, max_avgflag_len
       use cam_grid_support,    only: max_split_files, max_hcoordname_len
       use shr_kind_mod,        only: cl => shr_kind_cl
       use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32, REAL64
@@ -278,7 +278,7 @@ contains
       character(len=max_fieldname_len), allocatable :: field_list_config(:)
       character(len=max_chars), allocatable :: output_freq(:)
       character(len=max_chars), allocatable :: hist_precision(:)
-      character(len=max_chars), allocatable :: avg_flag(:,:)
+      character(len=max_avgflag_len), allocatable :: avg_flag(:,:)
       character(len=max_chars), allocatable :: long_name(:,:)
       character(len=max_chars), allocatable :: cell_methods(:,:)
       character(len=max_chars), allocatable :: units(:,:)
