@@ -9,7 +9,7 @@ module cam_history
    !
    !-----------------------------------------------------------------------
 
-   use shr_kind_mod,         only: cl=>SHR_KIND_CL
+   use shr_kind_mod,         only: cl=>SHR_KIND_CL, r8=>SHR_KIND_R8
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
@@ -62,6 +62,7 @@ module cam_history
    logical, allocatable :: has_rh(:)
    character(len=max_string_len), allocatable :: current_files(:,:)
    character(len=max_string_len), allocatable :: rh_file_paths(:)
+   real(r8), allocatable :: beg_times(:)
 
 contains
 
@@ -980,7 +981,8 @@ contains
         return
       end if
 
-      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths, num_frames, current_files)
+      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths, num_frames, current_files, &
+           beg_times)
 
    end subroutine read_restart_history
 
@@ -992,7 +994,8 @@ contains
 
       ! Overwrite hist configs with restart info
       do config_idx = 1, size(hist_configs)
-         call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:))
+         call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:), &
+              beg_times(config_idx))
       end do
 
       ! No need to do anything else if there are no .rhX. files!

@@ -267,10 +267,10 @@ contains
       dtime_phys = 0.0_r8
       call mark_as_initialized('timestep_for_physics')
 
-      is_first_timestep = .true.
+      is_first_timestep = is_first_step()
       call mark_as_initialized('is_first_timestep')
 
-      is_first_restart_timestep = .false.
+      is_first_restart_timestep = is_first_restart_step()
       call mark_as_initialized('is_first_restart_timestep')
 
       nstep = get_nstep()
@@ -359,6 +359,7 @@ contains
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()
+      is_first_restart_timestep = is_first_restart_step()
       nstep = get_nstep()
 
       !----------------------------------------------------------

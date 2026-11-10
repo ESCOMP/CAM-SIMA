@@ -125,6 +125,8 @@ contains
       real(r8) :: beg_time(size(hist_configs))
       real(r8) :: fill_value(max_num_fields, size(hist_configs))
       logical :: has_accum
+      integer :: freq_mult
+      character(len=8) :: freq_type
 
       field_list = ''
       has_rh_int = 0
@@ -150,8 +152,10 @@ contains
              restart_file_paths(idx) = hist_configs(idx)%get_restart_filename()
           end if
           volume(idx) = hist_configs(idx)%get_volume()
-          ! Get the output frequency
-          output_freq(idx) = hist_configs(idx)%output_freq()
+          ! Get the output frequency in parseable "<mult>*<type>" form
+          !   (must round-trip through parse_multiplier on restart read)
+          call hist_configs(idx)%output_freq_separate(freq_mult, freq_type)
+          write(output_freq(idx), '(i0,a,a)') freq_mult, '*', trim(freq_type)
           ! Get the number of samples written to the hist file
           num_frames(idx) = hist_configs(idx)%get_num_samples()
           ! Get the maximum number of samples written to the hist file
@@ -242,7 +246,8 @@ contains
       end do
    end subroutine hist_restart_write
 
-   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths, num_frames, current_files)
+   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths, num_frames, current_files, &
+                                beg_time)
       ! Read history fields from the .r. file
       use pio,            only: file_desc_t, pio_inq_varid, pio_seterrorhandling, pio_get_var
       use pio,            only: PIO_BCAST_ERROR, pio_inq_dimid, PIO_INTERNAL_ERROR, pio_inq_dimlen
@@ -260,6 +265,7 @@ contains
       character(len=max_string_len), allocatable, intent(out) :: restart_file_paths(:)
       integer, allocatable, intent(out) :: num_frames(:)
       character(len=max_string_len), allocatable, intent(out) :: current_files(:,:)
+      real(r8), allocatable, intent(out) :: beg_time(:)
       ! Local variables
       type(hist_file_t) :: rest_config
       integer :: idx, fld_idx, ierr
@@ -284,7 +290,6 @@ contains
       character(len=max_chars), allocatable :: units(:,:)
       character(len=max_chars), allocatable :: volume(:)
       character(len=max_hcoordname_len), allocatable :: dim_names(:)
-      real(r8), allocatable :: beg_time(:)
       real(r8), allocatable :: fill_value(:,:)
       integer :: max_fields
       integer :: num_configs
@@ -508,7 +513,7 @@ contains
          call rest_config%check_restart_consistency(hist_configs(idx))
 
          ! Overwrite current stats from restart file
-         call hist_configs(idx)%overwrite_restart_info(num_frames(idx), current_files(idx,:))
+         call hist_configs(idx)%overwrite_restart_info(num_frames(idx), current_files(idx,:), beg_time(idx))
 
          call rest_config%reset()
 

@@ -438,7 +438,7 @@
        positive: time steps; negative: hours
     </desc>
     <values>
-      <value>-1</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="use_rad_uniform_angle">

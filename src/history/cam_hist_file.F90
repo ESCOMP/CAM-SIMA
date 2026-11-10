@@ -911,19 +911,30 @@ contains
 
    ! ========================================================================
 
-   subroutine config_overwrite_restart_info(this, frames, file_names)
+   subroutine config_overwrite_restart_info(this, frames, file_names, beg_time)
       use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(inout) :: this
       integer,               intent(in) :: frames
       character(len=*),      intent(in) :: file_names(:)
+      real(r8),              intent(in) :: beg_time
       ! Local variables
       integer :: file_idx, ierr
       character(len=256) :: errmsg
       character(len=*), parameter :: subname = 'config_overwrite_restart_info'
 
       this%num_samples = frames
+      this%beg_time = beg_time
       errmsg = ''
+
+      ! Leave file_names unallocated so set_filenames generates
+      ! the new name instead of reusing (and clobbering) the old file.
+      if (frames == 0 .or. mod(frames, this%max_frames) == 0) then
+         if (allocated(this%file_names)) then
+            deallocate(this%file_names)
+         end if
+         return
+      end if
 
       if (.not. allocated(this%file_names)) then
          allocate(this%file_names(max_split_files), stat=ierr, errmsg=errmsg)
