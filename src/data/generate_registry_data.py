@@ -366,14 +366,14 @@ class VarBase:
         """Return the dimension string for allocating this variable"""
         return '(' + ', '.join(self.allocation_dimensions) + ')'
 
-    def fix_parameter_dimensions(self, vdict):
-        """Re-resolve this variable's allocation dimensions against the
+    def resolve_dimensions(self, vdict):
+        """Resolve this variable's allocation dimensions against the
         complete variable dictionary, <vdict>, replacing the standard name
         of any dimension provided by a parameter variable with that
-        variable's local name. The resolution done while parsing the
-        variable can only see variables declared earlier in the registry,
-        so a parameter declared after a variable using it as a dimension
-        is missed there."""
+        variable's local name.
+        A dimension not found in <vdict> is left as a standard name.
+        It might be a host model variable that is imported by stdname
+        via a renamed use statement by the allocate routine."""
         for ind, adim in enumerate(self.__allocation_dimensions):
             dimstrs = [x.strip() for x in adim.split(':')]
             ldimstrs = []
@@ -561,9 +561,9 @@ class Variable(VarBase):
     >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     CCPPError: Bad variable attribute, 'kkind', for 'u'
-    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None).resolve_dimensions(VarDict("foo", "module", None)) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Dimension, 'vertical_dimension', not found for 'u'
+    CCPPError: Dimension, 'horizontal_dimension', not found for 'u'
     """
 
     # Constant dimensions
@@ -599,6 +599,9 @@ class Variable(VarBase):
         my_dimensions = []
         allocation_dimensions = []
         self.__def_dims_str = ""
+        # Variables that are not run-time allocated are declared with
+        # explicit shape, so their dimensions must be compile-time constants.
+        self.__explicit_shape = allocatable in ("", "parameter", "target")
         for attrib in var_node:
             if attrib.tag == 'dimensions':
                 if not attrib.text:
@@ -606,63 +609,16 @@ class Variable(VarBase):
                     raise ValueError(emsg)
                 # end if
                 my_dimensions = [x.strip() for x in attrib.text.split(' ') if x]
-                def_dims = [] # Dims used for variable declarations
                 for dim in my_dimensions:
                     if dim.count(':') > 1:
                         emsg = "Illegal dimension string, '{},' in '{}'"
                         emsg += ', step not allowed.'
                         raise CCPPError(emsg.format(dim, local_name))
                     # end if
-                    dimstrs = [x.strip() for x in dim.split(':')]
-                    ldimstrs = []
-                    if allocatable in ("", "parameter", "target"):
-                        # We need to find a local variable for every dimension
-                        for ddim in dimstrs:
-                            lname = Variable.constant_dimension(ddim)
-                            if not lname:
-                                var = vdict.find_variable_by_standard_name(ddim)
-                                if var:
-                                    lname = var.local_name
-                                # end if
-                            # end if
-                            if not lname:
-                                emsg = "Dimension, '{}', not found for '{}'"
-                                raise CCPPError(emsg.format(ddim,
-                                                            local_name))
-                            # end if
-                            ldimstrs.append(lname)
-                        # end for
-                        def_dims.append(':'.join(ldimstrs))
-                        allocation_dimensions.append(dim)
-                    else:
-                        # We need to allocate this array
-                        def_dims.append(':')
-                        # For variables that are parameters in the registry,
-                        # we need to use the local name
-                        for ddim in dimstrs:
-                            lname = Variable.constant_dimension(ddim)
-                            if not lname:
-                                var = vdict.find_variable_by_standard_name(ddim)
-                                if var:
-                                    if var.allocatable == 'parameter':
-                                        ldimstrs.append(var.local_name)
-                                    else:
-                                        ldimstrs.append(ddim)
-                                    # end if
-                                else:
-                                    ldimstrs.append(ddim)
-                                # end if
-                            else:
-                                ldimstrs.append(ddim)
-                            # end if
-                        # end for
-                        allocation_dimensions.append(':'.join(ldimstrs))
-                    # end if
+                    # Dimension names are resolved to local names by
+                    # resolve_dimensions once the whole registry is read.
+                    allocation_dimensions.append(dim)
                 # end for
-                if def_dims:
-                    self.__def_dims_str = '(' + ', '.join(def_dims) + ')'
-                # end if
-
             elif attrib.tag == 'long_name':
                 pass # picked up in parent
             elif attrib.tag == 'initial_value':
@@ -709,6 +665,43 @@ class Variable(VarBase):
         if logger:
             dmsg = f'Found registry Variable, {self.local_name} ({self.standard_name})'
             logger.debug(dmsg)
+        # end if
+
+    def resolve_dimensions(self, vdict):
+        """Resolve this variable's declaration dimensions against the
+        complete variable dictionary, <vdict>, in addition to the
+        allocation dimensions resolved by VarBase.
+        An explicit-shape variable must have every dimension resolve to a
+        constant or to the local name of a registry variable.
+        A run-time allocated variable is instead declared with deferred shape."""
+        super().resolve_dimensions(vdict)
+        def_dims = [] # Dims used for variable declarations
+        for dim in self.dimensions:
+            if self.__explicit_shape:
+                # We need to find a local variable for every dimension
+                ldimstrs = []
+                for ddim in [x.strip() for x in dim.split(':')]:
+                    lname = Variable.constant_dimension(ddim)
+                    if not lname:
+                        dvar = vdict.find_variable_by_standard_name(ddim)
+                        if dvar:
+                            lname = dvar.local_name
+                        # end if
+                    # end if
+                    if not lname:
+                        emsg = "Dimension, '{}', not found for '{}'"
+                        raise CCPPError(emsg.format(ddim, self.local_name))
+                    # end if
+                    ldimstrs.append(lname)
+                # end for
+                def_dims.append(':'.join(ldimstrs))
+            else:
+                # We need to allocate this array
+                def_dims.append(':')
+            # end if
+        # end for
+        if def_dims:
+            self.__def_dims_str = '(' + ', '.join(def_dims) + ')'
         # end if
 
     def write_metadata(self, outfile):
@@ -1334,18 +1327,21 @@ class File:
                 raise CCPPError(emsg.format(obj.tag))
             # end if
         # end for
-        # A dimension may be provided by a parameter variable declared later
-        # in the registry than a variable using it; the resolution done while
-        # parsing each variable sees only earlier declarations, so redo it
-        # now that every variable is known. DDT members must be visited via
-        # their DDT because the DDT constructor removes them from the
-        # variable dictionary.
+        self.resolve_dimensions()
+
+    def resolve_dimensions(self):
+        """Resolve the dimension names of every variable in this File
+        (see VarBase.resolve_dimensions).
+
+        DDT members must be visited via their DDT
+        because the DDT constructor removes them from the
+        variable dictionary."""
         for var in self.__var_dict.variable_list():
-            var.fix_parameter_dimensions(self.__var_dict)
+            var.resolve_dimensions(self.__var_dict)
         # end for
         for ddt in self.__ddts.values():
             for var in ddt.variable_list():
-                var.fix_parameter_dimensions(self.__var_dict)
+                var.resolve_dimensions(self.__var_dict)
             # end for
         # end for
 
@@ -1706,6 +1702,9 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             new_ddt = DDT(var_node, known_types, mfile.var_dict, dycore)
             mfile.add_ddt(new_ddt, logger=run_env.logger)
         # end if
+        # Variables were added after the File was constructed, so dimension
+        # names have not been resolved yet.
+        mfile.resolve_dimensions()
         mfiles.append(mfile)
     # end for
     return mfiles, var_module_dict

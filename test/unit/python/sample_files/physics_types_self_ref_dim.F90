@@ -37,6 +37,8 @@ module physics_types_self_ref_dim
   integer,            public,              protected :: pver = 0
   ! dust_dmt: Dust diameter by size bin
   real(kind_phys),    public, allocatable          :: dust_dmt(:)
+  ! dust_sol_fact: Dust solubility factor by size bin
+  real(kind_phys),    public, target               :: dust_sol_fact(ndust) = 0.1_kind_phys
   ! ndust: Number of dust size bins
   integer,            public, parameter            :: ndust = 4
   ! rndst: Dust radii by size bin
@@ -92,6 +94,9 @@ contains
     allocate(dust_dmt(ndust))
     if (set_init_val) then
       dust_dmt = 0.0_kind_phys
+    end if
+    if (set_init_val) then
+      dust_sol_fact = 0.1_kind_phys
     end if
     if (allocated(rndst)) then
       if (reallocate) then

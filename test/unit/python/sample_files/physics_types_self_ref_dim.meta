@@ -34,6 +34,11 @@
   units = m
   type = real | kind = kind_phys
   dimensions = (dust_size_bin_dimension)
+[ dust_sol_fact ]
+  standard_name = dust_solubility_factor_by_size_bin
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (dust_size_bin_dimension)
 [ ndust ]
   standard_name = dust_size_bin_dimension
   long_name = Number of dust size bins
