@@ -12,13 +12,13 @@ min_difference = 2e-15
 ! topo file for beta ridge scheme input
 bnd_topo               = '/glade/campaign/cesm/cesmdata/inputdata/atm/cam/topo/se/ne3pg3_gmted2010_modis_bedmachine_nc0540_Laplace1000_noleak_20230209.nc'
 
-gw_movmtn_use_pbl_source = .true. ! se dycore
+use_gw_movmtn            = .true. ! se dycore
 gw_movmtn_alpha         =  0.01d0
 effgw_beres_dp         = 0.15D0
 effgw_cm               = 1.D0
-effgw_movmtn_pbl               =  1.0d0
-effgw_rdg_beta         = 0.5D0
-effgw_rdg_beta_max             = 0.5D0
+gwcli_movmtn                   =  1.0d0
+gwcli_rdg_beta         = 0.5D0
+gwcli_rdg_beta_max             = 0.5D0
 front_gaussian_width           =  30.D0
 gw_frontgfc               = 1.25D-15
 gw_apply_tndmax                = .false.
