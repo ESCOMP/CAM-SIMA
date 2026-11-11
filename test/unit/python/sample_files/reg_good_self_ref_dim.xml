@@ -13,6 +13,28 @@
       <long_name>Number of vertical layers</long_name>
       <initial_value>0</initial_value>
     </variable>
+    <!-- dstflx, dust_dmt, and dust_sol_fact use a dimension whose
+         parameter (ndust) is declared later in the registry.
+
+         dstflx is additionally a DDT member and
+         dust_sol_fact is declared with explicit shape.
+
+         All must resolve to the parameter's local name. -->
+    <variable local_name="dstflx" standard_name="surface_upward_dust_fluxes_from_coupler"
+              units="kg m-2 s-1" type="real" kind="kind_phys" allocatable="allocatable">
+      <dimensions>horizontal_dimension dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dust_dmt" standard_name="dust_diameter_by_size_bin"
+              units="m" type="real" kind="kind_phys" allocatable="allocatable">
+      <dimensions>dust_size_bin_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <variable local_name="dust_sol_fact" standard_name="dust_solubility_factor_by_size_bin"
+              units="1" type="real" kind="kind_phys" allocatable="target">
+      <dimensions>dust_size_bin_dimension</dimensions>
+      <initial_value>0.1_kind_phys</initial_value>
+    </variable>
     <variable local_name="ndust" standard_name="dust_size_bin_dimension"
               units="count" type="integer" allocatable="parameter">
       <long_name>Number of dust size bins</long_name>
@@ -22,6 +44,12 @@
               units="m" type="real" kind="kind_phys" allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension dust_size_bin_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
+    </variable>
+    <ddt type="cam_in_srd_t">
+      <data>surface_upward_dust_fluxes_from_coupler</data>
+    </ddt>
+    <variable local_name="cam_in" standard_name="cam_in_object_self_ref_dim"
+              units="None" type="cam_in_srd_t">
     </variable>
   </file>
 </registry>
