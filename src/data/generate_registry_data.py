@@ -689,8 +689,8 @@ class Variable(VarBase):
                         # end if
                     # end if
                     if not lname:
-                        emsg = "Dimension, '{}', not found for '{}'"
-                        raise CCPPError(emsg.format(ddim, self.local_name))
+                        emsg = f"Dimension, '{ddim}', not found for '{self.local_name}'"
+                        raise CCPPError(emsg)
                     # end if
                     ldimstrs.append(lname)
                 # end for
