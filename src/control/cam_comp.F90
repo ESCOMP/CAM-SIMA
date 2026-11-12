@@ -105,6 +105,8 @@ contains
       use tropopause_climo_read,     only: tropopause_climo_read_file
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
       use topography_statics_read,   only: topography_statics_read_file
+      use fraction_landuse_read,     only: fraction_landuse_read_file
+      use soil_erodibility_read,     only: soil_erodibility_read_file
       use orbital_data,              only: orbital_data_init
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -243,6 +245,12 @@ contains
 
       ! Read gravity wave drag data for ridge parameterization
       call gravity_wave_drag_ridge_read_file()
+
+      ! Read land use class fractions for dry deposition
+      call fraction_landuse_read_file()
+
+      ! Read and regrid the soil erodibility factor for dust emissions
+      call soil_erodibility_read_file()
 
       ! TEMPORARY:  Prescribe realistic but inaccurate physical quantities
       ! necessary for MUSICA that are currently unavailable in CAM-SIMA.

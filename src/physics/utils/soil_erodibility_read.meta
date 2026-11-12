@@ -1,0 +1,12 @@
+[ccpp-table-properties]
+  name = soil_erodibility_read
+  type = module
+
+[ccpp-arg-table]
+  name  = soil_erodibility_read
+  type  = module
+[ soil_erodibility ]
+  standard_name = soil_erodibility_factor
+  units = 1
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
