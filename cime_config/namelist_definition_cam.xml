@@ -375,6 +375,35 @@
     </values>
   </entry>
 
+<!-- Dry deposition inputs -->
+  <entry id="drydep_srf_file">
+    <type>char*256</type>
+    <category>dry_deposition</category>
+    <group>drydep_input_nl</group>
+    <desc>
+      Full pathname of the dry deposition surface dataset
+      interpolated to the model grid, required for unstructured
+      atmospheric grids with modal chemistry.
+    </desc>
+    <values>
+      <value>UNSET_PATH</value>
+    </values>
+  </entry>
+
+<!-- Dust emission inputs -->
+  <entry id="soil_erod_file">
+    <type>char*256</type>
+    <category>aerosol</category>
+    <group>dust_input_nl</group>
+    <desc>
+      Full pathname of the boundary dataset for soil erodibility factors
+      used by dust emissions, interpolated to the model grid.
+    </desc>
+    <values>
+      <value>UNSET_PATH</value>
+    </values>
+  </entry>
+
 <!-- Radiation -->
 
   <entry id="nswbands">

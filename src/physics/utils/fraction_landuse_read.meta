@@ -1,0 +1,17 @@
+[ccpp-table-properties]
+  name = fraction_landuse_read
+  type = module
+
+[ccpp-arg-table]
+  name  = fraction_landuse_read
+  type  = module
+[ n_land_type ]
+  standard_name = number_of_land_use_classes
+  units = count
+  type = integer
+  dimensions = ()
+[ fraction_landuse ]
+  standard_name = land_use_class_area_fraction
+  units = fraction
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension, number_of_land_use_classes)

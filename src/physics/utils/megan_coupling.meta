@@ -1,0 +1,13 @@
+[ccpp-table-properties]
+  name = megan_coupling
+  type = module
+
+[ccpp-arg-table]
+  name  = megan_coupling
+  type  = module
+[ megan_nflds ]
+  standard_name = number_of_megan_voc_emission_fields
+  units = count
+  type = integer
+  dimensions = ()
+  protected = True

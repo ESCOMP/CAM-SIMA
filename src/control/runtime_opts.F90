@@ -11,7 +11,6 @@ module runtime_opts
 
    implicit none
    private
-   save
 
    public :: read_namelist
 
@@ -42,6 +41,8 @@ contains
       use radiation_namelist,           only: radiation_readnl
       use radiative_aerosol,            only: rad_aer_readnl
       use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_readnl
+      use fraction_landuse_read,        only: fraction_landuse_readnl
+      use soil_erodibility_read,        only: soil_erodibility_readnl
 
       use dyn_comp,                     only: dyn_readnl
       use atm_stream_ndep,              only: stream_ndep_readnl
@@ -90,6 +91,8 @@ contains
       call radiation_readnl(nlfilename)
       call rad_aer_readnl(nlfilename)
       call gravity_wave_drag_ridge_read_readnl(nlfilename)
+      call fraction_landuse_readnl(nlfilename)
+      call soil_erodibility_readnl(nlfilename)
       call dyn_readnl(nlfilename)
       call stream_ndep_readnl(nlfilename)
 
@@ -97,7 +100,7 @@ contains
       errflg = 0
       call ccpp_physics_suite_schemes(phys_suite_name, schemes, errmsg, errflg)
       if (errflg /= 0) then
-         call endrun(subname//"Error: "//trim(errmsg),                        &
+         call endrun(subname//'Error: '//trim(errmsg),                        &
               file=__FILE__, line=__LINE__-3)
       end if
       call cam_read_ccpp_scheme_namelists(nlfilename, schemes,                &

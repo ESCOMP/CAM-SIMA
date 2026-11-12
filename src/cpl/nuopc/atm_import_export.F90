@@ -64,6 +64,7 @@ contains
     use shr_ndep_mod      , only : shr_ndep_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
     use drydep_coupling   , only : drydep_coupling_set_nflds, drydep_coupling_set_list
+    use megan_coupling    , only : megan_coupling_set_nflds
 
     character(len=*), parameter :: nl_file_name = 'drv_flds_in'
 
@@ -79,6 +80,8 @@ contains
     call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
 
     call shr_megan_readnl(nl_file_name, megan_nflds)
+    ! mirror the number of MEGAN VOC emission field count to host:
+    call megan_coupling_set_nflds(megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
     call shr_lightning_coupling_readnl(nl_file_name, atm_provides_lightning)
@@ -658,19 +661,6 @@ contains
        end if
     end if
 
-    ! MEGAN VOC emis fluxes from land
-    call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (exists) then
-       if ( associated(cam_in%meganflx) ) then
-          do i = 1, columns_on_task
-             do n = 1, size(fldptr2d, dim=1)
-                cam_in%meganflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
-             end do
-          end do
-       end if
-    end if
-
     ! fire emission fluxes from land
     call state_getfldptr(importState, 'Fall_fire', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -709,6 +699,17 @@ contains
        do i = 1, columns_on_task
           do n = 1, size(fldptr2d, dim=1)
              cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
+          end do
+       end do
+    end if
+
+    ! MEGAN VOC emission fluxes from land model:
+    call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          do n = 1, size(fldptr2d, dim=1)
+             cam_in%meganflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
           end do
        end do
     end if
