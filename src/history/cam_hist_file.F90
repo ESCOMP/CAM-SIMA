@@ -2526,6 +2526,8 @@ contains
          allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2), field_shape(3)), stat=ierr, errmsg=errmsg)
          call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
       end if
+      ! Initialize columns with no accumulated samples
+      field_data = 0.0_r8
       ! Shape of array
       dimind = field%dimensions()
 
