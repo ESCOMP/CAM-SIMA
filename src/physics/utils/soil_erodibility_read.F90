@@ -1,22 +1,8 @@
 ! Support module for the MAM dust emissions scheme to read and regrid the
 ! Zender soil erodibility factor dataset (namelist soil_erod_file).
 !
-! Remarks: this module is not CCPP-ized but is written specifically for
-! host-side input in CAM-SIMA, following the fraction_landuse_read pattern:
-! the field is provided to underlying CCPP schemes via the argument table
-! below.
-!
-! In CAM this field is owned by soil_erod_mod (soil_erod_init), which reads
-! the lat-lon erodibility dataset and horizontally interpolates it to the
-! physics columns with interpolate_data's lininterp. CAM-SIMA's
-! interpolate_data is the same code and the interpolation weights are
-! computed per column, so the same read + interpolation on the same grid is
-! bitwise identical to CAM's and the field needs no snapshot capture.
-!
-! If soil_erod_file is not set, the erodibility stays zero with a warning;
-! dust emissions on the Zender-in-atmosphere path then vanish, so runs with
-! zender_soil_erod_from_atm = .true. must provide the dataset (CAM aborts in
-! getfil in that situation). The Leung_2023 path never uses this field.
+! Remarks: this is unused in the Leung dust scheme.
+!          this is a decomposed read and is thus done in the host.
 module soil_erodibility_read
   use ccpp_kinds,   only: kind_phys
   use shr_kind_mod, only: shr_kind_cl
@@ -63,7 +49,7 @@ contains
     errflg = 0
 
     if (masterproc) then
-       open(newunit=unitn, file=trim(nlfile), status='old')
+       open(newunit=unitn, file=trim(nlfile), status='old', action='read')
        call find_group_name(unitn, 'dust_input_nl', status=errflg)
        if (errflg == 0) then
           read(unitn, dust_input_nl, iostat=errflg, iomsg=errmsg)
@@ -118,17 +104,17 @@ contains
 
     type(interp_type)             :: lon_wgts, lat_wgts
     real(kind_phys)               :: to_lats(ncol), to_lons(ncol)
-    ! CAM soil_erod_init takes d2r/twopi from mo_constants, whose pi is
-    ! physconst's; formed the same way here so the interpolation weights
-    ! match bitwise.
     real(kind_phys), parameter    :: zero = 0._kind_phys
     real(kind_phys)               :: d2r, twopi
 
     errmsg = ''
     errflg = 0
 
+    !REMOVECAM:
+    ! for b4b with CAM soil_erod_init which uses d2r/twopi from mo_constants
     d2r   = pi/180._kind_phys
     twopi = 2._kind_phys*pi
+    !REMOVECAM_END
 
     ! Allocate and initialize data to zeros.
     allocate(soil_erodibility(ncol), stat=errflg, errmsg=errmsg)
@@ -171,8 +157,7 @@ contains
       dst_lats(:) = d2r * dst_lats(:)
       dst_lons(:) = d2r * dst_lons(:)
 
-      ! ... regrid (CAM loops over chunks; the weights and interpolation are
-      ! per column, so the single columns-on-task pass is bitwise the same)
+      ! ... regrid
       call get_rlat_all_p(ncol, to_lats)
       call get_rlon_all_p(ncol, to_lons)
 

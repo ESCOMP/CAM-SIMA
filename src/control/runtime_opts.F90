@@ -11,7 +11,6 @@ module runtime_opts
 
    implicit none
    private
-   save
 
    public :: read_namelist
 
@@ -101,7 +100,7 @@ contains
       errflg = 0
       call ccpp_physics_suite_schemes(phys_suite_name, schemes, errmsg, errflg)
       if (errflg /= 0) then
-         call endrun(subname//"Error: "//trim(errmsg),                        &
+         call endrun(subname//'Error: '//trim(errmsg),                        &
               file=__FILE__, line=__LINE__-3)
       end if
       call cam_read_ccpp_scheme_namelists(nlfilename, schemes,                &

@@ -944,12 +944,6 @@
       <ic_file_input_names>lwup cam_in_lwup</ic_file_input_names>
     </variable>
 
-    <!-- meganflx is dimensioned by a run-time count owned by shr_megan_mod
-         and mirrored into megan_coupling by the coupler cap at advertise
-         time, before registry allocation; when MEGAN is inactive the count
-         is 0 and meganflx has zero extent. Like depvel, it has no
-         ic_file_input_names yet: snapshot reads will be wired up together
-         with the consumer, as was done for dstflx. -->
     <variable local_name="meganflx"
               standard_name="surface_upward_megan_voc_emission_fluxes_from_coupler"
               units="mole m-2 s-1" type="real" kind="kind_phys"

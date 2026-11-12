@@ -381,9 +381,9 @@
     <category>dry_deposition</category>
     <group>drydep_input_nl</group>
     <desc>
-      Full pathname of the dry deposition surface dataset ("atmsrf" file)
-      holding the land use class fractions (fraction_landuse) on the model
-      physics grid. If unset, land use fractions are zero.
+      Full pathname of the dry deposition surface dataset
+      interpolated to the model grid, required for unstructured
+      atmospheric grids with modal chemistry.
     </desc>
     <values>
       <value>UNSET_PATH</value>
@@ -396,11 +396,8 @@
     <category>aerosol</category>
     <group>dust_input_nl</group>
     <desc>
-      Full pathname of the Zender soil erodibility factor dataset
-      (mbl_bsn_fct_geo on a lat-lon grid), horizontally interpolated to the
-      physics columns for the MAM dust emissions scheme. Only used on the
-      Zender-in-atmosphere path (zender_soil_erod_from_atm = .true., where
-      it must be set); if unset, the soil erodibility is zero.
+      Full pathname of the boundary dataset for soil erodibility factors
+      used by dust emissions, interpolated to the model grid.
     </desc>
     <values>
       <value>UNSET_PATH</value>

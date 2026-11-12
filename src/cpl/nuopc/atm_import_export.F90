@@ -80,9 +80,7 @@ contains
     call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
 
     call shr_megan_readnl(nl_file_name, megan_nflds)
-    ! Mirror the MEGAN VOC emission field count for physics; registry
-    ! fields dimensioned by it are allocated later, during physics
-    ! initialization (the count is 0 when drv_flds_in has no MEGAN fields)
+    ! mirror the number of MEGAN VOC emission field count to host:
     call megan_coupling_set_nflds(megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
@@ -705,9 +703,7 @@ contains
        end do
     end if
 
-    ! MEGAN VOC emission fluxes from land. cam_in%meganflx is allocated
-    ! with the same mirrored field count the advertise phase used for
-    ! Fall_voc, so the imported ungridded extent matches by construction.
+    ! MEGAN VOC emission fluxes from land model:
     call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (exists) then

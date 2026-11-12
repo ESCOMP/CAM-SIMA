@@ -1,22 +1,8 @@
-! Support module for aerosol (and eventually gas) dry deposition to read
+! Support module for aerosol and gas dry deposition to read
 ! the land use class fractions from the dry deposition surface dataset
 ! (namelist drydep_srf_file, the "atmsrf" file).
 !
-! Remarks: this module is not CCPP-ized but is written specifically for
-! grid decomposition-aware I/O in CAM-SIMA, following the
-! gravity_wave_drag_ridge_read pattern: the field is read on the physics
-! grid decomposition with a custom non-grid dimension (class = n_land_type)
-! and provided to underlying CCPP schemes via the argument table below.
-!
-! In CAM, fraction_landuse is owned by mo_drydep and read via infld on the
-! physics grid; the values here are the same PIO read of the same file
-! variable, so they are bitwise identical to CAM's on the same grid and
-! need not be captured in physics snapshots.
-!
-! If drydep_srf_file is not set, the fractions are left at zero with a
-! warning (CAM's lenient structured-grid fallback); a set but unreadable
-! file or a missing file variable is a hard error, matching CAM's
-! requirement that unstructured grids provide this dataset.
+! This is a decomposed read and is thus done in the host model.
 module fraction_landuse_read
   use ccpp_kinds,   only: kind_phys
   use shr_kind_mod, only: shr_kind_cl
@@ -67,7 +53,7 @@ contains
     errflg = 0
 
     if (masterproc) then
-       open(newunit=unitn, file=trim(nlfile), status='old')
+       open(newunit=unitn, file=trim(nlfile), status='old', action='read')
        call find_group_name(unitn, 'drydep_input_nl', status=errflg)
        if (errflg == 0) then
           read(unitn, drydep_input_nl, iostat=errflg, iomsg=errmsg)
@@ -132,7 +118,7 @@ contains
 
       ! Read required 2D field: fraction_landuse (ncol, class)
       call cam_read_field('fraction_landuse', fh_srf, fraction_landuse, found, &
-                          dim3name='class', dim3_bnds=(/1, n_land_type/))
+                          dim3name='class', dim3_bnds=[1, n_land_type])
       if(.not. found) then
         call endrun(trim(subname) // ': fraction_landuse not found in drydep_srf_file')
       endif
