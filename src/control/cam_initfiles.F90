@@ -19,7 +19,6 @@ module cam_initfiles
 
    implicit none
    private
-   save
 
    ! Public methods
 
@@ -71,12 +70,13 @@ CONTAINS
 
    subroutine cam_initfiles_readnl(nlfile)
 
-      use shr_nl_mod,   only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,   only: mpicom, mstrid=>masterprocid
-      use mpi,          only: mpi_character, mpi_logical, mpi_real8
-      use pio,          only: pio_offset_kind
-      use ioFileMod,    only: cam_get_file, cam_open_file
-      use cam_instance, only: inst_suffix
+      use shr_nl_mod,    only: find_group_name => shr_nl_find_group_name
+      use spmd_utils,    only: mpicom, mstrid=>masterprocid
+      use mpi,           only: mpi_character, mpi_logical, mpi_real8
+      use pio,           only: pio_offset_kind
+      use ioFileMod,     only: cam_get_file, cam_open_file
+      use cam_instance,  only: inst_suffix
+      use cam_filenames, only: interpret_filename_spec
 
       ! nlfile: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -89,6 +89,7 @@ CONTAINS
       integer                     :: xtype
       integer(pio_offset_kind)    :: slen
 
+      character(len=cl)           :: ioerrmsg
       character(len=*), parameter :: subname = 'cam_initfiles_readnl'
 
       namelist /cam_initfiles_nl/ ncdata, bnd_topo, pertlim, cam_branch_file, &
@@ -96,12 +97,12 @@ CONTAINS
       !------------------------------------------------------------------------
 
       if (masterproc) then
-         open(newunit=unitn, file=trim(nlfile), status='old')
+         open(newunit=unitn, action='read', file=trim(nlfile), status='old')
          call find_group_name(unitn, 'cam_initfiles_nl', status=ierr)
          if (ierr == 0) then
-            read(unitn, cam_initfiles_nl, iostat=ierr)
+            read(unitn, cam_initfiles_nl, iostat=ierr, iomsg=ioerrmsg)
             if (ierr /= 0) then
-               call endrun(subname//': ERROR: reading namelist')
+               call endrun(subname//': ERROR: reading namelist, error: '//trim(ioerrmsg))
             end if
          end if
          close(unitn)
@@ -136,16 +137,27 @@ CONTAINS
       end if
 
       ! Set pointer file name based on instance suffix
-      rest_pfile = './rpointer.atm' //trim(inst_suffix)
+      rest_pfile = './rpointer.cam' //trim(inst_suffix)
 
       ! Set name of primary restart file
       if (restart_run) then
          ! Read name of restart file from pointer file
          if (masterproc) then
-            call cam_open_file(rest_pfile, unitn, 'f', status="old")
-            read (unitn, '(a)', iostat=ierr) restart_file
+            rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
+            inquire(file=trim(rest_pfile),exist=filefound)
+            if(.not. filefound) then
+               write(iulog, "INFO : rpointer file "//trim(rest_pfile)//" not found.")
+               rest_pfile = "rpointer.cam"//trim(inst_suffix)
+               write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
+               inquire(file=trim(rest_pfile),exist=filefound)
+               if(.not. filefound) then
+                  call endrun(subname // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
+               endif
+            endif
+            open(newunit=unitn, action='read', file=trim(rest_pfile), status='old', iostat=ierr, iomsg=ioerrmsg)
+            read (unitn, '(a)', iostat=ierr, iomsg=ioerrmsg) restart_file
             if (ierr /= 0) then
-               call endrun(subname//': ERROR: reading rpointer file')
+               call endrun(subname // ': ERROR: reading rpointer file: '//trim(rest_pfile)//', error'//trim(ioerrmsg))
             end if
             close(unitn)
          end if
@@ -236,6 +248,7 @@ CONTAINS
 
       integer :: iret
 
+      character(len=cl) :: errmsg
       character(len=*), parameter :: subname = 'cam_initfiles_open'
 
       !-----------------------------------------------------------------------
@@ -248,10 +261,10 @@ CONTAINS
                                  'Please set "ncdata" in the CAM namelist')
          end if
          call cam_get_file(ncdata, ncdata_loc)
-         allocate(fh_ini, stat=iret)
+         allocate(fh_ini, stat=iret, errmsg=errmsg)
          if (iret /= 0) then
             call endrun(subname//': allocate fh_ini failed with stat: '//&
-                        to_str(iret))
+                        to_str(iret)//', errmsg: '//trim(errmsg))
          end if
 
          call cam_pio_openfile(fh_ini, ncdata_loc, pio_nowrite)
@@ -262,10 +275,10 @@ CONTAINS
       ! Open topography dataset if used.
       if (trim(bnd_topo) /= trim(unset_path_str)) then
          if ((trim(bnd_topo) /= 'bnd_topo') .and. (len_trim(bnd_topo) > 0)) then
-            allocate(fh_topo, stat=iret)
+            allocate(fh_topo, stat=iret, errmsg=errmsg)
             if (iret /= 0) then
                call endrun(subname//': allocate fh_topo failed with stat: '//&
-                           to_str(iret))
+                           to_str(iret)//', errmsg = '//trim(errmsg))
             end if
 
             call cam_get_file(bnd_topo, bnd_topo_loc)
@@ -283,16 +296,16 @@ CONTAINS
 
    !=======================================================================
 
-   function initial_file_get_id()
-      type(file_desc_t), pointer :: initial_file_get_id
-      initial_file_get_id => fh_ini
+   function initial_file_get_id() result(get_id)
+      type(file_desc_t), pointer :: get_id
+      get_id => fh_ini
    end function initial_file_get_id
 
    !=======================================================================
 
-   function topo_file_get_id()
-      type(file_desc_t), pointer :: topo_file_get_id
-      topo_file_get_id => fh_topo
+   function topo_file_get_id() result(get_id)
+      type(file_desc_t), pointer :: get_id
+      get_id => fh_topo
    end function topo_file_get_id
 
    !=======================================================================
@@ -321,7 +334,7 @@ CONTAINS
 
    !=======================================================================
 
-   character(len=cl) function cam_initfiles_get_caseid()
+   character(len=cl) function cam_initfiles_get_caseid() result(caseid)
 
       ! Return the caseid of the previous case (i.e., the one read from the
       !     restart file)
@@ -332,13 +345,13 @@ CONTAINS
       if (initial_run) then
          call endrun (subname//': ERROR: caseid not read from restart file?')
       end if
-      cam_initfiles_get_caseid = caseid_prev
+      caseid = caseid_prev
 
    end function cam_initfiles_get_caseid
 
    !=======================================================================
 
-   character(len=cl) function cam_initfiles_get_restdir()
+   character(len=cl) function cam_initfiles_get_restdir() result(restdir)
 
       ! Return directory containing initial restart file
 
@@ -351,7 +364,7 @@ CONTAINS
          call endrun (subname//': ERROR: No restart file available')
       end if
 
-      cam_initfiles_get_restdir = get_dir(restart_file)
+      restdir = get_dir(restart_file)
 
    end function cam_initfiles_get_restdir
 

@@ -11,6 +11,7 @@ module restart_dynamics
 ! adjustments into the run.  The restart file containing the unstructured
 ! grid format may also be used for an initial run.
 
+
 use pio,              only: var_desc_t, io_desc_t
 
 implicit none
@@ -18,7 +19,7 @@ private
 
 public :: init_restart_dynamics
 public :: write_restart_dynamics
-!public :: read_restart_dynamics
+public :: read_restart_dynamics
 
 ! these variables are module data so they can be shared between the
 ! file definition and write phases
@@ -507,6 +508,611 @@ end subroutine write_unstruct
 end subroutine write_restart_dynamics
 
 !=========================================================================================
+
+subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
+   use dyn_comp, only: dyn_import_t, dyn_export_t
+   use pio,      only: file_desc_t, pio_offset_kind, io_desc_t, pio_bcast_error, &
+                       pio_global, pio_noerr, pio_double, pio_inq_dimlen, &
+                       pio_inq_dimid, pio_inq_varid, pio_get_att, &
+                       pio_seterrorhandling, pio_read_darray, pio_setframe, &
+                       pio_initdecomp, pio_read_darray
+   use cam_field_read,   only: cam_read_field
+   use shr_kind_mod,     only: r8 => shr_kind_r8, i8=>shr_kind_i8
+   use dyn_grid,         only: timelevel, fvm, elem, edgebuf
+   use cam_grid_support, only: max_hcoordname_len, cam_grid_id, cam_grid_dimensions
+   use edgetype_mod,     only: edgebuffer_t
+   use edge_mod,         only: initEdgeBuffer
+   use parallel_mod,     only: par
+   use spmd_utils,       only: iam, masterproc
+   use cam_logfile,      only: iulog
+   use dimensions_mod,   only: np, npsq, ne, nc, nelemd, fv_nphys, nlev, ntrac, fv_nphys
+   use cam_pio_utils,    only: pio_subsystem, cam_pio_handle_error
+   use ref_pres,         only: ptop_ref
+   use hycoef,           only: hybi, hyai, ps0
+   use control_mod,      only: qsplit
+   use bndry_mod,        only: bndry_exchange
+   use cam_abortutils,   only: endrun
+   use dyn_comp,         only: dyn_init, advected_constituent_index
+   use dyn_comp,         only: set_advected_constituent_index
+   use runtime_obj,      only: cam_runtime_opts
+   use se_dyn_time_mod,  only: TimeLevel_Qdp
+   use cam_ccpp_cap,     only: cam_model_const_properties, cam_ccpp_number_constituents
+   use cam_abortutils,   only: check_allocate
+   use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+
+   type(file_desc_t),  intent(inout) :: restart_file
+   type(dyn_import_t), intent(inout) :: dyn_in
+   type(dyn_export_t), intent(inout) :: dyn_out
+
+   ! local variables
+   integer(pio_offset_kind), parameter :: t_idx = 1
+
+   integer :: tl, tlQdp
+   integer :: i, ie, ii, k, m, j
+   integer :: ierr, err_handling
+   integer :: fne, fnp, fnlev, fnc
+   integer :: hdim_len, ncols_fvm
+
+   integer :: num_advected_const
+
+   integer :: nlev_dimid
+   integer :: ncol_dimid
+   integer :: ncol_fvm_dimid
+
+   type(var_desc_t) :: udesc
+   type(var_desc_t) :: vdesc
+   type(var_desc_t) :: tdesc
+   type(var_desc_t) :: psdry_desc
+   type(var_desc_t), allocatable :: qdesc_dp(:)
+
+   integer :: grid_id
+   integer :: grid_dimlens(2)
+   character(len=max_hcoordname_len) :: dimname1, dimname2
+
+   real(r8),    allocatable :: var3d_fvm(:,:,:)
+
+   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+
+   logical :: readvar
+   logical :: advected
+
+   character(len=256) :: const_diag_name
+   character(len=512) :: errmsg
+   character(len=*), parameter :: subname = 'read_restart_dynamics'
+   !----------------------------------------------------------------------------
+
+   ! Note1: the hybrid coefficients are read from the same location as for an
+   !        initial run (e.g., dyn_grid_init).
+
+   ! Note2: the dyn_in and dyn_out objects are not associated with the elem and fvm
+   !        objects until dyn_init is called.  Until the restart is better integrated
+   !        into dyn_init we just access elem and fvm directly from the dyn_grid
+   !        module.
+
+   tl = timelevel%n0
+   call TimeLevel_Qdp(timelevel, qsplit, tlQdp)
+   call init_nelem_tot()
+
+   call pio_seterrorhandling(restart_file, pio_bcast_error, err_handling)
+
+   ! some checks that the restart contains the same grid as the running model.
+
+   ierr = PIO_Get_Att(restart_file, PIO_GLOBAL, 'ne', fne)
+   ierr = PIO_Get_Att(restart_file, PIO_GLOBAL, 'np', fnp)
+   if (ne /= fne .or. np /= fnp) then
+      write(iulog,*) 'Restart file np or ne does not match model. np (file, model):', &
+                     fnp, np, ' ne (file, model) ', fne, ne
+      call endrun(subname//': Restart file np or ne does not match model.')
+   end if
+
+   ierr = PIO_Inq_DimID(restart_file, 'lev', nlev_dimid)
+   ierr = PIO_Inq_dimlen(restart_file, nlev_dimid, fnlev)
+   if (nlev /= fnlev) then
+      write(iulog,*) 'Restart file nlev does not match model. nlev (file, namelist):', &
+                     fnlev, nlev
+      call endrun(subname//': Restart file nlev does not match model.')
+   end if
+
+   ! variable descriptors of required dynamics fields
+   ierr = PIO_Inq_varid(restart_file, 'U',     udesc)
+   call cam_pio_handle_error(ierr, subname//': cannot find U')
+   ierr = PIO_Inq_varid(restart_file, 'V',     Vdesc)
+   call cam_pio_handle_error(ierr, subname//': cannot find V')
+   ierr = PIO_Inq_varid(restart_file, 'T',     tdesc)
+   call cam_pio_handle_error(ierr, subname//': cannot find T')
+   ierr = PIO_Inq_varid(restart_file, 'PSDRY', psdry_desc)
+   call cam_pio_handle_error(ierr, subname//': cannot find PSDRY')
+
+   ! On a restart run dyn_init has not been called yet, so the advected
+   ! constituent index map must be set up here before it is used.
+   call set_advected_constituent_index()
+
+   const_props => cam_model_const_properties()
+   num_advected_const = size(advected_constituent_index)
+   allocate(qdesc_dp(num_advected_const), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, subname, 'qdesc_dp', &
+                           file=__FILE__, line=__LINE__, errmsg=errmsg)
+   do m = 1, num_advected_const
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+      ierr = PIO_Inq_varid(restart_file, "dp"//trim(const_diag_name), Qdesc_dp(m))
+      call cam_pio_handle_error(ierr, subname//': cannot find dp'//trim(const_diag_name))
+   end do
+
+   ! check whether the restart fields on the GLL grid contain unique columns
+   ! or the element structure (nenpnp = nelem_tot*np*np columns)
+
+   ierr = PIO_Inq_DimID(restart_file, 'nenpnp', ncol_dimid)
+   if (ierr == pio_noerr) then
+
+      call read_elem()
+
+   else
+
+      ! Restart was written with se_write_restart_unstruct = .true.
+      ! (unique columns on the GLL grid).  Restarting from this format
+      ! is not bit-for-bit; roundoff-size differences are expected.
+      call read_unstruct()
+
+   end if
+
+   deallocate(qdesc_dp)
+
+   ! recompute dp3d from psdry
+   do ie = 1, nelemd
+      do k = 1, nlev
+         elem(ie)%state%dp3d(:,:,k,tl) = ((hyai(k+1) - hyai(k))*ps0) + &
+                              ((hybi(k+1) - hybi(k))*elem(ie)%state%psdry(:,:))
+      end do
+   end do
+
+   ! Seems like this initialization should be done somewhere else.
+   do ie = 1, nelemd
+      elem(ie)%derived%fM = 0._r8
+      elem(ie)%derived%fT = 0._r8
+      elem(ie)%derived%fQ = 0._r8
+   end do
+
+   ! read cslam fields
+
+   if (fv_nphys > 0) then
+
+      ! Checks that file and model dimensions agree.
+
+      ierr = PIO_Get_Att(restart_file, PIO_GLOBAL, 'nc', fnc)
+      if (nc /= fnc) then
+         write(iulog,*) 'Restart file nc does not match model. nc (file, model):',fnc,nc,&
+             ' ne (file, model) ', fne, ne
+         call endrun(subname//': Restart file nc does not match model.')
+      end if
+
+      ierr = PIO_Inq_DimID(restart_file, 'ncol_fvm', ncol_fvm_dimid)
+      call cam_pio_handle_error(ierr, subname//': cannot find ncol_fvm')
+      ierr = PIO_Inq_dimlen(restart_file, ncol_fvm_dimid, ncols_fvm)
+
+      grid_id = cam_grid_id('FVM')
+      call cam_grid_dimensions(grid_id, grid_dimlens)
+
+      if (ncols_fvm /= grid_dimlens(1)) then
+         write(iulog,*) 'Restart file ncol_fvm does not match model. ncols_fvm (file, model):',&
+                        ncols_fvm, grid_dimlens(1)
+         call endrun(subname//': Restart file ncols_fvm does not match model.')
+      end if
+
+      allocate(var3d_fvm(nc*nc,nlev,nelemd))
+      var3d_fvm = 0._r8
+
+      ! dp_fvm
+      call cam_read_field('dp_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], gridname='FVM', timelevel=int(t_idx))
+      do ie = 1, nelemd
+         do k = 1, nlev
+            ii = 1
+            do j = 1, nc
+               do i = 1, nc
+                  fvm(ie)%dp_fvm(i,j,k) = var3d_fvm(ii,k,ie)
+                  ii = ii + 1
+               end do
+            end do
+         end do
+      end do
+
+      ! tracers
+      do m = 1, num_advected_const
+         call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+         call cam_read_field(trim(const_diag_name)//'_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], &
+                 gridname='FVM', timelevel=int(t_idx))
+         do ie = 1, nelemd
+            do k = 1, nlev
+               ii = 1
+               do j = 1, nc
+                  do i = 1, nc
+                     fvm(ie)%c(i,j,k,m) = var3d_fvm(ii,k,ie)
+                     ii = ii + 1
+                  end do
+               end do
+            end do
+         end do
+      end do
+
+      ! compute dry surface pressure (a derived quantity)
+      do ie = 1, nelemd
+         do j = 1, nc
+            do i = 1, nc
+               fvm(ie)%psc(i,j) = sum(fvm(ie)%dp_fvm(i,j,:)) +  ptop_ref
+            end do
+         end do
+      end do
+
+   end if
+
+   call pio_seterrorhandling(restart_file, err_handling)
+
+   call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+
+!-------------------------------------------------------------------------------
+contains
+!-------------------------------------------------------------------------------
+
+subroutine read_elem()
+   use spmd_utils, only: masterproc
+
+   ! local variables
+   integer :: ierr
+   integer :: ncol
+   integer :: i, ie, ii, j, k, m
+
+   integer, pointer :: ldof(:)
+
+   type(io_desc_t) :: iodesc2d, iodesc3d
+   real(r8), allocatable :: var3d(:), var2d(:)
+   logical :: found, advected
+
+   character(len=*), parameter :: sub='read_elem'
+   !----------------------------------------------------------------------------
+
+   ierr = PIO_Inq_dimlen(restart_file, ncol_dimid, ncol)
+   call cam_pio_handle_error(ierr, sub//': reading nenpnp')
+
+   ldof => get_restart_decomp(elem, 1)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [ncol], ldof, iodesc2d)
+   deallocate(ldof)
+
+   ldof => get_restart_decomp(elem, nlev)
+   call PIO_InitDecomp(pio_subsystem, pio_double, [ncol,nlev], ldof, iodesc3d)
+   deallocate(ldof)
+
+   allocate(var2d(nelemd*np*np), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, 'read_elem', 'var2d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+   var2d = 0._r8
+
+   call pio_setframe(restart_file, psdry_desc, t_idx)
+   call pio_read_darray(restart_file, psdry_desc, iodesc2d, var2d, ierr)
+   call cam_pio_handle_error(ierr, sub//': reading PSDRY')
+   ii = 0
+   do ie = 1, nelemd
+      do j = 1, np
+         do i = 1, np
+            ii = ii + 1
+            elem(ie)%state%psdry(i,j) = var2d(ii)
+         end do
+      end do
+   end do
+
+   deallocate(var2d)
+   allocate(var3d(nelemd*np*np*nlev), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, 'read_elem', 'var3d', &
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+   var3d = 0._r8
+
+   call pio_setframe(restart_file, udesc, t_idx)
+   call pio_read_darray(restart_file, udesc, iodesc3d, var3d, ierr)
+   call cam_pio_handle_error(ierr, sub//': reading U')
+   ii = 0
+   do k = 1, nlev
+      do ie = 1, nelemd
+         do j = 1, np
+            do i = 1, np
+               ii = ii + 1
+               elem(ie)%state%v(i,j,1,k,tl) = var3d(ii)
+            end do
+         end do
+      end do
+   end do
+
+   call pio_setframe(restart_file, vdesc, t_idx)
+   call pio_read_darray(restart_file, vdesc, iodesc3d, var3d, ierr)
+   call cam_pio_handle_error(ierr, sub//': reading V')
+   ii = 0
+   do k = 1, nlev
+      do ie = 1, nelemd
+         do j = 1, np
+            do i = 1, np
+               ii = ii + 1
+               elem(ie)%state%v(i,j,2,k,tl) = var3d(ii)
+            end do
+         end do
+      end do
+   end do
+
+   call pio_setframe(restart_file, tdesc, t_idx)
+   call pio_read_darray(restart_file, tdesc, iodesc3d, var3d, ierr)
+   call cam_pio_handle_error(ierr, sub//': reading T')
+   ii = 0
+   do k = 1, nlev
+      do ie = 1, nelemd
+         do j = 1, np
+            do i = 1, np
+               ii = ii + 1
+               elem(ie)%state%T(i,j,k,tl) = var3d(ii)
+            end do
+         end do
+      end do
+   end do
+
+   do m = 1, num_advected_const
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+      call pio_setframe(restart_file, qdesc_dp(m), t_idx)
+      call pio_read_darray(restart_file, qdesc_dp(m), iodesc3d, var3d, ierr)
+      call cam_pio_handle_error(ierr, sub//': reading dp'//trim(const_diag_name))
+      ii = 0
+      do k = 1, nlev
+         do ie = 1, nelemd
+            do j = 1, np
+               do i = 1, np
+                  ii = ii + 1
+                  elem(ie)%state%Qdp(i,j,k,m,tlQdp) = var3d(ii)
+               end do
+            end do
+         end do
+      end do
+   end do
+
+
+   deallocate(var3d)
+
+   if (masterproc) write(iulog,*) sub//': completed successfully'
+
+end subroutine read_elem
+
+!-------------------------------------------------------------------------------
+
+subroutine read_unstruct()
+   ! Read dynamics restart fields that were written on the unstructured GLL
+   ! grid (unique columns only, se_write_restart_unstruct = .true.).
+   !
+   ! Each unique column is read into exactly one owning element; all other
+   ! (duplicate) element points are zeroed.  A boundary exchange (which sums
+   ! contributions from neighboring elements) then fills in the duplicates.
+
+   use cam_grid_support, only: cam_grid_get_dim_names, cam_grid_get_gcid
+   use cam_map_utils,    only: iMap
+   use edge_mod,         only: edgevpack, edgevunpack, freeedgebuffer
+
+   ! local variables
+   integer :: grid_id
+   integer :: dimid
+   integer :: i, ie, ii, j, kptr, m
+
+   integer(iMap), pointer :: gcid(:)
+   logical,   allocatable :: unique_mask(:,:)   ! (npsq,nelemd)
+   real(r8),  allocatable :: dbuf2(:,:)         ! (npsq,nelemd)
+   real(r8),  allocatable :: dbuf3(:,:,:)       ! (npsq,nlev,nelemd)
+
+   type(EdgeBuffer_t) :: edge
+
+   character(len=*), parameter :: sub='read_unstruct'
+   !----------------------------------------------------------------------------
+
+   ! The name of the unstructured grid dimension is in the grid object
+   ! since the coordinate data was written to the restart file using
+   ! that object.
+   grid_id = cam_grid_id('GLL')
+   call cam_grid_get_dim_names(grid_id, dimname1, dimname2)
+
+   ! Make sure the file actually has the unstructured layout; otherwise it
+   ! has neither the element ('nenpnp') nor the unstructured layout.
+   ierr = PIO_Inq_DimID(restart_file, trim(dimname1), dimid)
+   if (ierr /= pio_noerr) then
+      call endrun(subname//': restart file has neither the nenpnp dimension'// &
+                  ' nor the GLL grid dimension '//trim(dimname1))
+   end if
+
+   if (masterproc) then
+      write(iulog,*) sub//': reading SE dynamics restart fields on unstructured GLL grid;', &
+                     ' roundoff-size differences from the original run are expected'
+   end if
+
+   ! Mask of element points that own a unique column on the file
+   nullify(gcid)
+   call cam_grid_get_gcid(grid_id, gcid)
+   allocate(unique_mask(npsq,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'unique_mask', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+   unique_mask = reshape(gcid /= 0_iMap, [npsq, nelemd])
+   deallocate(gcid)
+   nullify(gcid)
+
+   ! PSDRY
+   allocate(dbuf2(npsq,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'dbuf2', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   call read_2d('PSDRY', dbuf2, unique_mask)
+   do ie = 1, nelemd
+      ii = 1
+      do j = 1, np
+         do i = 1, np
+            elem(ie)%state%psdry(i,j) = dbuf2(ii,ie)
+            ii = ii + 1
+         end do
+      end do
+   end do
+
+   deallocate(dbuf2)
+
+   ! 3D fields
+   allocate(dbuf3(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'dbuf3', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   call read_3d('U', dbuf3, unique_mask)
+   do ie = 1, nelemd
+      ii = 1
+      do j = 1, np
+         do i = 1, np
+            elem(ie)%state%v(i,j,1,:,tl) = dbuf3(ii,:,ie)
+            ii = ii + 1
+         end do
+      end do
+   end do
+
+   call read_3d('V', dbuf3, unique_mask)
+   do ie = 1, nelemd
+      ii = 1
+      do j = 1, np
+         do i = 1, np
+            elem(ie)%state%v(i,j,2,:,tl) = dbuf3(ii,:,ie)
+            ii = ii + 1
+         end do
+      end do
+   end do
+
+   call read_3d('T', dbuf3, unique_mask)
+   do ie = 1, nelemd
+      ii = 1
+      do j = 1, np
+         do i = 1, np
+            elem(ie)%state%T(i,j,:,tl) = dbuf3(ii,:,ie)
+            ii = ii + 1
+         end do
+      end do
+   end do
+
+   ! Advected constituent masses (names must match init_restart_dynamics)
+   do m = 1, num_advected_const
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+      call read_3d('dp'//trim(const_diag_name), dbuf3, unique_mask)
+      do ie = 1, nelemd
+         ii = 1
+         do j = 1, np
+            do i = 1, np
+               elem(ie)%state%Qdp(i,j,:,m,tlQdp) = dbuf3(ii,:,ie)
+               ii = ii + 1
+            end do
+         end do
+      end do
+   end do
+
+   deallocate(dbuf3)
+   deallocate(unique_mask)
+
+   ! Boundary exchange to fill the duplicate (non-unique) element points
+   if (iam < par%nprocs) then
+      call initEdgeBuffer(par, edge, elem, (3+num_advected_const)*nlev + 1)
+   end if
+   do ie = 1, nelemd
+      kptr = 0
+      call edgeVpack(edge, elem(ie)%state%psdry(:,:), 1, kptr, ie)
+      kptr = kptr + 1
+      call edgeVpack(edge, elem(ie)%state%v(:,:,:,:,tl), 2*nlev, kptr, ie)
+      kptr = kptr + (2 * nlev)
+      call edgeVpack(edge, elem(ie)%state%T(:,:,:,tl), nlev, kptr, ie)
+      kptr = kptr + nlev
+      call edgeVpack(edge, elem(ie)%state%Qdp(:,:,:,1:num_advected_const,tlQdp), &
+                     nlev*num_advected_const, kptr, ie)
+   end do
+   if (iam < par%nprocs) then
+      call bndry_exchange(par, edge, location='read_restart_dynamics::read_unstruct')
+   end if
+   do ie = 1, nelemd
+      kptr = 0
+      call edgeVunpack(edge, elem(ie)%state%psdry(:,:), 1, kptr, ie)
+      kptr = kptr + 1
+      call edgeVunpack(edge, elem(ie)%state%v(:,:,:,:,tl), 2*nlev, kptr, ie)
+      kptr = kptr + (2 * nlev)
+      call edgeVunpack(edge, elem(ie)%state%T(:,:,:,tl), nlev, kptr, ie)
+      kptr = kptr + nlev
+      call edgeVunpack(edge, elem(ie)%state%Qdp(:,:,:,1:num_advected_const,tlQdp), &
+                       nlev*num_advected_const, kptr, ie)
+   end do
+
+   if (iam < par%nprocs) then
+      call FreeEdgeBuffer(edge)
+   end if
+
+   if (masterproc) write(iulog,*) sub//': completed successfully'
+
+end subroutine read_unstruct
+
+!-------------------------------------------------------------------------------
+
+subroutine clean_buffer_2d(buffer, mask, fillvalue)
+   ! Zero NaNs, fill values, and all element points not flagged in mask
+   ! (i.e., the duplicate GLL points that do not own a unique column).
+   use shr_infnan_mod, only: shr_infnan_isnan
+
+   real(r8), intent(inout) :: buffer(:,:)
+   logical,  intent(in)    :: mask(:,:)
+   real(r8), intent(in)    :: fillvalue
+
+   ! check for NaN first, as comparing NaN to fillvalue raises floating invalid.
+   where (shr_infnan_isnan(buffer)) buffer = 0.0_r8
+   if (.not. shr_infnan_isnan(fillvalue)) then
+      where (buffer == fillvalue) buffer = 0.0_r8
+   end if
+   where (.not. mask) buffer = 0.0_r8
+
+end subroutine clean_buffer_2d
+
+!-------------------------------------------------------------------------------
+
+subroutine read_2d(fieldname, buffer, mask)
+
+   character(len=*),  intent(in)    :: fieldname
+   real(r8),          intent(inout) :: buffer(:,:)
+   logical,           intent(in)    :: mask(:,:)
+
+   logical  :: found
+   real(r8) :: fillvalue
+   !----------------------------------------------------------------------------
+
+   buffer = 0.0_r8
+   call cam_read_field(trim(fieldname), restart_file, buffer, found, &
+                       gridname='GLL', timelevel=int(t_idx), fillvalue=fillvalue)
+   if (.not. found) then
+      call endrun(subname//': read_unstruct: Could not find '//trim(fieldname))
+   end if
+   call clean_buffer_2d(buffer, mask, fillvalue)
+
+end subroutine read_2d
+
+!-------------------------------------------------------------------------------
+
+subroutine read_3d(fieldname, buffer, mask)
+
+   character(len=*),  intent(in)    :: fieldname
+   real(r8),          intent(inout) :: buffer(:,:,:)
+   logical,           intent(in)    :: mask(:,:)
+
+   logical  :: found
+   real(r8) :: fillvalue
+   integer  :: k
+   !----------------------------------------------------------------------------
+
+   buffer = 0.0_r8
+   call cam_read_field(trim(fieldname), restart_file, buffer, found, 'lev', [1, nlev], &
+                       dim3_pos=2, gridname='GLL', timelevel=int(t_idx), fillvalue=fillvalue)
+   if (.not. found) then
+      call endrun(subname//': read_unstruct: Could not find '//trim(fieldname))
+   end if
+   do k = 1, nlev
+      call clean_buffer_2d(buffer(:,k,:), mask, fillvalue)
+   end do
+
+end subroutine read_3d
+
+!-------------------------------------------------------------------------------
+end subroutine read_restart_dynamics
 
 !=========================================================================================
 ! Private

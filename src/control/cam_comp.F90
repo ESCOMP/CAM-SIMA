@@ -83,13 +83,14 @@ contains
       !
       !-----------------------------------------------------------------------
 
-      use cam_initfiles,             only: cam_initfiles_open
+      use cam_initfiles,             only: cam_initfiles_open, initial_file_get_id
+      use tracer_data,               only: tracer_data_set_restart_read_file
       use dyn_grid,                  only: model_grid_init
       use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
-!      use cam_restart,               only: cam_read_restart
-      use cam_history,               only: history_init_files
+      use cam_restart,               only: cam_read_restart
+      use cam_history,               only: history_init_files, overwrite_history
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
       use cam_instance,              only: inst_suffix
@@ -210,6 +211,10 @@ contains
                      file=__FILE__, line=__LINE__)
       end if
 
+      if (initial_run_in) then
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+      end if
+
       ! Initialize ghg surface values before default initial distributions
       ! are set in dyn_init
       !!XXgoldyXX: This needs to be converted to CCPP and the issue of
@@ -220,23 +225,12 @@ contains
       !!XXgoldyXX: Leaving this place. Why before dyn_init?
       !call ionosphere_init()
 
-      if (initial_run_in) then
-
-         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
-
-      else
-
-!!XXgoldyXX: v need to import this
-!         call cam_read_restart(cam_in, cam_out, dyn_in, dyn_out,              &
-!              stop_ymd, stop_tod)
-!!XXgoldyXX: ^ need to import this
-
 !!XXgoldyXX: v need to import this
 !         if (BFB_CAM_SCAM_IOP) then
 !            call initialize_iop_history()
 !         end if
 !!XXgoldyXX: ^ need to import this
-      end if
+!      end if
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()
@@ -261,6 +255,10 @@ contains
       ! be run before phys_init
       call rad_aer_init_all()
 
+      if (.not. initial_run_in) then
+         call tracer_data_set_restart_read_file(initial_file_get_id())
+      end if
+
       ! Allocate the CAM-SIMA registry variables and set their initial values.
       call allocate_physics_types_fields(set_init_val_in=.true., reallocate_in=.false.)
       ! ... All registry values from the host must be set *after* the above call
@@ -269,10 +267,10 @@ contains
       dtime_phys = 0.0_r8
       call mark_as_initialized('timestep_for_physics')
 
-      is_first_timestep = .true.
+      is_first_timestep = is_first_step()
       call mark_as_initialized('is_first_timestep')
 
-      is_first_restart_timestep = .false.
+      is_first_restart_timestep = is_first_restart_step()
       call mark_as_initialized('is_first_restart_timestep')
 
       nstep = get_nstep()
@@ -301,6 +299,10 @@ contains
       ! from the topo file into the physics state
       call topography_statics_read_file()
 
+      if (.not. initial_run_in) then
+         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+      end if
+
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
 !!XXgoldyXX: ^ need to import this
@@ -311,6 +313,9 @@ contains
       !    call scm_intht()
       ! end if
       call history_init_files(model_doi_url, caseid, ctitle)
+      if (.not. initial_run_in) then
+         call overwrite_history()
+      end if
 
    end subroutine cam_init
 
@@ -354,6 +359,7 @@ contains
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()
+      is_first_restart_timestep = is_first_restart_step()
       nstep = get_nstep()
 
       !----------------------------------------------------------

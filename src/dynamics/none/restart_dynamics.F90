@@ -3,9 +3,9 @@ module restart_dynamics
 implicit none
 private
 
-public :: &
-   init_restart_dynamics,  &
-   write_restart_dynamics
+public :: init_restart_dynamics
+public :: write_restart_dynamics
+public :: read_restart_dynamics
 
 !=========================================================================================
 contains
@@ -36,6 +36,23 @@ subroutine write_restart_dynamics(File, dyn_out)
    !----------------------------------------------------------------------------
 
    ! STUB-ROUTINE
+
 end subroutine write_restart_dynamics
+
+!=========================================================================================
+
+subroutine read_restart_dynamics(File, dyn_in, dyn_out)
+   use dyn_comp,           only: dyn_export_t, dyn_import_t
+   use pio,                only: file_desc_t
+
+   ! arguments
+   type(File_desc_t), target :: File
+   type(dyn_import_t), intent(in)  :: dyn_in
+   type(dyn_export_t), intent(in)  :: dyn_out
+   !----------------------------------------------------------------------------
+
+   ! STUB-ROUTINE
+
+end subroutine read_restart_dynamics
 
 end module restart_dynamics

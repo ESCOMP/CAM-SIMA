@@ -33,7 +33,7 @@ _FORTRAN_NUMERIC_REGEX = re.compile(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(_ki
 from framework_env import CCPPFrameworkEnv
 from parse_tools import validate_xml_file, read_xml_file
 from parse_tools import find_schema_file, find_schema_version
-from parse_tools import init_log, CCPPError, ParseInternalError
+from parse_tools import init_log, ParseInternalError
 from metadata_table import parse_metadata_file
 from fortran_tools import FortranWriter
 # pylint: enable=wrong-import-position
@@ -177,11 +177,11 @@ class VarBase:
             # We cannot have a kind property with a DDT type2
             if self.is_ddt and self.kind:
                 emsg = "kind attribute illegal for DDT type {}"
-                raise CCPPError(emsg.format(self.var_type))
+                raise ValueError(emsg.format(self.var_type))
             # end if (else this type is okay)
         else:
             emsg = '{} is an unknown Variable type, {}'
-            raise CCPPError(emsg.format(local_name, ttype))
+            raise ValueError(emsg.format(local_name, ttype))
         # end if
         for attrib in elem_node:
             if attrib.tag == 'long_name':
@@ -205,7 +205,7 @@ class VarBase:
                 # end for
                 if matches == self.__initial_value_match and matches != 0:
                     emsg = f"Unclear which initial_value to use for {local_name}. There are at least two configurations with {matches} matching attributes"
-                    raise CCPPError(emsg)
+                    raise ValueError(emsg)
                 elif matches > self.__initial_value_match:
                     # Use this initial_value (for now)
                     self.__initial_value_match = matches
@@ -491,7 +491,7 @@ class ArrayElement(VarBase):
         var = vdict.find_variable_by_standard_name(index_name)
         if not var:
             emsg = "Unknown array index, '{}', in '{}'"
-            raise CCPPError(emsg.format(self.index_name, parent_name))
+            raise ValueError(emsg.format(self.index_name, parent_name))
         # end if
         #Save index variable local name:
         local_index_name = var.local_name
@@ -522,7 +522,7 @@ class ArrayElement(VarBase):
                 f'{parent_name}({local_index_string})'
         else:
             emsg = "Cannot find element dimension, '{}' in {}({})"
-            raise CCPPError(emsg.format(index_name, parent_name,
+            raise ValueError(emsg.format(index_name, parent_name,
                                         ', '.join(dimensions)))
         # end if
         local_name = f'{parent_name}({self.index_string})'
@@ -554,16 +554,16 @@ class Variable(VarBase):
     """Registry variable
     >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dimensions>ccpp_constant_one:horizontal_dimension:two</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Illegal dimension string, ccpp_constant_one:horizontal_dimension:two, in u, step not allowed.
+    ValueError: Illegal dimension string, ccpp_constant_one:horizontal_dimension:two, in u, step not allowed.
     >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"><dims>horizontal_dimension</dims></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Unknown Variable content, dims
+    ValueError: Unknown Variable content, dims
     >>> Variable(ET.fromstring('<variable kkind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1"></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Bad variable attribute, 'kkind', for 'u'
+    ValueError: Bad variable attribute, 'kkind', for 'u'
     >>> Variable(ET.fromstring('<variable kind="kind_phys" local_name="u" standard_name="east_wind" type="real" units="m s-1" allocatable="target"><dimensions>horizontal_dimension vertical_dimension</dimensions></variable>'), TypeRegistry(), VarDict("foo", "module", None), 'se', None).resolve_dimensions(VarDict("foo", "module", None)) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Dimension, 'horizontal_dimension', not found for 'u'
+    ValueError: Dimension, 'horizontal_dimension', not found for 'u'
     """
 
     # Constant dimensions
@@ -585,7 +585,7 @@ class Variable(VarBase):
         for att in var_node.attrib:
             if att not in Variable.__VAR_ATTRIBUTES:
                 emsg = "Bad variable attribute, '{}', for '{}'"
-                raise CCPPError(emsg.format(att, local_name))
+                raise ValueError(emsg.format(att, local_name))
             # end if
         # end for
         ttype = var_node.get('type')
@@ -613,7 +613,7 @@ class Variable(VarBase):
                     if dim.count(':') > 1:
                         emsg = "Illegal dimension string, '{},' in '{}'"
                         emsg += ', step not allowed.'
-                        raise CCPPError(emsg.format(dim, local_name))
+                        raise ValueError(emsg.format(dim, local_name))
                     # end if
                     # Dimension names are resolved to local names by
                     # resolve_dimensions once the whole registry is read.
@@ -629,7 +629,7 @@ class Variable(VarBase):
                 pass # picked up in parent
             else:
                 emsg = "Unknown Variable content, '{}'"
-                raise CCPPError(emsg.format(attrib.tag))
+                raise ValueError(emsg.format(attrib.tag))
             # end if
         # end for
         # Initialize the base class
@@ -652,7 +652,7 @@ class Variable(VarBase):
         # Some checks
         if (self.allocatable == 'parameter') and (not self.initial_value):
             emsg = "parameter, '{}', does not have an initial value"
-            raise CCPPError(emsg.format(local_name))
+            raise ValueError(emsg.format(local_name))
         # end if
         # Maybe fix up type string
         if self.module:
@@ -690,7 +690,7 @@ class Variable(VarBase):
                     # end if
                     if not lname:
                         emsg = f"Dimension, '{ddim}', not found for '{self.local_name}'"
-                        raise CCPPError(emsg)
+                        raise ValueError(emsg)
                     # end if
                     ldimstrs.append(lname)
                 # end for
@@ -992,7 +992,7 @@ class VarDict(OrderedDict):
                 emsg2 = ", already defined with standard_name, '{}'"
                 emsg += emsg2.format(ovar.standard_name)
             # end if
-            raise CCPPError(emsg.format(local_name, self.name))
+            raise ValueError(emsg.format(local_name, self.name))
         # end if
         if std_name.lower() in self.__standard_names:
             # We have a standard name collision, error!
@@ -1008,7 +1008,7 @@ class VarDict(OrderedDict):
                 emsg2 = ", already defined with local_name, '{}'"
                 emsg += emsg2.format(ovar.local_name)
             # end if
-            raise CCPPError(emsg.format(std_name, local_name, self.name))
+            raise ValueError(emsg.format(std_name, local_name, self.name))
         # end if
         self[local_name.lower()] = newvar
         self.__standard_names.append(std_name.lower())
@@ -1133,7 +1133,7 @@ class VarDict(OrderedDict):
             if var not in physconst_vars and not any(second == var for _, second in use_statements):
                 emsg = f"Initial value '{var}' is not a physconst variable"
                 emsg += " or does not have necessary use statement"
-                raise CCPPError(emsg)
+                raise ValueError(emsg)
             # end if
         # end for
 
@@ -1149,7 +1149,7 @@ class DDT:
 
         >>> DDT(ET.fromstring('<ddt type="physics_state"><dessert>ice_cream</dessert></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul') #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
-        CCPPError: Unknown DDT element type, 'dessert', in 'physics_state'
+        ValueError: Unknown DDT element type, 'dessert', in 'physics_state'
         """
         self.__type = ddt_node.get('type')
         self.__data = []
@@ -1162,13 +1162,13 @@ class DDT:
         if extends and (not self.__extends):
             emsg = ("DDT, '{}', extends type '{}', however, this type is "
                     "not known")
-            raise CCPPError(emsg.format(self.ddt_type, extends))
+            raise ValueError(emsg.format(self.ddt_type, extends))
         # end if
         self.__bindc = ddt_node.get('bindC', default=False)
         if self.__extends and self.__bindc:
             emsg = ("DDT, '{}', cannot have both 'extends' and 'bindC' "
                     "attributes")
-            raise CCPPError(emsg.format(self.ddt_type))
+            raise ValueError(emsg.format(self.ddt_type))
         # end if
         self.__private = ddt_node.get('private', default=False)
         for attrib in ddt_node:
@@ -1189,13 +1189,13 @@ class DDT:
                     else:
                         emsg = ("Variable, '{}', not found for DDT, '{}', "
                                 "in '{}'")
-                        raise CCPPError(emsg.format(varname, self.ddt_type,
+                        raise ValueError(emsg.format(varname, self.ddt_type,
                                                     var_dict.name))
                     # end if
                 # end if
             else:
                 emsg = "Unknown DDT element type, '{}', in '{}'"
-                raise CCPPError(emsg.format(attrib.tag, self.ddt_type))
+                raise ValueError(emsg.format(attrib.tag, self.ddt_type))
             # end if
         # end for
 
@@ -1224,12 +1224,12 @@ class DDT:
 
         >>> DDT(ET.fromstring('<ddt type="physics_state">></ddt>'), TypeRegistry(), VarDict("foo", "module", None), 'eul').write_definition(None, 'public', 0) #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
-        CCPPError: DDT, 'physics_state', has no member variables
+        ValueError: DDT, 'physics_state', has no member variables
         """
         # It is an error to have no member variables
         if not self.__data:
             emsg = "DDT, '{}', has no member variables"
-            raise CCPPError(emsg.format(self.ddt_type))
+            raise ValueError(emsg.format(self.ddt_type))
         # end if
         my_acc = 'private' if self.private else 'public'
         if self.extends:
@@ -1284,13 +1284,13 @@ class File:
 
     >>> File(ET.fromstring('<file name="physics_types" type="module"><use module="ccpp_kinds"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Illegal use entry, no reference
+    ValueError: Illegal use entry, no reference
     >>> File(ET.fromstring('<file name="physics_types" type="module"><use reference="kind_phys"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Illegal use entry, no module
+    ValueError: Illegal use entry, no module
     >>> File(ET.fromstring('<file name="physics_types" type="module"><user reference="kind_phys"/></file>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Unknown registry File element, 'user'
+    ValueError: Unknown registry File element, 'user'
     """
 
     def __init__(self, file_node, known_types, dycore,
@@ -1315,16 +1315,16 @@ class File:
             elif obj.tag == 'use':
                 module = obj.get('module', default=None)
                 if not module:
-                    raise CCPPError('Illegal use entry, no module')
+                    raise ValueError('Illegal use entry, no module')
                 # end if
                 ref = obj.get('reference', default=None)
                 if not ref:
-                    raise CCPPError('Illegal use entry, no reference')
+                    raise ValueError('Illegal use entry, no reference')
                 # end if
                 self.__use_statements.append((module, ref))
             else:
                 emsg = "Unknown registry File element, '{}'"
-                raise CCPPError(emsg.format(obj.tag))
+                raise ValueError(emsg.format(obj.tag))
             # end if
         # end for
         self.resolve_dimensions()
@@ -1360,7 +1360,7 @@ class File:
             logger.debug(dmsg)
         # end if
         if self.__known_types.known_type(newddt.ddt_type):
-            raise CCPPError(f'Duplicate DDT entry, {newddt.ddt_type}')
+            raise ValueError(f'Duplicate DDT entry, {newddt.ddt_type}')
         # end if
         self.__ddts[newddt.ddt_type] = newddt
         self.__known_types.add_type(newddt.ddt_type,
@@ -1629,7 +1629,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
         meta_tables = parse_metadata_file(file_path, known_ddts, run_env)
     else:
         emsg = f"Metadata file, '{file_path}', does not exist"
-        raise CCPPError(emsg)
+        raise ValueError(emsg)
     # end if
     # Create a File object with no Variables
     for mtable in meta_tables:
@@ -1637,7 +1637,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
         hname = mtable.table_name
         if htype not in ('host', 'module', 'ddt'):
             emsg = f"Metadata type, '{htype}' not supported."
-            raise CCPPError(emsg)
+            raise ValueError(emsg)
         # end if
         section = f'<file name="{hname}" type="{htype}"></file>'
         sect_xml = ET.fromstring(section)
@@ -1650,7 +1650,7 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             mheader = sections[0]
         else:
             emsg = f"Missing metadata section ([ccpp-arg-table]) for {hname}"
-            raise CCPPError(emsg)
+            raise ValueError(emsg)
         # end if
         for var in mheader.variable_list(loop_vars=False, consts=False):
             local_name = var.get_prop_value('local_name')
@@ -1721,7 +1721,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
 
     >>> File(ET.fromstring('<variable name="physics_types" type="module"><user reference="kind_phys"/></variable>'), TypeRegistry(), 'eul', None) #doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
-    CCPPError: Unknown registry object type, 'variable'
+    ValueError: Unknown registry object type, 'variable'
     """
     files = []
     var_module_dict = {}
@@ -1768,7 +1768,7 @@ def write_registry_files(registry, dycore, outdir, src_mod, src_root,
             var_module_dict.update(loc_var_mod_dict)
         else:
             emsg = "Unknown registry object type, '{}'"
-            raise CCPPError(emsg.format(section.tag))
+            raise ValueError(emsg.format(section.tag))
         # end if
     # end for
     # Make sure output directory exists
@@ -1975,13 +1975,13 @@ def gen_registry(registry_file, dycore, outdir, indent,
         emsg = f"Invalid registry file, {registry_file}"
         file_ok = validate_xml_file(registry_file, 'registry', version,
                                     logger, schema_path=schema_dir)
-    except CCPPError as ccpperr:
+    except ValueError as ccpperr:
         emsg += f"\n{ccpperr}"
         file_ok = False
     # end try
     if not file_ok:
         if error_on_no_validate:
-            raise CCPPError(emsg)
+            raise ValueError(emsg)
         # end if
         logger.error(emsg)
         retcode = 1

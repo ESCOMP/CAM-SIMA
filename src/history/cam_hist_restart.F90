@@ -49,6 +49,7 @@ module cam_hist_restart
 
     public :: hist_restart_init
     public :: hist_restart_write
+    public :: hist_restart_read
 
 contains
 
@@ -124,6 +125,8 @@ contains
       real(r8) :: beg_time(size(hist_configs))
       real(r8) :: fill_value(max_num_fields, size(hist_configs))
       logical :: has_accum
+      integer :: freq_mult
+      character(len=8) :: freq_type
 
       field_list = ''
       has_rh_int = 0
@@ -149,8 +152,10 @@ contains
              restart_file_paths(idx) = hist_configs(idx)%get_restart_filename()
           end if
           volume(idx) = hist_configs(idx)%get_volume()
-          ! Get the output frequency
-          output_freq(idx) = hist_configs(idx)%output_freq()
+          ! Get the output frequency in parseable "<mult>*<type>" form
+          !   (must round-trip through parse_multiplier on restart read)
+          call hist_configs(idx)%output_freq_separate(freq_mult, freq_type)
+          write(output_freq(idx), '(i0,a,a)') freq_mult, '*', trim(freq_type)
           ! Get the number of samples written to the hist file
           num_frames(idx) = hist_configs(idx)%get_num_samples()
           ! Get the maximum number of samples written to the hist file
@@ -236,10 +241,291 @@ contains
          case default
          end select
          if (ierr /= 0) then
-            call safe_endrun('hist_restart_write: failed to write variable '//restart_vars(idx)%var_name)
+            call safe_endrun('hist_restart_write: failed to write variable '//trim(restart_vars(idx)%var_name))
          end if
       end do
    end subroutine hist_restart_write
+
+   subroutine hist_restart_read(restart_file, hist_configs, has_rh, restart_file_paths, num_frames, current_files, &
+                                beg_time)
+      ! Read history fields from the .r. file
+      use pio,            only: file_desc_t, pio_inq_varid, pio_seterrorhandling, pio_get_var
+      use pio,            only: PIO_BCAST_ERROR, pio_inq_dimid, PIO_INTERNAL_ERROR, pio_inq_dimlen
+      use cam_hist_file,  only: hist_file_t
+      use cam_abortutils, only: endrun, check_allocate
+      use cam_logfile,    only: iulog
+      use spmd_utils,     only: masterproc
+      use cam_history_support, only: max_chars, max_string_len, registeredmdims, max_avgflag_len
+      use cam_grid_support,    only: max_split_files, max_hcoordname_len
+      use shr_kind_mod,        only: cl => shr_kind_cl
+      use, intrinsic :: ISO_FORTRAN_ENV, only: REAL32, REAL64
+      type(file_desc_t), intent(inout)  :: restart_file
+      type(hist_file_t), intent(inout)  :: hist_configs(:)
+      logical, allocatable, intent(out) :: has_rh(:)
+      character(len=max_string_len), allocatable, intent(out) :: restart_file_paths(:)
+      integer, allocatable, intent(out) :: num_frames(:)
+      character(len=max_string_len), allocatable, intent(out) :: current_files(:,:)
+      real(r8), allocatable, intent(out) :: beg_time(:)
+      ! Local variables
+      type(hist_file_t) :: rest_config
+      integer :: idx, fld_idx, ierr
+      integer :: num_configs_id, max_fields_id
+      integer :: rl_kind
+      type(var_desc_t) :: vdesc
+      integer, allocatable :: has_rh_int(:)
+      integer, allocatable :: num_fields(:)
+      integer, allocatable :: max_frames(:)
+      integer, allocatable :: ndims(:)
+      integer, allocatable :: decomp(:,:)
+      integer, allocatable :: num_levels(:,:)
+      integer, allocatable :: fill_flag(:,:)
+      integer, allocatable :: dimensions(:,:,:)
+      character(len=max_fieldname_len), allocatable :: field_list(:,:)
+      character(len=max_fieldname_len), allocatable :: field_list_config(:)
+      character(len=max_chars), allocatable :: output_freq(:)
+      character(len=max_chars), allocatable :: hist_precision(:)
+      character(len=max_avgflag_len), allocatable :: avg_flag(:,:)
+      character(len=max_chars), allocatable :: long_name(:,:)
+      character(len=max_chars), allocatable :: cell_methods(:,:)
+      character(len=max_chars), allocatable :: units(:,:)
+      character(len=max_chars), allocatable :: volume(:)
+      character(len=max_hcoordname_len), allocatable :: dim_names(:)
+      real(r8), allocatable :: fill_value(:,:)
+      integer :: max_fields
+      integer :: num_configs
+      character(len=cl) :: errmsg
+      character(len=max_fieldname_len), allocatable :: inst_fields(:)
+      character(len=max_fieldname_len), allocatable :: avg_fields(:)
+      character(len=max_fieldname_len), allocatable :: var_fields(:)
+      character(len=max_fieldname_len), allocatable :: min_fields(:)
+      character(len=max_fieldname_len), allocatable :: max_fields_list(:)
+      integer :: inst_fields_idx
+      integer :: avg_fields_idx
+      integer :: var_fields_idx
+      integer :: min_fields_idx
+      integer :: max_fields_idx
+      character(len=*), parameter :: subname = 'hist_restart_read'
+
+      ! Check if the restart (.r.) file has history variables on it
+      ! If not, no action needed (original run had no history variables)
+      call pio_seterrorhandling(restart_file, PIO_BCAST_ERROR)
+
+      ierr = pio_inq_varid(restart_file, 'has_rh_file', vdesc)
+      if (ierr /= 0) then
+         if (masterproc) then
+            write(iulog,*) 'Not reading history info from the restart file.'
+         end if ! No history info in restart (.r.) file
+         return
+      end if
+
+      call pio_seterrorhandling(restart_file, PIO_INTERNAL_ERROR)
+
+      ! Grab dimensions from file
+      ierr = pio_inq_dimid(restart_file, 'number_of_hist_configs', num_configs_id)
+      ierr = pio_inq_dimlen(restart_file, num_configs_id, num_configs)
+
+      ierr = pio_inq_dimid(restart_file, 'max_fields_per_configuration', max_fields_id)
+      ierr = pio_inq_dimlen(restart_file, max_fields_id, max_fields)
+
+      ! Set the restart dimensions and variables for reading from the file
+      call set_restart_variable_names()
+      call set_restart_dimension_names(num_configs, max_fields)
+
+      ! Allocate variables for reading
+      allocate(has_rh_int(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'has_rh_int', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(has_rh(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'has_rh', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(num_fields(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'num_fields', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(num_frames(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'num_frames', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(max_frames(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'max_frames', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(dimensions(max_dimensions, max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'dimensions', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(volume(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'volume', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(output_freq(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'output_freq', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(field_list(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'field_list', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(current_files(num_configs, max_split_files), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'current_files', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(hist_precision(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'hist_precision', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(beg_time(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'beg_time', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(avg_flag(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'avg_flag', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(decomp(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'decomp', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(num_levels(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'num_levels', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(cell_methods(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'cell_methods', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(long_name(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'long_name', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(units(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'units', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(fill_flag(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'fill_flag', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(fill_value(max_fields, num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'fill_value', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(dim_names(registeredmdims), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'dim_names', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(restart_file_paths(num_configs), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'restart_file_paths', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+
+      ! Loop over the restart vars and read them from the file
+      do idx = 1, num_restart_vars
+         ! Confirm the variable is on the .r. file
+         ierr = pio_inq_varid(restart_file, restart_vars(idx)%var_name, vdesc)
+         select case(trim(restart_vars(idx)%var_name))
+         case ('has_rh_file')
+            ierr = pio_get_var(restart_file, vdesc, has_rh_int)
+            has_rh = (has_rh_int == 1)
+         case ('volume')
+            ierr = pio_get_var(restart_file, vdesc, volume)
+         case ('output_frequency')
+            ierr = pio_get_var(restart_file, vdesc, output_freq)
+         case ('field_list')
+            ierr = pio_get_var(restart_file, vdesc, field_list)
+         case('number_of_fields')
+            ierr = pio_get_var(restart_file, vdesc, num_fields)
+         case('number_of_frames')
+            ierr = pio_get_var(restart_file, vdesc, num_frames)
+         case('max_frames')
+            ierr = pio_get_var(restart_file, vdesc, max_frames)
+         case('current_file_name')
+            ierr = pio_get_var(restart_file, vdesc, current_files)
+         case('precision')
+            ierr = pio_get_var(restart_file, vdesc, hist_precision)
+         case('interval_start_time')
+            ierr = pio_get_var(restart_file, vdesc, beg_time)
+         case('field_average_flag')
+            ierr = pio_get_var(restart_file, vdesc, avg_flag)
+         case('field_decomposition_type')
+            ierr = pio_get_var(restart_file, vdesc, decomp)
+         case('field_num_vertical_levels')
+            ierr = pio_get_var(restart_file, vdesc, num_levels)
+         case('field_cell_methods')
+            ierr = pio_get_var(restart_file, vdesc, cell_methods)
+         case('field_long_name')
+            ierr = pio_get_var(restart_file, vdesc, long_name)
+         case('field_units')
+            ierr = pio_get_var(restart_file, vdesc, units)
+         case('field_fill_flag')
+            ierr = pio_get_var(restart_file, vdesc, fill_flag)
+         case('field_fill_value')
+            ierr = pio_get_var(restart_file, vdesc, fill_value)
+         case('field_dimensions')
+            ierr = pio_get_var(restart_file, vdesc, dimensions)
+         case('dimension_names')
+            ierr = pio_get_var(restart_file, vdesc, dim_names)
+         case('rh_file_path')
+            ierr = pio_get_var(restart_file, vdesc, restart_file_paths)
+         case default
+            write(errmsg,*) subname, ': Missing history restart variable ', trim(restart_vars(idx)%var_name)
+            call endrun(errmsg)
+         end select
+      end do
+
+      allocate(inst_fields(max_fields), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'inst_fields', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(avg_fields(max_fields), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'avg_fields', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(var_fields(max_fields), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'var_fields', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(min_fields(max_fields), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'min_fields', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      allocate(max_fields_list(max_fields), stat=ierr, errmsg=errmsg)
+      call check_allocate(ierr, subname, 'max_fields_list', file=__FILE__, &
+            line=__LINE__-1, errmsg=errmsg)
+      inst_fields_idx = 1
+      avg_fields_idx = 1
+      var_fields_idx = 1
+      min_fields_idx = 1
+      max_fields_idx = 1
+
+      do idx = 1, size(hist_configs)
+         if (trim(hist_precision(idx)) == 'REAL32') then
+            rl_kind = REAL32
+         else if (trim(hist_precision(idx)) == 'REAL64') then
+            rl_kind = REAL64
+         else
+            write(errmsg,*) subname, ': Invalid precision for volume ', trim(volume(idx)), ': ', trim(hist_precision(idx))
+            call endrun(errmsg)
+         end if
+         ! Grab field lists by flag
+         do fld_idx = 1, num_fields(idx)
+            if (trim(avg_flag(fld_idx, idx)) == 'avg') then
+               avg_fields(avg_fields_idx) = field_list(fld_idx, idx)
+               avg_fields_idx = avg_fields_idx + 1
+            else if (trim(avg_flag(fld_idx, idx)) == 'lst') then
+               inst_fields(inst_fields_idx) = field_list(fld_idx, idx)
+               inst_fields_idx = inst_fields_idx + 1
+            else if (trim(avg_flag(fld_idx, idx)) == 'min') then
+               min_fields(min_fields_idx) = field_list(fld_idx, idx)
+               min_fields_idx = min_fields_idx + 1
+            else if (trim(avg_flag(fld_idx, idx)) == 'max') then
+               max_fields_list(max_fields_idx) = field_list(fld_idx, idx)
+               max_fields_idx = max_fields_idx + 1
+            else if (trim(avg_flag(fld_idx, idx)) == 'var') then
+               var_fields(var_fields_idx) = field_list(fld_idx, idx)
+               var_fields_idx = var_fields_idx + 1
+            else
+               write(errmsg,*) subname, ': Invalid averaging flag for field ', trim(field_list(fld_idx,idx)), ' flag = ', trim(avg_flag(fld_idx,idx))
+               call endrun(errmsg)
+            end if
+         end do
+
+         ! Make sure no configs have changed from previous run
+         call rest_config%configure(volume(idx), rl_kind, max_frames(idx), output_freq(idx), &
+             4, '', .false., inst_fields(:inst_fields_idx - 1), avg_fields(:avg_fields_idx - 1), &
+             min_fields(:min_fields_idx - 1), max_fields_list(:max_fields_idx - 1), var_fields(:var_fields_idx - 1), .false.)
+         call rest_config%check_restart_consistency(hist_configs(idx))
+
+         ! Overwrite current stats from restart file
+         call hist_configs(idx)%overwrite_restart_info(num_frames(idx), current_files(idx,:), beg_time(idx))
+
+         call rest_config%reset()
+
+         min_fields_idx = 1
+         max_fields_idx = 1
+         avg_fields_idx = 1
+         var_fields_idx = 1
+         inst_fields_idx = 1
+
+      end do
+
+   end subroutine hist_restart_read
 
    subroutine set_restart_variable_names()
       use pio, only: pio_int, pio_double, pio_char

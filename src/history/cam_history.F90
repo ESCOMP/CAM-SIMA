@@ -9,10 +9,11 @@ module cam_history
    !
    !-----------------------------------------------------------------------
 
-   use shr_kind_mod,         only: cl=>SHR_KIND_CL
+   use shr_kind_mod,         only: cl=>SHR_KIND_CL, r8=>SHR_KIND_R8
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
+   use cam_history_support,  only: max_string_len
 
    implicit none
    private
@@ -32,6 +33,8 @@ module cam_history
    public :: history_wrap_up        ! Process history files at end of timestep or run
    public :: init_restart_history   ! Initialize history fields on restart file, if necessary
    public :: write_restart_history  ! Write restart files, if necessary
+   public :: read_restart_history   ! Read restart files, if necessary
+   public :: overwrite_history
 
    ! Helper functions
    public :: is_history_field_active ! Check if a field is active on any history file
@@ -54,6 +57,12 @@ module cam_history
    integer                          :: num_possible_fields
    logical,           allocatable   :: just_written(:)
    integer                          :: max_num_fields
+   ! Restart info
+   integer, allocatable :: num_frames(:)
+   logical, allocatable :: has_rh(:)
+   character(len=max_string_len), allocatable :: current_files(:,:)
+   character(len=max_string_len), allocatable :: rh_file_paths(:)
+   real(r8), allocatable :: beg_times(:)
 
 contains
 
@@ -77,7 +86,7 @@ contains
       call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
       allocate(just_written(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
       if (ierr /= 0) then
-         write(errmsg,*) 'history_readnl: failed to allocate just_written; errmsg = ', alloc_errmsg
+         write(errmsg,*) 'history_readnl: failed to allocate just_written; errmsg = ', trim(alloc_errmsg)
          call endrun(errmsg)
       end if
       just_written = .false.
@@ -319,11 +328,8 @@ contains
 
       ! Set up hist fields on each user-specified file
       do file_idx = 1, size(hist_configs)
-         ! Time at beginning of current averaging interval.
-         call hist_configs(file_idx)%set_beg_time(day, sec)
-
          ! Set up fields and buffers
-         call hist_configs(file_idx)%set_up_fields(possible_field_list)
+         call hist_configs(file_idx)%set_up_fields(possible_field_list, day, sec)
       end do
 
       ! Deallocate the possible field list hash table
@@ -960,6 +966,54 @@ contains
       end do
 
    end subroutine write_restart_history
+
+!#######################################################################
+
+   subroutine read_restart_history(restart_file)
+      use pio,              only: file_desc_t
+      use cam_hist_restart, only: hist_restart_read
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+      integer :: ierr
+
+      if (max_num_fields == 0) then
+        ! Don't do anything if there aren't any history fields
+        return
+      end if
+
+      call hist_restart_read(restart_file, hist_configs, has_rh, rh_file_paths, num_frames, current_files, &
+           beg_times)
+
+   end subroutine read_restart_history
+
+!#######################################################################
+
+   subroutine overwrite_history()
+      ! Local variables
+      integer :: config_idx
+
+      ! Overwrite hist configs with restart info
+      do config_idx = 1, size(hist_configs)
+         call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:), &
+              beg_times(config_idx))
+         ! Reopen any partially written history file(s) so that output
+         ! continues to be appended to them (as CAM does on restart)
+         call hist_configs(config_idx)%reopen_files()
+      end do
+
+      ! No need to do anything else if there are no .rhX. files!
+      if (.not. any(has_rh)) then
+         return
+      end if
+
+      do config_idx = 1, size(hist_configs)
+         if (has_rh(config_idx)) then
+            call hist_configs(config_idx)%read_rh_file(rh_file_paths(config_idx))
+         end if
+      end do
+
+   end subroutine overwrite_history
+
 !#######################################################################
 
    recursive function get_entry_by_name(listentry, name) result(entry)
