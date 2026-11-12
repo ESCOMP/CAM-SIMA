@@ -23,6 +23,7 @@
   <metadata_file>$SRCROOT/src/physics/utils/radiation_namelist.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/cam_constituents.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/drydep_coupling.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/physics/utils/megan_coupling.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/tropopause_climo_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/utils/gravity_wave_drag_ridge_read.meta</metadata_file>
   <metadata_file>$SRCROOT/src/aerosol/radiative_aerosol_definitions.meta</metadata_file>
@@ -941,16 +942,19 @@
       <ic_file_input_names>lwup cam_in_lwup</ic_file_input_names>
     </variable>
 
-    <!-- Commented out until MEGAN dimension figured out
+    <!-- meganflx is dimensioned by a run-time count owned by shr_megan_mod
+         and mirrored into megan_coupling by the coupler cap at advertise
+         time, before registry allocation; when MEGAN is inactive the count
+         is 0 and meganflx has zero extent. Like depvel, it has no
+         ic_file_input_names yet: snapshot reads will be wired up together
+         with the consumer, as was done for dstflx. -->
     <variable local_name="meganflx"
-              standard_name="meganflx_tbd"
-              units="tbd" type="real" kind="kind_phys"
+              standard_name="surface_upward_megan_voc_emission_fluxes_from_coupler"
+              units="mole m-2 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
-      <dimensions>horizontal_dimension shr_megan_mechmomps_n</dimensions>
+      <dimensions>horizontal_dimension number_of_megan_voc_emission_fields</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
-      <ic_file_input_names>meganflx cam_in_meganflx</ic_file_input_names>
     </variable>
-    END COMMENT     -->
 
     <variable local_name="ocnfrac"
               standard_name="ocean_area_fraction_from_coupler"
@@ -1468,7 +1472,7 @@
        <data>land_area_fraction_from_coupler</data>
        <data>surface_upward_latent_heat_flux_from_coupler</data>
        <data>longwave_upward_radiative_flux_at_surface_from_coupler</data>
-    <!--   <data>meganflx_tbd</data> -->
+       <data>surface_upward_megan_voc_emission_fluxes_from_coupler</data>
        <data>ocean_area_fraction_from_coupler</data>
        <data>water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_at_2m_from_coupler</data>
        <data>aerodynamical_resistance_at_surface_from_coupler</data>
