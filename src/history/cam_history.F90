@@ -86,7 +86,7 @@ contains
       call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
       allocate(just_written(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
       if (ierr /= 0) then
-         write(errmsg,*) 'history_readnl: failed to allocate hist_configs; errmsg = ', trim(alloc_errmsg)
+         write(errmsg,*) 'history_readnl: failed to allocate just_written; errmsg = ', trim(alloc_errmsg)
          call endrun(errmsg)
       end if
       just_written = .false.
@@ -996,6 +996,9 @@ contains
       do config_idx = 1, size(hist_configs)
          call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:), &
               beg_times(config_idx))
+         ! Reopen any partially written history file(s) so that output
+         ! continues to be appended to them (as CAM does on restart)
+         call hist_configs(config_idx)%reopen_files()
       end do
 
       ! No need to do anything else if there are no .rhX. files!

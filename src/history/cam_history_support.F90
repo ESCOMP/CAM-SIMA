@@ -9,7 +9,6 @@ module cam_history_support
 
    use shr_kind_mod,     only: r8=>shr_kind_r8, shr_kind_cl, shr_kind_cxx
    use cam_grid_support, only: max_hcoordname_len
-   use cam_logfile, only: iulog
 
    implicit none
    private
