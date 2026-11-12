@@ -156,6 +156,7 @@ contains
         integer :: coupling_time_interval
         integer :: i
         integer :: ierr
+        logical :: analytic_ic
         logical, allocatable :: is_water_species(:)
         type(file_desc_t), pointer :: pio_init_file
         type(file_desc_t), pointer :: pio_topo_file
@@ -206,6 +207,8 @@ contains
         call set_thermodynamic_active_species_mapping()
         call set_thermodynamic_energy_formula()
 
+        analytic_ic = .false.
+
         if (initial_run) then
             ! Run type is initial run.
 
@@ -215,6 +218,8 @@ contains
 
             if (analytic_ic_active()) then
                 call dyn_debug_print(debugout_info, 'Initializing MPAS state variables by setting analytic initial condition')
+
+                analytic_ic = .true.
 
                 call set_analytic_initial_condition()
             else
@@ -239,7 +244,7 @@ contains
         end if
 
         call clean_iodesc_list()
-        call mark_variables_as_initialized()
+        call mark_variables_as_initialized(analytic_ic)
 
         nullify(pio_init_file)
         nullify(pio_topo_file)
@@ -1011,7 +1016,7 @@ contains
     !> Mark everything in the `physics_types` module along with constituents as initialized
     !> to prevent physics from attempting to read them from a file.
     !> (KCW, 2024-05-23)
-    subroutine mark_variables_as_initialized()
+    subroutine mark_variables_as_initialized(analytic_ic)
         ! Module(s) from CAM-SIMA.
         use cam_constituents, only: const_mark_as_initialized, &
                                     const_name, &
@@ -1019,6 +1024,8 @@ contains
         use cam_logfile, only: debugout_debug
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: mark_as_initialized
+
+        logical, intent(in) :: analytic_ic
 
         character(*), parameter :: subname = 'dyn_comp::mark_variables_as_initialized'
         integer :: i
@@ -1062,13 +1069,16 @@ contains
         call mark_as_initialized('tendency_of_eastward_wind_due_to_model_physics')
         call mark_as_initialized('tendency_of_northward_wind_due_to_model_physics')
 
-        ! CCPP standard names of constituents.
-        ! The name-based `mark_as_initialized` silently ignores runtime-registered constituents
-        ! because they have no registry entry, so also mark each constituent by index to keep
-        ! the physics-grid initial condition read from overwriting any advected constituent.
+        ! Inform CAM-SIMA about the constituents that have been initialized in MPAS dynamical core.
+        ! If analytic initial condition is in use, all constituents are injected directly into MPAS memory,
+        ! in which case they should still be considered initialized.
         do i = 1, num_advected
-            call mark_as_initialized(trim(adjustl(const_name(advected_constituent_index(i)))))
-            call const_mark_as_initialized(advected_constituent_index(i))
+            if (analytic_ic .or. mpas_dynamical_core % get_constituent_status(i) == 'initialized') then
+                ! `mark_as_initialized` only works for registry-defined constituents. Also call `const_mark_as_initialized`
+                ! to account for runtime-defined constituents.
+                call mark_as_initialized(trim(adjustl(const_name(advected_constituent_index(i)))))
+                call const_mark_as_initialized(advected_constituent_index(i))
+            end if
         end do
 
         ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.
