@@ -18,7 +18,8 @@ public ::          &
      dyn_readnl,   &
      dyn_init,     &
      dyn_run,      &
-     dyn_final
+     dyn_final,    &
+     set_advected_constituent_index
 
 type dyn_import_t
   type (element_t),  pointer :: elem(:) => null()
@@ -538,10 +539,10 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use cam_pio_utils,       only: clean_iodesc_list
    use cam_abortutils,      only: check_allocate
    use spmd_utils,          only: iam, masterproc
-   use cam_constituents,    only: num_advected, num_constituents
+   use cam_constituents,    only: num_advected
    use cam_constituents,    only: const_name, const_longname, const_diag_name
    use cam_constituents,    only: const_get_index, const_qmin
-   use cam_constituents,    only: const_is_wet, const_is_advected
+   use cam_constituents,    only: const_is_wet
    use cam_initfiles,       only: initial_file_get_id, topo_file_get_id
    use cam_control_mod,     only: initial_run
    use air_composition,     only: thermodynamic_active_species_num, thermodynamic_active_species_idx
@@ -632,18 +633,9 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    ! Set name of dycore in runtime object
    call cam_runtime_opts%set_dycore('se')
 
-   ! Allocate and populate advected constituent index map:
-   allocate(advected_constituent_index(num_advected), stat=iret, errmsg=errmsg)
-   call check_allocate(iret, subname, 'advected_constituent_index(num_advected)', &
-                       file=__FILE__, line=__LINE__, errmsg=errmsg)
-
-   m_cnst = 1
-   do m=1, num_constituents
-     if (const_is_advected(m)) then
-       advected_constituent_index(m_cnst) = m
-       m_cnst = m_cnst + 1
-     end if
-   end do
+   ! Allocate and populate advected constituent index map
+   ! (already done on a restart run, from read_restart_dynamics):
+   call set_advected_constituent_index()
 
    ! Finalize statediag_numtrac now that the number of advected
    ! constituents is known (qsize is set by dimensions_mod_init, which runs
@@ -1088,6 +1080,37 @@ subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 #endif
 #endif
 end subroutine dyn_init
+
+!=========================================================================================
+
+subroutine set_advected_constituent_index()
+   ! Allocate and populate advected_constituent_index, which maps the
+   ! dycore's advected-tracer index to the CCPP constituent array index.
+   ! Requires that the constituents have already been registered.
+
+   use cam_abortutils,   only: check_allocate
+   use cam_constituents, only: num_advected, num_constituents, const_is_advected
+
+   integer            :: m, m_cnst, iret
+   character(len=512) :: errmsg
+   character(len=*), parameter :: subname = 'set_advected_constituent_index'
+   !----------------------------------------------------------------------------
+
+   if (allocated(advected_constituent_index)) return
+
+   allocate(advected_constituent_index(num_advected), stat=iret, errmsg=errmsg)
+   call check_allocate(iret, subname, 'advected_constituent_index(num_advected)', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   m_cnst = 1
+   do m = 1, num_constituents
+      if (const_is_advected(m)) then
+         advected_constituent_index(m_cnst) = m
+         m_cnst = m_cnst + 1
+      end if
+   end do
+
+end subroutine set_advected_constituent_index
 
 !=========================================================================================
 

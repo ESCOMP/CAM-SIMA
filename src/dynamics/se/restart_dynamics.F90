@@ -517,7 +517,6 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
                        pio_seterrorhandling, pio_read_darray, pio_setframe, &
                        pio_initdecomp, pio_read_darray
    use cam_field_read,   only: cam_read_field
-   use cam_constituents, only: const_name
    use shr_kind_mod,     only: r8 => shr_kind_r8, i8=>shr_kind_i8
    use dyn_grid,         only: timelevel, fvm, elem, edgebuf
    use cam_grid_support, only: max_hcoordname_len, cam_grid_id, cam_grid_dimensions
@@ -526,7 +525,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    use parallel_mod,     only: par
    use spmd_utils,       only: iam, masterproc
    use cam_logfile,      only: iulog
-   use dimensions_mod,   only: np, npsq, ne, nc, nelemd, fv_nphys, nlev, ntrac, qsize, fv_nphys
+   use dimensions_mod,   only: np, npsq, ne, nc, nelemd, fv_nphys, nlev, ntrac, fv_nphys
    use cam_pio_utils,    only: pio_subsystem, cam_pio_handle_error
    use ref_pres,         only: ptop_ref
    use hycoef,           only: hybi, hyai, ps0
@@ -534,6 +533,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    use bndry_mod,        only: bndry_exchange
    use cam_abortutils,   only: endrun
    use dyn_comp,         only: dyn_init, advected_constituent_index
+   use dyn_comp,         only: set_advected_constituent_index
    use runtime_obj,      only: cam_runtime_opts
    use se_dyn_time_mod,  only: TimeLevel_Qdp
    use cam_ccpp_cap,     only: cam_model_const_properties, cam_ccpp_number_constituents
@@ -623,6 +623,10 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    ierr = PIO_Inq_varid(restart_file, 'PSDRY', psdry_desc)
    call cam_pio_handle_error(ierr, subname//': cannot find PSDRY')
 
+   ! On a restart run dyn_init has not been called yet, so the advected
+   ! constituent index map must be set up here before it is used.
+   call set_advected_constituent_index()
+
    const_props => cam_model_const_properties()
    num_advected_const = size(advected_constituent_index)
    allocate(qdesc_dp(num_advected_const), stat=ierr, errmsg=errmsg)
@@ -642,9 +646,12 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
 
       call read_elem()
 
-   !else
+   else
 
-      !call read_unstruct()
+      ! Restart was written with se_write_restart_unstruct = .true.
+      ! (unique columns on the GLL grid).  Restarting from this format
+      ! is not bit-for-bit; roundoff-size differences are expected.
+      call read_unstruct()
 
    end if
 
@@ -870,16 +877,26 @@ end subroutine read_elem
 !-------------------------------------------------------------------------------
 
 subroutine read_unstruct()
-   use cam_grid_support, only: cam_grid_get_dim_names
-   use edge_mod,       only: edgevpack, edgevunpack, freeedgebuffer
+   ! Read dynamics restart fields that were written on the unstructured GLL
+   ! grid (unique columns only, se_write_restart_unstruct = .true.).
+   !
+   ! Each unique column is read into exactly one owning element; all other
+   ! (duplicate) element points are zeroed.  A boundary exchange (which sums
+   ! contributions from neighboring elements) then fills in the duplicates.
+
+   use cam_grid_support, only: cam_grid_get_dim_names, cam_grid_get_gcid
+   use cam_map_utils,    only: iMap
+   use edge_mod,         only: edgevpack, edgevunpack, freeedgebuffer
 
    ! local variables
    integer :: grid_id
-
+   integer :: dimid
    integer :: i, ie, ii, j, kptr, m
 
-   real(r8), allocatable :: dbuf2(:,:)         ! (npsq,nelemd)
-   real(r8), allocatable :: dbuf3(:,:,:)       ! (npsq,nlev,nelemd)
+   integer(iMap), pointer :: gcid(:)
+   logical,   allocatable :: unique_mask(:,:)   ! (npsq,nelemd)
+   real(r8),  allocatable :: dbuf2(:,:)         ! (npsq,nelemd)
+   real(r8),  allocatable :: dbuf3(:,:,:)       ! (npsq,nlev,nelemd)
 
    type(EdgeBuffer_t) :: edge
 
@@ -887,14 +904,40 @@ subroutine read_unstruct()
    !----------------------------------------------------------------------------
 
    ! The name of the unstructured grid dimension is in the grid object
-   ! since the coordinate date was written to the restart file using
+   ! since the coordinate data was written to the restart file using
    ! that object.
    grid_id = cam_grid_id('GLL')
    call cam_grid_get_dim_names(grid_id, dimname1, dimname2)
 
-   allocate(dbuf2(npsq,nelemd))
+   ! Make sure the file actually has the unstructured layout; otherwise it
+   ! has neither the element ('nenpnp') nor the unstructured layout.
+   ierr = PIO_Inq_DimID(restart_file, trim(dimname1), dimid)
+   if (ierr /= pio_noerr) then
+      call endrun(subname//': restart file has neither the nenpnp dimension'// &
+                  ' nor the GLL grid dimension '//trim(dimname1))
+   end if
 
-   call read_2d('PSDRY', dbuf2)
+   if (masterproc) then
+      write(iulog,*) sub//': reading SE dynamics restart fields on unstructured GLL grid;', &
+                     ' roundoff-size differences from the original run are expected'
+   end if
+
+   ! Mask of element points that own a unique column on the file
+   nullify(gcid)
+   call cam_grid_get_gcid(grid_id, gcid)
+   allocate(unique_mask(npsq,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'unique_mask', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+   unique_mask = reshape(gcid /= 0_iMap, [npsq, nelemd])
+   deallocate(gcid)
+   nullify(gcid)
+
+   ! PSDRY
+   allocate(dbuf2(npsq,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'dbuf2', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
+
+   call read_2d('PSDRY', dbuf2, unique_mask)
    do ie = 1, nelemd
       ii = 1
       do j = 1, np
@@ -907,9 +950,12 @@ subroutine read_unstruct()
 
    deallocate(dbuf2)
 
-   allocate(dbuf3(npsq,nlev,nelemd))
+   ! 3D fields
+   allocate(dbuf3(npsq,nlev,nelemd), stat=ierr, errmsg=errmsg)
+   call check_allocate(ierr, sub, 'dbuf3', &
+                       file=__FILE__, line=__LINE__, errmsg=errmsg)
 
-   call read_3d('U', dbuf3)
+   call read_3d('U', dbuf3, unique_mask)
    do ie = 1, nelemd
       ii = 1
       do j = 1, np
@@ -920,7 +966,7 @@ subroutine read_unstruct()
       end do
    end do
 
-   call read_3d('V', dbuf3)
+   call read_3d('V', dbuf3, unique_mask)
    do ie = 1, nelemd
       ii = 1
       do j = 1, np
@@ -931,7 +977,7 @@ subroutine read_unstruct()
       end do
    end do
 
-   call read_3d('T', dbuf3)
+   call read_3d('T', dbuf3, unique_mask)
    do ie = 1, nelemd
       ii = 1
       do j = 1, np
@@ -942,9 +988,10 @@ subroutine read_unstruct()
       end do
    end do
 
-   do m = 1, qsize
-
-      call read_3d('dp'//trim(const_name(m)), dbuf3)
+   ! Advected constituent masses (names must match init_restart_dynamics)
+   do m = 1, num_advected_const
+      call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
+      call read_3d('dp'//trim(const_diag_name), dbuf3, unique_mask)
       do ie = 1, nelemd
          ii = 1
          do j = 1, np
@@ -954,14 +1001,14 @@ subroutine read_unstruct()
             end do
          end do
       end do
-
    end do
 
    deallocate(dbuf3)
+   deallocate(unique_mask)
 
-   ! boundary exchange
+   ! Boundary exchange to fill the duplicate (non-unique) element points
    if (iam < par%nprocs) then
-      call initEdgeBuffer(par, edge, elem, (3+qsize)*nlev + 1 )
+      call initEdgeBuffer(par, edge, elem, (3+num_advected_const)*nlev + 1)
    end if
    do ie = 1, nelemd
       kptr = 0
@@ -971,10 +1018,11 @@ subroutine read_unstruct()
       kptr = kptr + (2 * nlev)
       call edgeVpack(edge, elem(ie)%state%T(:,:,:,tl), nlev, kptr, ie)
       kptr = kptr + nlev
-      call edgeVpack(edge, elem(ie)%state%Qdp(:,:,:,:,tlQdp), nlev*qsize, kptr, ie)
+      call edgeVpack(edge, elem(ie)%state%Qdp(:,:,:,1:num_advected_const,tlQdp), &
+                     nlev*num_advected_const, kptr, ie)
    end do
    if (iam < par%nprocs) then
-      call bndry_exchange(par, edge, location='read_restart_dynamics::read_ustruct')
+      call bndry_exchange(par, edge, location='read_restart_dynamics::read_unstruct')
    end if
    do ie = 1, nelemd
       kptr = 0
@@ -984,64 +1032,82 @@ subroutine read_unstruct()
       kptr = kptr + (2 * nlev)
       call edgeVunpack(edge, elem(ie)%state%T(:,:,:,tl), nlev, kptr, ie)
       kptr = kptr + nlev
-      call edgeVunpack(edge, elem(ie)%state%Qdp(:,:,:,:,tlQdp), nlev*qsize, kptr, ie)
+      call edgeVunpack(edge, elem(ie)%state%Qdp(:,:,:,1:num_advected_const,tlQdp), &
+                       nlev*num_advected_const, kptr, ie)
    end do
 
    if (iam < par%nprocs) then
       call FreeEdgeBuffer(edge)
    end if
 
+   if (masterproc) write(iulog,*) sub//': completed successfully'
+
 end subroutine read_unstruct
 
 !-------------------------------------------------------------------------------
 
-subroutine read_2d(fieldname, buffer)
+subroutine clean_buffer_2d(buffer, mask, fillvalue)
+   ! Zero NaNs, fill values, and all element points not flagged in mask
+   ! (i.e., the duplicate GLL points that do not own a unique column).
+   use shr_infnan_mod, only: shr_infnan_isnan
+
+   real(r8), intent(inout) :: buffer(:,:)
+   logical,  intent(in)    :: mask(:,:)
+   real(r8), intent(in)    :: fillvalue
+
+   ! check for NaN first, as comparing NaN to fillvalue raises floating invalid.
+   where (shr_infnan_isnan(buffer)) buffer = 0.0_r8
+   if (.not. shr_infnan_isnan(fillvalue)) then
+      where (buffer == fillvalue) buffer = 0.0_r8
+   end if
+   where (.not. mask) buffer = 0.0_r8
+
+end subroutine clean_buffer_2d
+
+!-------------------------------------------------------------------------------
+
+subroutine read_2d(fieldname, buffer, mask)
 
    character(len=*),  intent(in)    :: fieldname
-   real(r8),          intent(inout) :: buffer(:, :)
+   real(r8),          intent(inout) :: buffer(:,:)
+   logical,           intent(in)    :: mask(:,:)
 
-   logical :: found
+   logical  :: found
+   real(r8) :: fillvalue
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-   call cam_read_field(trim(fieldname), restart_file, buffer, found, gridname='GLL', timelevel=int(t_idx))
-!   call infld(trim(fieldname), file, dimname1, 1, npsq, 1, nelemd, buffer, &
-!              found, gridname='GLL', timelevel=int(t_idx))
+   call cam_read_field(trim(fieldname), restart_file, buffer, found, &
+                       gridname='GLL', timelevel=int(t_idx), fillvalue=fillvalue)
    if (.not. found) then
-      call endrun('read_restart_dynamics: read_unstruct: read_2d: Could not find ' // &
-                   trim(fieldname))
+      call endrun(subname//': read_unstruct: Could not find '//trim(fieldname))
    end if
-
-   ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case cam_read_field can return NaNs where the element GLL points
-   ! are not "unique columns"
-   where (isnan(buffer)) buffer = 0.0_r8
+   call clean_buffer_2d(buffer, mask, fillvalue)
 
 end subroutine read_2d
 
 !-------------------------------------------------------------------------------
 
-subroutine read_3d(fieldname, buffer)
+subroutine read_3d(fieldname, buffer, mask)
 
    character(len=*),  intent(in)    :: fieldname
    real(r8),          intent(inout) :: buffer(:,:,:)
+   logical,           intent(in)    :: mask(:,:)
 
-   logical :: found
+   logical  :: found
+   real(r8) :: fillvalue
+   integer  :: k
    !----------------------------------------------------------------------------
 
    buffer = 0.0_r8
-   call cam_read_field(trim(fieldname), restart_file, buffer, found, 'lev', [1, nlev], gridname='GLL', timelevel=int(t_idx))
-!   call infld(trim(fieldname), file, dimname1, 'lev', 1, npsq, 1, nlev, &
-!              1, nelemd, buffer, found, gridname='GLL', timelevel=int(t_idx))
+   call cam_read_field(trim(fieldname), restart_file, buffer, found, 'lev', [1, nlev], &
+                       dim3_pos=2, gridname='GLL', timelevel=int(t_idx), fillvalue=fillvalue)
    if (.not. found) then
-      call endrun('read_restart_dynamics: read_unstruct: read_3d: Could not find ' // &
-                   trim(fieldname))
+      call endrun(subname//': read_unstruct: Could not find '//trim(fieldname))
    end if
-
-   ! This code allows use of compiler option to set uninitialized values
-   ! to NaN.  In that case cam_read_field can return NaNs where the element GLL points
-   ! are not "unique columns"
-   where (isnan(buffer)) buffer = 0.0_r8
+   do k = 1, nlev
+      call clean_buffer_2d(buffer(:,k,:), mask, fillvalue)
+   end do
 
 end subroutine read_3d
 
