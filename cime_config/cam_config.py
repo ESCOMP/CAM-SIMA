@@ -32,6 +32,7 @@ from cam_build_cache import BuildCacheCAM # Re-build consistency cache
 # Import fortran auto-generation routines:
 from cam_autogen import generate_registry, generate_physics_suites
 from cam_autogen import generate_init_routines
+from cam_autogen import generate_restart_routines
 
 ###############################################################################
 #HELPER FUNCTIONS
@@ -183,6 +184,7 @@ class ConfigCAM:
         start_date = case.get_value("RUN_STARTDATE")        # Model simulation start date
         debug_case = case.get_value("DEBUG")                # Case debug flag
         sim_year = case.get_value("CAM_SIM_YEAR")           # Simulation (climatology) year
+        sim_type = case.get_value("CAM_SIM_TYPE")           # Simulation type (transient compsets)
 
         # Save case variables needed for code auto-generation:
         self.__atm_root = case.get_value("COMP_ROOT_DIR_ATM")
@@ -287,6 +289,20 @@ class ConfigCAM:
         self.create_config("sim_year",
                            "Simulation (climatology) year used for namelist defaults.",
                            sim_year, is_nml_attr=True)
+
+        #----------------------------------------------------
+        # Set simulation type (needed for namelist generation)
+        #----------------------------------------------------
+
+        # CAM_SIM_TYPE is empty for compsets that are not transient,
+        # which CIME returns as None:
+        if sim_type is None:
+            sim_type = ""
+        # End if
+
+        self.create_config("sim_type",
+                           "Simulation type (e.g. historical) used for namelist defaults.",
+                           sim_type, is_nml_attr=True)
 
         #----------------------------------------------------
         # Set CAM debug flag (needed for namelist generation)
@@ -882,7 +898,7 @@ class ConfigCAM:
         retvals = generate_registry(data_search, build_cache, self.__atm_root,
                                     self.__bldroot, source_mods_dir,
                                     dyn, gen_fort_indent)
-        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents, vars_init_value = retvals
+        reg_dir, force_ccpp, reg_files, ic_names, registry_constituents, restart_vars, vars_init_value = retvals
 
         #Add registry path to config object:
         reg_dir_desc = "Location of auto-generated registry code."
@@ -918,9 +934,21 @@ class ConfigCAM:
                                           capgen_db, ic_names, registry_constituents,
                                           vars_init_value)
 
-        #Add registry path to config object:
+        #Add physics initialization directory path to config object:
         init_dir_desc = "Location of auto-generated physics initialization code."
         self.create_config("init_dir", init_dir_desc, init_dir)
+
+        #---------------------------------------------------------
+        # Create restart init/write/read routines
+        #---------------------------------------------------------
+        restart_dir = generate_restart_routines(build_cache, self.__bldroot,
+                                                force_ccpp, force_init,
+                                                gen_fort_indent, capgen_db,
+                                                registry_constituents, restart_vars)
+
+        #Add physics restart directory path to config object:
+        restart_dir_desc = "Location of auto-generated physics restart code."
+        self.create_config("restart_dir", restart_dir_desc, restart_dir)
 
         #--------------------------------------------------------------
         # write out the cache here as we have completed pre-processing

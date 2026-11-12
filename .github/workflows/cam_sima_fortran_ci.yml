@@ -246,14 +246,6 @@ jobs:
             if [ "$#" -gt 0 ]; then
               source venv-fortitude/bin/activate
 
-              # Convert the errors file into a comma-separated list.
-              # Blank lines and comments are ignored.
-              ERROR_CODES="$(
-                sed -Ene 's/^[[:blank:]]*([[:alnum:]]+)[[:blank:]]*(#.*)?$/\1/p' \
-                  "$SOURCE_CODE_PATH/test/fortitude-errors.txt" |
-                paste -sd, - || true
-              )"
-
               : > "$SOURCE_CODE_PATH/source-code-linting.log"
 
               echo "=== Fortitude errors ===" | tee -a "$SOURCE_CODE_PATH/source-code-linting.log"
@@ -262,9 +254,8 @@ jobs:
               # This pass determines the exit status of the lint job.
               LINT_STATUS=0
               fortitude \
-                --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
+                --config-file "$SOURCE_CODE_PATH/test/fortitude-errors.toml" \
                 check \
-                --select "$ERROR_CODES" \
                 --output-format github \
                 "$@" |
                   tee -a "$SOURCE_CODE_PATH/source-code-linting.log" |
@@ -277,7 +268,6 @@ jobs:
               fortitude \
                 --config-file "$SOURCE_CODE_PATH/test/fortitude.toml" \
                 check \
-                --ignore "$ERROR_CODES" \
                 --exit-zero \
                 --output-format github \
                 "$@" |
@@ -402,6 +392,7 @@ jobs:
           gcovr \
             --filter "$SOURCE_PATH/src" \
             --html code-coverage.html \
+            --include-internal-functions \
             --root "$SOURCE_PATH" \
             --verbose \
             .

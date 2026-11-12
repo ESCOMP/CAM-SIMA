@@ -9,6 +9,9 @@ min_difference = 1e-08
 ! vertical levels in snapshot
 pver = 58
 
+! radiation takes CFC11 from CFC11STAR, as in the CAM chemistry configuration of the snapshot
+rad_climate = 'O2','CO2','O3','N2O','CH4','CFC11:CFC11STAR','CFC12'
+
 ! Do radiation on every timestep we're testing
 irad_always=3
 
