@@ -57,17 +57,27 @@ contains
   subroutine read_surface_fields_namelists()
 
     use shr_drydep_mod    , only : shr_drydep_readnl
+    use shr_drydep_mod    , only : shr_drydep_list => drydep_list
     use shr_megan_mod     , only : shr_megan_readnl
     use shr_fire_emis_mod , only : shr_fire_emis_readnl
     use shr_carma_mod     , only : shr_carma_readnl
     use shr_ndep_mod      , only : shr_ndep_readnl
     use shr_lightning_coupling_mod, only : shr_lightning_coupling_readnl
+    use drydep_coupling   , only : drydep_coupling_set_nflds, drydep_coupling_set_list
 
     character(len=*), parameter :: nl_file_name = 'drv_flds_in'
 
     ! read mediator fields options
     call shr_ndep_readnl(nl_file_name, ndep_nflds)
     call shr_drydep_readnl(nl_file_name, drydep_nflds)
+
+    ! mirror the dry deposition field count and species names for physics.
+    ! registry fields dimensioned by the count are allocated later,
+    ! during physics initialization.
+    ! the order of the fields in Sl_ddvel is shared with the land model.
+    call drydep_coupling_set_nflds(drydep_nflds)
+    call drydep_coupling_set_list(shr_drydep_list(1:drydep_nflds))
+
     call shr_megan_readnl(nl_file_name, megan_nflds)
     call shr_fire_emis_readnl(nl_file_name, emis_nflds)
     call shr_carma_readnl(nl_file_name, carma_fields)
@@ -214,7 +224,7 @@ contains
        call NUOPC_Advertise(exportState, standardName=fldsFrAtm(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    enddo
+    end do
 
     !-----------------
     ! Import fields
@@ -297,7 +307,7 @@ contains
        call NUOPC_Advertise(importState, standardName=fldsToAtm(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    enddo
+    end do
 
   end subroutine advertise_fields
 
@@ -328,6 +338,7 @@ contains
     type(ESMF_Field)      :: lfield
     integer               :: numOwnedElements
     integer               :: n, ierr
+    character(len=512)    :: errmsg
     real(r8), allocatable :: mesh_areas(:)
     real(r8), pointer     :: dataptr(:)
     real(r8)              :: max_mod2med_areacor
@@ -385,21 +396,21 @@ contains
     if ( trim(mesh_lnd) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd) .and. &
          trim(mesh_ocn) /= 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
        samegrid_atm_lnd_ocn = .true.
-    elseif ( trim(mesh_lnd) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
+    else if ( trim(mesh_lnd) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_ocn)) then
        samegrid_atm_lnd_ocn = .true.
-    elseif ( trim(mesh_ocn) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd)) then
+    else if ( trim(mesh_ocn) == 'UNSET' .and. trim(mesh_atm) == trim(mesh_lnd)) then
        samegrid_atm_lnd_ocn = .true.
     end if
 
     ! allocate area correction factors
     call ESMF_MeshGet(Emesh, numOwnedElements=numOwnedElements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate (mod2med_areacor(numOwnedElements), stat=ierr)
+    allocate (mod2med_areacor(numOwnedElements), stat=ierr, errmsg=errmsg)
     call check_allocate(ierr, subname, 'mod2med_areacor(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
-    allocate (med2mod_areacor(numOwnedElements), stat=ierr)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
+    allocate (med2mod_areacor(numOwnedElements), stat=ierr, errmsg=errmsg)
     call check_allocate(ierr, subname, 'med2mod_areacor(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
 
     if (single_column .or. samegrid_atm_lnd_ocn) then
 
@@ -415,9 +426,9 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       allocate(mesh_areas(numOwnedElements), stat=ierr)
+       allocate(mesh_areas(numOwnedElements), stat=ierr, errmsg=errmsg)
        call check_allocate(ierr, subname, 'mesh_areas(numOwnedElements)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errmsg)
        mesh_areas(:) = dataptr(:)
 
        ! Determine flux correction factors (module variables)
@@ -647,19 +658,6 @@ contains
        end if
     end if
 
-    ! dry deposition fluxes from land
-    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (exists) then
-       if ( associated(cam_in%dstflx) ) then
-          do i = 1, columns_on_task
-             do n = 1, size(fldptr2d, dim=1)
-                cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
-             end do
-          end do
-       end if
-    end if
-
     ! MEGAN VOC emis fluxes from land
     call state_getfldptr(importState, 'Fall_voc', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -693,9 +691,6 @@ contains
     end if
 #endif
 
-#if 0
-! Ignoring depvel for now as it has a problematic second dimension (number of dry deposited species)
-! and it was determined that it probably will not be used in CAM-SIMA for some time
     ! dry dep velocities
     call state_getfldptr(importState, 'Sl_ddvel', fldptr2d=fldptr2d, exists=exists, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -706,7 +701,17 @@ contains
           end do
        end do
     end if
-#endif
+
+    ! dust emission fluxes from land
+    call state_getfldptr(importState, 'Fall_flxdst', fldptr2d=fldptr2d, exists=exists, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (exists) then
+       do i = 1, columns_on_task
+          do n = 1, size(fldptr2d, dim=1)
+             cam_in%dstflx(i,n) = fldptr2d(n,i) * med2mod_areacor(i)
+          end do
+       end do
+    end if
 
 #if 0
 ! Commented out until water isotopes or carbon cycle fluxes are implemented in CAM-SIMA
@@ -1155,9 +1160,9 @@ contains
              ! Create the field
              if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
-                     ungriddedLbound=(/fldlist(n)%ungridded_lbound/), &
-                     ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
-                     gridToFieldMap=(/2/), rc=rc)
+                     ungriddedLbound=[fldlist(n)%ungridded_lbound], &
+                     ungriddedUbound=[fldlist(n)%ungridded_ubound], &
+                     gridToFieldMap=[2], rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
                 if (masterproc) then
                    write(iulog,'(a,i8,a,i8)') trim(subname)// trim(tag)//" Field = "//trim(stdname)// &
@@ -1181,7 +1186,7 @@ contains
              if (masterproc) then
                 write(iulog,'(a)')trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is not connected"
              end if
-             call ESMF_StateRemove(state, (/stdname/), rc=rc)
+             call ESMF_StateRemove(state, [stdname], rc=rc)
              if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
           end if
        end if
@@ -1213,14 +1218,14 @@ contains
       rc = ESMF_SUCCESS
 
       ! create a DistGrid with a single index space element, which gets mapped onto DE 0.
-      distgrid = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/1/), rc=rc)
+      distgrid = ESMF_DistGridCreate(minIndex=[1], maxIndex=[1], rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
       grid = ESMF_GridCreate(distgrid, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
       field = ESMF_FieldCreate(name=trim(flds_scalar_name), grid=grid, typekind=ESMF_TYPEKIND_R8, &
-           ungriddedLBound=(/1/), ungriddedUBound=(/flds_scalar_num/), gridToFieldMap=(/2/), rc=rc)
+           ungriddedLBound=[1], ungriddedUBound=[flds_scalar_num], gridToFieldMap=[2], rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
 
     end subroutine SetScalarField
