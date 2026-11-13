@@ -742,6 +742,60 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_AST</ic_file_input_names>
     </variable>
+    <!-- cmeliq and prec_sh are read from the snapshot until the macrophysics (CLUBB) and
+         shallow convection which calculate them are available in CAM-SIMA -->
+    <variable local_name="cmeliq"
+              standard_name="rate_of_condensation_minus_evaporation_for_cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CMELIQ</ic_file_input_names>
+    </variable>
+    <variable local_name="prec_sh"
+              standard_name="lwe_precipitation_rate_at_surface_due_to_shallow_convection"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_PREC_SH</ic_file_input_names>
+    </variable>
+    <!-- prec_dp is read from the snapshot for suites without deep convection (e.g. the pumas test suite) -->
+    <variable local_name="prec_dp"
+              standard_name="lwe_precipitation_rate_at_surface_due_to_deep_convection"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_PREC_DP</ic_file_input_names>
+    </variable>
+    <!-- PUMAS precipitation efficiency accumulators (PE, APRL, PEFRAC diagnostics), which persist
+         across timesteps (CAM physics buffer fields ACPRECL, ACGCME and ACNUM).
+         ACNUM is an integer in CAM; it is real here so that it can be read from the snapshot. -->
+    <variable local_name="acprecl"
+              standard_name="accumulated_stratiform_precipitation_rate_for_precipitation_efficiency"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ACPRECL</ic_file_input_names>
+    </variable>
+    <variable local_name="acgcme"
+              standard_name="accumulated_cloud_liquid_condensation_rate_for_precipitation_efficiency"
+              units="m s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ACGCME</ic_file_input_names>
+    </variable>
+    <variable local_name="acnum"
+              standard_name="number_of_timesteps_accumulated_for_precipitation_efficiency"
+              units="count" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ACNUM</ic_file_input_names>
+    </variable>
 
     <!-- cam_in Variables -->
     <variable local_name="aldif"
