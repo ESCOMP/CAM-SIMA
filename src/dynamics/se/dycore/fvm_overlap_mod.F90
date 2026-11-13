@@ -509,7 +509,7 @@ contains
               xeul   = xgno(jx_eul+xsgn1)
               if (abs(x(2)-x(1))<fuzzy_width) then
                 ! fuzzy crossing
-                ycross = 0.5_r8*(y(2)-y(1))
+                ycross = 0.5_r8*(y(1)+y(2)) !midpoint of (near-)vertical segment
               else
                 slope  = (y(2)-y(1))/(x(2)-x(1))
                 ycross = y_cross_eul_lon(x(1),y(1),xeul,slope)
@@ -560,7 +560,7 @@ contains
 
               slope  = (y(2)-y(1))/(x(2)-x(1))
               if (abs(x(2)-x(1))<fuzzy_width) then
-                ycross = 0.5_r8*(y(2)-y(1))
+                ycross = 0.5_r8*(y(1)+y(2)) !midpoint of (near-)vertical segment
               else
                 ycross = y_cross_eul_lon(x(1),y(1),xeul,slope)
               end if

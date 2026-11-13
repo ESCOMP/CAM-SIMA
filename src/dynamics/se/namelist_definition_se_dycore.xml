@@ -15,8 +15,7 @@
       Default: -1 (not used)
     </desc>
     <values>
-      <value>-1</value>
-      <value hgrid="ne0np4CONUS.ne30x8">120</value>
+      <value>0</value>
     </values>
   </entry>
   <entry id="se_ftype">
@@ -62,7 +61,7 @@
     </desc>
     <values>
       <value>0</value>
-      <value hypervis_type="tensor" se_refined_mesh="1">3.0D0</value>
+      <value se_refined_mesh="1" hypervis_type="tensor">3.22D0</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle">
@@ -73,8 +72,14 @@
       Number of hyperviscosity subcycles per dynamics timestep.
     </desc>
     <values>
-      <value>3</value>
-      <value hgrid="ne16np4" model_top="lt">1</value>
+      <value>-1</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">2</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">2</value>
+      <value hgrid="ne0np4CONUS.ne30x8">1</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">1</value>
+      <value hgrid="ne0np4.NATL.ne30x8">1</value>
+      <value hgrid="ne3np4">3</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">3</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_sponge">
@@ -85,8 +90,14 @@
       Number of hyperviscosity subcycles per dynamics timestep in sponge del2 diffusion.
     </desc>
     <values>
-      <value>1</value>
-      <value hgrid="ne120np4">4</value>
+      <value>-1</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">2</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">2</value>
+      <value hgrid="ne0np4CONUS.ne30x8">5</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">5</value>
+      <value hgrid="ne0np4.NATL.ne30x8">5</value>
+      <value hgrid="ne3np4">1</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">1</value>
     </values>
   </entry>
   <entry id="se_molecular_diff">
@@ -99,7 +110,6 @@
     </desc>
     <values>
       <value>0.0</value>
-      <value waccmx="1">1.0</value>
     </values>
   </entry>
   <entry id="se_hypervis_subcycle_q">
@@ -139,7 +149,7 @@
     </desc>
     <values>
       <value>1.0e99</value>
-      <value hypervis_type="scalar" se_refined_mesh="1">1.9</value>
+      <value se_refined_mesh="1" hypervis_type="scalar">1.9</value>
     </values>
   </entry>
   <entry id="se_mesh_file">
@@ -151,8 +161,12 @@
     </desc>
     <values>
       <value>none</value>
-      <value hgrid="ne0np4CONUS.ne30x8">$DIN_LOC_ROOT/atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
-      <value hgrid="ne0np4TESTONLY.ne5x4">$DIN_LOC_ROOT/atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
+      <value hgrid="ne0np4CONUS.ne30x8">atm/cam/coords/ne0np4CONUS.ne30x8.g</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">atm/cam/coords/ne0np4EQFACE.ne5x4.g</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">atm/cam/coords/ne30x4_EXODUS_ARCTIC_c191009.g</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">atm/cam/coords/ne30x8_EXODUS_ARCTICGRIS_c191209.g</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">atm/cam/coords/POLARCAP_ne30x4_EXODUS_c220531.nc</value>
+      <value hgrid="ne0np4.NATL.ne30x8">atm/cam/coords/NATL_ne30x8_EXODUS_c201016.nc</value>
     </values>
   </entry>
   <entry id="se_ne">
@@ -197,12 +211,12 @@
     <values>
       <value>2</value>
       <value hgrid="ne16np4">1</value>
-      <value hgrid="ne5np4" waccm_phys="1">3</value>
-      <value hgrid="ne16np4" waccm_phys="1">3</value>
-      <value hgrid="ne30np4" waccm_phys="1">12</value>
-      <value hgrid="ne30np4" npg="2" waccm_phys="1">5</value>
-      <value hgrid="ne30np4" npg="3" waccm_phys="1">5</value>
-      <value hgrid="ne0np4CONUS.ne30x8">6</value>
+      <value hgrid="ne30np4">2</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">3</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">3</value>
+      <value hgrid="ne0np4CONUS.ne30x8">3</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">3</value>
+      <value hgrid="ne0np4.NATL.ne30x8">3</value>
       <value hgrid="ne0np4TESTONLY.ne5x4">7</value>
     </values>
   </entry>
@@ -217,7 +231,6 @@
     <values>
       <value>-1</value>
       <value hgrid="ne16np4">6.e15</value>
-      <value hypervis_type="scalar" se_refined_mesh="1">1.0e13</value>
     </values>
   </entry>
   <entry id="se_nu_div">
@@ -231,7 +244,6 @@
     <values>
       <value>-1</value>
       <value hgrid="ne16np4">6.e15</value>
-      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
   <entry id="se_nu_p">
@@ -245,7 +257,6 @@
     <values>
       <value>-1</value>
       <value hgrid="ne16np4">6.e15</value>
-      <value hypervis_type="scalar" se_refined_mesh="1">1.5625e13</value>
     </values>
   </entry>
   <entry id="se_nu_top">
@@ -256,11 +267,7 @@
       Second-order viscosity applied only near the model top [m^2/s].
     </desc>
     <values>
-      <value>1.25e5</value>
-      <value waccmx="1"    >1.0e6</value>
-      <value waccm_phys="1">1.0e6</value>
-      <value model_top="mt">1.0e6</value>
-      <value se_refined_mesh="1">2.0e5</value>
+      <value>-1</value>
     </values>
   </entry>
   <entry id="se_sponge_del4_nu_fac">
@@ -340,46 +347,41 @@
       <value>-1</value>
     </values>
   </entry>
-  <entry id="se_fvm_supercycling_jet">
-    <type>integer</type>
+  <entry id="se_cslam_q_filter_nu_fac">
+    <type>real</type>
     <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
-      Number of SE rsplit time-steps CSLAM supercycles in the jet region
-      (which is specified by kmin_jet and kmax_jet)
-      rsplit/se_fvm_supercycling_jet must be an integer
-      se_fvm_supercycling_jet/se_fvm_supercyling must be an integer
+      Controls the mass-conservative del4 (biharmonic) filter applied to water
+      vapor on the CSLAM grid every tracer time-step.  The filter damps
+      grid-scale noise in water vapor that seeds surface-pressure noise at
+      cube-sphere panel edges and vertices; total tracer mass is conserved
+      exactly and dry air mass (dp_fvm) is not modified.
+      If greater than 0 the filter is active with damping coefficient
+      nu_filter = se_cslam_q_filter_nu_fac*nu_p (and the GLL-side del4 on water
+      vapor after cslam2gll is retuned to a weak background value).
+      If less than or equal to 0 the filter is off.
     </desc>
     <values>
-      <value>-1</value>
+      <value>0.5</value>
     </values>
   </entry>
-  <entry id="se_kmin_jet">
-    <type>integer</type>
+  <entry id="se_gll_advect_q">
+    <type>logical</type>
     <category>se</category>
     <group>dyn_se_nl</group>
     <desc>
-      Min level index where CSLAM runs with se_fvm_supercycling_jet
-      (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
-      min index where are Courant number increment is active
-      (se_large_Courant_incr=.true.)
+      If TRUE (SE-CSLAM only), the thermodynamically active tracers are also
+      advected on the GLL grid (with the standard scalar tracer hyperviscosity)
+      and coupled to CAM physics through a forcing increment computed in
+      dynamics-physics coupling, instead of overwriting the GLL tracer state
+      with CSLAM values every vertical remapping time-step.  Removes the
+      surface-pressure noise associated with the overwrite.  The GLL-side del4
+      applied after cslam2gll is not used when TRUE.
+      Ignored for non-CSLAM (se_fv_nphys=0) configurations.
     </desc>
     <values>
-      <value>-1</value>
-    </values>
-  </entry>
-  <entry id="se_kmax_jet">
-    <type>integer</type>
-    <category>se</category>
-    <group>dyn_se_nl</group>
-    <desc>
-      Max level index where CSLAM runs with se_fvm_supercycling_jet
-      (if se_fvm_supercycling_jet.ne.se_fvm_supercycling) or
-      max index where are Courant number increment is active
-      (se_large_Courant_incr=.true.)
-    </desc>
-    <values>
-      <value>-1</value>
+      <value>.true.</value>
     </values>
   </entry>
   <entry id="se_qsplit">
@@ -404,6 +406,10 @@
       <value>.false.</value>
       <value hgrid="ne0np4CONUS.ne30x8">.true.</value>
       <value hgrid="ne0np4TESTONLY.ne5x4">.true.</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">.true.</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">.true.</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">.true.</value>
+      <value hgrid="ne0np4.NATL.ne30x8">.true.</value>
     </values>
   </entry>
   <entry id="se_rsplit">
@@ -414,9 +420,14 @@
       Vertically lagrangian code vertically remaps every rsplit tracer timesteps.
     </desc>
     <values>
-      <value>3</value>
-      <value npg="2" waccm_phys="1">6</value>
-      <value npg="3" waccm_phys="1">6</value>
+      <value>-1</value>
+      <value hgrid="ne3np4">3</value>
+      <value hgrid="ne0np4CONUS.ne30x8">3</value>
+      <value hgrid="ne0np4.ARCTIC.ne30x4">3</value>
+      <value hgrid="ne0np4.POLARCAP.ne30x4">3</value>
+      <value hgrid="ne0np4.ARCTICGRIS.ne30x8">3</value>
+      <value hgrid="ne0np4.NATL.ne30x8">3</value>
+      <value hgrid="ne0np4TESTONLY.ne5x4">3</value>
     </values>
   </entry>
   <entry id="se_statefreq">
@@ -664,7 +675,6 @@
     </desc>
     <values>
       <value>1</value>
-      <value waccmx="1">3</value>
     </values>
   </entry>
   <entry id="se_dribble_in_rsplit_loop">
@@ -683,7 +693,6 @@
     </desc>
     <values>
       <value>0</value>
-      <value hgrid="ne16np4" waccm_phys="1" waccmx="0">1</value>
     </values>
   </entry>
 </entry_id_pg>

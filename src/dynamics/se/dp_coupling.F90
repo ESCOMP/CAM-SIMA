@@ -332,6 +332,7 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
    use dimensions_mod,   only: use_cslam, nelemd, nlev, qsize, ntrac, fv_nphys
    use dof_mod,          only: PutUniquePoints
    use element_mod,      only: element_t
+   use control_mod,      only: gll_advect_q
 
    ! arguments
    type(runtime_options), intent(in)     :: cam_runtime_opts ! Runtime settings object
@@ -509,24 +510,27 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
             dyn_in%elem(ie)%derived%FT(:,:,k) =                            &
                  dyn_in%elem(ie)%derived%FT(:,:,k) *                       &
                  dyn_in%elem(ie)%spheremp(:,:)
-            do m = 1, qsize
-               dyn_in%elem(ie)%derived%FQ(:,:,k,m) =                       &
-                    dyn_in%elem(ie)%derived%FQ(:,:,k,m) *                  &
-                    dyn_in%elem(ie)%spheremp(:,:)
-            end do
+            if (gll_advect_q) then
+               do m = 1, qsize
+                  dyn_in%elem(ie)%derived%FQ(:,:,k,m) =                    &
+                       dyn_in%elem(ie)%derived%FQ(:,:,k,m) *               &
+                       dyn_in%elem(ie)%spheremp(:,:)
+               end do
+            end if
          end do
       end if
       kptr = 0
       call edgeVpack(edgebuf, dyn_in%elem(ie)%derived%FM(:,:,:,:), 2*nlev, kptr, ie)
       kptr = kptr + 2*nlev
       call edgeVpack(edgebuf, dyn_in%elem(ie)%derived%FT(:,:,:), nlev, kptr, ie)
-      if (.not. use_cslam) then
-        !
-        ! if using CSLAM qdp is being overwritten with CSLAM values in the dynamics
-        ! so no need to do boundary exchange of tracer tendency on GLL grid here
-        !
-        kptr = kptr + nlev
-        call edgeVpack(edgebuf, dyn_in%elem(ie)%derived%FQ(:,:,:,:), nlev*qsize, kptr, ie)
+      if (.not. use_cslam .or. gll_advect_q) then
+         !
+         ! if using CSLAM qdp is being overwritten with CSLAM values in the dynamics
+         ! so no need to do boundary exchange of tracer tendency on GLL grid here
+         ! (unless gll_advect_q, in which case the GLL tracers are forced via FQ too)
+         !
+         kptr = kptr + nlev
+         call edgeVpack(edgebuf, dyn_in%elem(ie)%derived%FQ(:,:,:,:), nlev*qsize, kptr, ie)
       end if
     end do
 
@@ -539,9 +543,9 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
       call edgeVunpack(edgebuf, dyn_in%elem(ie)%derived%FM(:,:,:,:), 2*nlev, kptr, ie)
       kptr = kptr + 2*nlev
       call edgeVunpack(edgebuf, dyn_in%elem(ie)%derived%FT(:,:,:), nlev, kptr, ie)
-      if (.not. use_cslam) then
-        kptr = kptr + nlev
-        call edgeVunpack(edgebuf, dyn_in%elem(ie)%derived%FQ(:,:,:,:), nlev*qsize, kptr, ie)
+      kptr = kptr + nlev
+      if (.not. use_cslam .or. gll_advect_q) then
+         call edgeVunpack(edgebuf, dyn_in%elem(ie)%derived%FQ(:,:,:,:), nlev*qsize, kptr, ie)
       end if
       if (fv_nphys > 0) then
          do k = 1, nlev
@@ -554,11 +558,13 @@ subroutine p_d_coupling(cam_runtime_opts, phys_state, phys_tend, dyn_in, tl_f, t
             dyn_in%elem(ie)%derived%FT(:,:,k) =                               &
                  dyn_in%elem(ie)%derived%FT(:,:,k) *                          &
                  dyn_in%elem(ie)%rspheremp(:,:)
-            do m = 1, qsize
-               dyn_in%elem(ie)%derived%FQ(:,:,k,m) =                          &
-                    dyn_in%elem(ie)%derived%FQ(:,:,k,m) *                     &
-                    dyn_in%elem(ie)%rspheremp(:,:)
-            end do
+            if (gll_advect_q) then
+               do m = 1, qsize
+                  dyn_in%elem(ie)%derived%FQ(:,:,k,m) =                       &
+                       dyn_in%elem(ie)%derived%FQ(:,:,k,m) *                  &
+                       dyn_in%elem(ie)%rspheremp(:,:)
+               end do
+            end if
          end do
       end if
    end do
