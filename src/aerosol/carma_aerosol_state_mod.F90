@@ -220,7 +220,7 @@ contains
   end subroutine aqu_gain_binfraction
 
   subroutine surf_area_dens(self, aero_props, types_list, ncol, nlev, beglev, endlev, &
-       relhum, pmid, temp, pi, sad, reff, sfc, dm_aer)
+       relhum, pmid, temp, pi, rair, sad, reff, sfc, dm_aer)
 
     class(carma_aerosol_state), intent(in) :: self
     class(aerosol_properties), intent(in) :: aero_props ! aerosol properties object
@@ -233,6 +233,7 @@ contains
     real(r8), intent(in)  :: pmid(:,:)   ! mid-level pressure (Pa)
     real(r8), intent(in)  :: temp(:,:)   ! temperature (K)
     real(r8), intent(in)  :: pi          ! pi mathematical constant
+    real(r8), intent(in)  :: rair        ! dry air gas constant (J/kg/K)
 
     real(r8), intent(out) :: sad(:,:)    ! surface area density (cm2/cm3)
     real(r8), intent(out) :: reff(:,:)   ! effective radius (units cm)
