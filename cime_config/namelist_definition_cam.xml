@@ -414,9 +414,9 @@
     </desc>
     <values>
       <value>-1</value>
-      <value hgrid="mpasa15" >10</value>
-      <value hgrid="mpasa7p5">10</value>
-      <value hgrid="mpas3p75">10</value>
+      <value hgrid="mpasa15"  >10</value>
+      <value hgrid="mpasa7p5" >10</value>
+      <value hgrid="mpasa3p75">10</value>
     </values>
   </entry>
   <entry id="iradlw">
@@ -430,9 +430,9 @@
     </desc>
     <values>
       <value>-1</value>
-      <value hgrid="mpasa15" >10</value>
-      <value hgrid="mpasa7p5">10</value>
-      <value hgrid="mpas3p75">10</value>
+      <value hgrid="mpasa15"  >10</value>
+      <value hgrid="mpasa7p5" >10</value>
+      <value hgrid="mpasa3p75">10</value>
     </values>
   </entry>
   <entry id="irad_always">
