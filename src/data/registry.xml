@@ -1850,6 +1850,15 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <!-- only used if use_shfrc is .true. -->
       <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>shfrc pbuf_shfrc</ic_file_input_names>
+    </variable>
+    <variable local_name="cush"
+              standard_name="shallow_convective_scale_height"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_cush</ic_file_input_names>
     </variable>
 
     <!-- rk_stratiform microphysics/macrophysics variables - need to be kept in the CAM registry -->
@@ -1882,6 +1891,107 @@
       <!-- set to negative if not read from the snapshot. -->
       <initial_value>-1.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_LCWAT</ic_file_input_names>
+    </variable>
+
+    <!-- Park (CAM5) macrophysics variables - need to be kept in the CAM registry.
+         Two-moment additions to the RK equilibrium-state set above (ice mass + cloud
+         liquid/ice number on the previous timestep). -->
+    <variable local_name="iccwat"
+              standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water_on_previous_timestep"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ICCWAT</ic_file_input_names>
+    </variable>
+    <variable local_name="nlwat"
+              standard_name="mass_number_concentration_of_cloud_liquid_water_droplets_in_moist_air_and_condensed_water_on_previous_timestep"
+              units="kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NLWAT</ic_file_input_names>
+    </variable>
+    <variable local_name="niwat"
+              standard_name="mass_number_concentration_of_cloud_ice_water_crystals_in_moist_air_and_condensed_water_on_previous_timestep"
+              units="kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <!-- set to negative if not read from the snapshot. -->
+      <initial_value>-1.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_NIWAT</ic_file_input_names>
+    </variable>
+    <!-- Convective cloud fraction at entry to the macrophysics (previous-timestep value);
+         in CAM this is concld copied before convective_cloud_cover recomputes concld.
+         Read from the snapshot's pbuf_CONCLD; nothing in the macro-only suite produces it. -->
+    <variable local_name="concld_old"
+              standard_name="convective_cloud_area_fraction_on_previous_timestep"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CONCLD</ic_file_input_names>
+    </variable>
+    <!-- Microphysical forcings (tlat/qvlat/qcten/qiten/ncten/niten/qcten-instratus) saved by
+         the microphysics at the previous step for the macrophysics; no microphysics scheme is
+         present in the macro-only suite, so they are read from the snapshot's pbuf_CC_*. -->
+    <variable local_name="CC_T"
+              standard_name="tendency_of_air_temperature_due_to_microphysics"
+              units="K s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_T</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_qv"
+              standard_name="tendency_of_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_microphysics"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_qv</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_ql"
+              standard_name="tendency_of_cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_microphysics"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_ql</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_qi"
+              standard_name="tendency_of_cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_microphysics"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_qi</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_nl"
+              standard_name="tendency_of_cloud_liquid_water_number_concentration_due_to_microphysics"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_nl</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_ni"
+              standard_name="tendency_of_cloud_ice_number_concentration_due_to_microphysics"
+              units="kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_ni</ic_file_input_names>
+    </variable>
+    <variable local_name="CC_qlst"
+              standard_name="tendency_of_incloud_cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_microphysics"
+              units="kg kg-1 s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_CC_qlst</ic_file_input_names>
     </variable>
 
     <!-- vertical diffusion solver variables - need to be kept in the CAM registry -->
