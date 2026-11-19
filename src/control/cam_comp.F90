@@ -230,7 +230,6 @@ contains
 !            call initialize_iop_history()
 !         end if
 !!XXgoldyXX: ^ need to import this
-!      end if
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()

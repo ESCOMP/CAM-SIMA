@@ -44,6 +44,7 @@ end subroutine write_restart_dynamics
 subroutine read_restart_dynamics(File, dyn_in, dyn_out)
    use dyn_comp,           only: dyn_export_t, dyn_import_t
    use pio,                only: file_desc_t
+   use cam_abortutils,     only: endrun
 
    ! arguments
    type(File_desc_t), target :: File
@@ -51,7 +52,7 @@ subroutine read_restart_dynamics(File, dyn_in, dyn_out)
    type(dyn_export_t), intent(in)  :: dyn_out
    !----------------------------------------------------------------------------
 
-   ! STUB-ROUTINE
+   call endrun('read_restart_dynamics: restarts not supported for null dycore runs')
 
 end subroutine read_restart_dynamics
 

@@ -525,7 +525,7 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
    use parallel_mod,     only: par
    use spmd_utils,       only: iam, masterproc
    use cam_logfile,      only: iulog
-   use dimensions_mod,   only: np, npsq, ne, nc, nelemd, fv_nphys, nlev, ntrac, fv_nphys
+   use dimensions_mod,   only: np, npsq, ne, nc, nelemd, fv_nphys, nlev, ntrac
    use cam_pio_utils,    only: pio_subsystem, cam_pio_handle_error
    use ref_pres,         only: ptop_ref
    use hycoef,           only: hybi, hyai, ps0
@@ -703,6 +703,9 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
 
       ! dp_fvm
       call cam_read_field('dp_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], gridname='FVM', timelevel=int(t_idx))
+      if (.not. readvar) then
+         call endrun(subname//': Failed to read "dp_fvm" variable from restart file')
+      end if
       do ie = 1, nelemd
          do k = 1, nlev
             ii = 1
@@ -720,6 +723,9 @@ subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
          call const_props(advected_constituent_index(m))%diagnostic_name(const_diag_name)
          call cam_read_field(trim(const_diag_name)//'_fvm', restart_file, var3d_fvm, readvar, 'lev', [1, nlev], &
                  gridname='FVM', timelevel=int(t_idx))
+         if (.not. readvar) then
+            call endrun(subname//': Failed to read "'//trim(const_diag_name)//'" variable from restart file')
+         end if
          do ie = 1, nelemd
             do k = 1, nlev
                ii = 1

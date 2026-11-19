@@ -41,7 +41,7 @@ module cam_hist_file
    integer, parameter                      :: hfile_type_history    =  1
    integer, parameter                      :: hfile_type_init_value =  2
    integer, parameter                      :: hfile_type_sat_track  =  3
-   integer, parameter                      :: hfile_type_restart    =  4
+   integer, parameter, public              :: hfile_type_restart    =  4
 
    character(len=*), parameter :: rh_filename_spec = '%c.cam.r%u.%y-%m-%d-%s.nc'
 
@@ -438,7 +438,7 @@ contains
       use cam_abortutils, only: check_allocate
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
-      character(len=3), allocatable :: avgflags(:)
+      character(len=max_avgflag_len), allocatable :: avgflags(:)
       ! Local variables
       character(len=cl) :: errmsg
       integer :: ierr, idx
@@ -1210,7 +1210,7 @@ contains
       class(hist_field_info_t), pointer :: field_ptr
       class(hist_hashable_t), pointer :: field_ptr_entry
       character(len=*), parameter :: subname = 'hist:config_set_up_fields: '
-      integer, parameter :: seconds_per_day = 86400._r8
+      real(r8), parameter :: seconds_per_day = 86400._r8
       integer, allocatable :: dimensions(:)
       integer, allocatable :: field_shape(:)
       integer, allocatable :: beg_dim(:)
@@ -2304,10 +2304,11 @@ contains
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncdate" variable')
       ierr = pio_put_var (this%restart_file,this%restart_pio_ids%datesecid,[start],[count1],[ncsec])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "ncsec" variable')
-      countc(1) = 2
 
       ierr=pio_put_var (this%restart_file, this%restart_pio_ids%timeid, [start],[count1],[time])
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write instantaneous "time" variable')
+
+      countc(1) = 2
       ierr=pio_put_var (this%restart_file, this%restart_pio_ids%tbndid, startc, countc, time_interval)
       call cam_pio_handle_error(ierr, 'config_write_restart_file: cannot write "time_bounds" variable')
       countc(1) = 8

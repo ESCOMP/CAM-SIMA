@@ -251,7 +251,7 @@ contains
       ! Read history fields from the .r. file
       use pio,            only: file_desc_t, pio_inq_varid, pio_seterrorhandling, pio_get_var
       use pio,            only: PIO_BCAST_ERROR, pio_inq_dimid, PIO_INTERNAL_ERROR, pio_inq_dimlen
-      use cam_hist_file,  only: hist_file_t
+      use cam_hist_file,  only: hist_file_t, hfile_type_restart
       use cam_abortutils, only: endrun, check_allocate
       use cam_logfile,    only: iulog
       use spmd_utils,     only: masterproc
@@ -304,6 +304,9 @@ contains
       integer :: var_fields_idx
       integer :: min_fields_idx
       integer :: max_fields_idx
+      logical :: collect_patch_output
+      logical :: write_nstep0
+      character(len=cl) :: filename_spec
       character(len=*), parameter :: subname = 'hist_restart_read'
 
       ! Check if the restart (.r.) file has history variables on it
@@ -448,8 +451,7 @@ contains
          case('rh_file_path')
             ierr = pio_get_var(restart_file, vdesc, restart_file_paths)
          case default
-            write(errmsg,*) subname, ': Missing history restart variable ', trim(restart_vars(idx)%var_name)
-            call endrun(errmsg)
+            write(iulog,*) subname, ': history restart variable not being read from file: ', trim(restart_vars(idx)%var_name)
          end select
       end do
 
@@ -506,10 +508,16 @@ contains
             end if
          end do
 
+         ! These fields are not currently checked in check_restart_consistency
+         collect_patch_output = .true.
+         write_nstep0 = .false.
+         filename_spec = ''
+
          ! Make sure no configs have changed from previous run
          call rest_config%configure(volume(idx), rl_kind, max_frames(idx), output_freq(idx), &
-             4, '', .false., inst_fields(:inst_fields_idx - 1), avg_fields(:avg_fields_idx - 1), &
-             min_fields(:min_fields_idx - 1), max_fields_list(:max_fields_idx - 1), var_fields(:var_fields_idx - 1), .false.)
+             hfile_type_restart, filename_spec, collect_patch_output, inst_fields(:inst_fields_idx - 1), avg_fields(:avg_fields_idx - 1), &
+             min_fields(:min_fields_idx - 1), max_fields_list(:max_fields_idx - 1), var_fields(:var_fields_idx - 1), write_nstep0)
+
          call rest_config%check_restart_consistency(hist_configs(idx))
 
          ! Overwrite current stats from restart file

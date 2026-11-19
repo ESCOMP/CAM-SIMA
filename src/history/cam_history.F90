@@ -997,7 +997,7 @@ contains
          call hist_configs(config_idx)%overwrite_restart_info(num_frames(config_idx), current_files(config_idx,:), &
               beg_times(config_idx))
          ! Reopen any partially written history file(s) so that output
-         ! continues to be appended to them (as CAM does on restart)
+         ! continues to be appended to them
          call hist_configs(config_idx)%reopen_files()
       end do
 

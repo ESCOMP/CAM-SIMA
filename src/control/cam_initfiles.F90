@@ -146,18 +146,21 @@ CONTAINS
             rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
             inquire(file=trim(rest_pfile),exist=filefound)
             if(.not. filefound) then
-               write(iulog, "INFO : rpointer file "//trim(rest_pfile)//" not found.")
+               write(iulog,*) "INFO : rpointer file "//trim(rest_pfile)//" not found."
                rest_pfile = "rpointer.cam"//trim(inst_suffix)
                write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
                inquire(file=trim(rest_pfile),exist=filefound)
                if(.not. filefound) then
-                  call endrun(subname // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
+                  call endrun(subname//': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
                endif
             endif
             open(newunit=unitn, action='read', file=trim(rest_pfile), status='old', iostat=ierr, iomsg=ioerrmsg)
+            if (ierr /= 0) then
+               call endrun(subname//'" ERROR: opening rpointer file: '//trim(rest_pfile)//', error: '//trim(ioerrmsg))
+            end if
             read (unitn, '(a)', iostat=ierr, iomsg=ioerrmsg) restart_file
             if (ierr /= 0) then
-               call endrun(subname // ': ERROR: reading rpointer file: '//trim(rest_pfile)//', error'//trim(ioerrmsg))
+               call endrun(subname//': ERROR: reading rpointer file: '//trim(rest_pfile)//', error: '//trim(ioerrmsg))
             end if
             close(unitn)
          end if
