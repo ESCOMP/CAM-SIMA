@@ -11,3 +11,5 @@ hist_write_nstep0;h2: .true.
 hist_output_frequency;h3: 1*nsteps
 hist_add_inst_fields;h3: PS
 hist_write_nstep0;h3: .true.
+
+hist_diag_file;h4: external_diag_config

@@ -30,6 +30,8 @@ module cam_history
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
+   public :: init_restart_history   ! Initialize history fields on restart file, if necessary
+   public :: write_restart_history  ! Write restart files, if necessary
 
    ! Helper functions
    public :: is_history_field_active ! Check if a field is active on any history file
@@ -50,6 +52,8 @@ module cam_history
    type(hist_field_info_t), pointer :: possible_field_list_head
    type(hist_hash_table_t)          :: possible_field_list
    integer                          :: num_possible_fields
+   logical,           allocatable   :: just_written(:)
+   integer                          :: max_num_fields
 
 contains
 
@@ -59,13 +63,24 @@ contains
       ! Purpose: Read in history namelist and set hist_configs
       !
       !-----------------------------------------------------------------------
-      use cam_hist_file, only: hist_read_namelist_config
+      use cam_hist_file,  only: hist_read_namelist_config
+      use cam_abortutils, only: endrun
+      use shr_kind_mod,   only: cx=>shr_kind_cx
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
+      integer :: ierr
+      character(len=cl) :: alloc_errmsg
+      character(len=cx) :: errmsg
 
       ! Read in CAM history configuration
-      call hist_read_namelist_config(nlfile, hist_configs)
+      call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
+      allocate(just_written(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
+      if (ierr /= 0) then
+         write(errmsg,*) 'history_readnl: failed to allocate just_written; errmsg = ', alloc_errmsg
+         call endrun(errmsg)
+      end if
+      just_written = .false.
 
    end subroutine history_readnl
 
@@ -112,6 +127,8 @@ contains
 
       ! peverwhee - TODO: remove when restarts are implemented
       restart = .false.
+
+      just_written = .false.
 
       ! Loop over history volumes
       do file_idx = 1, size(hist_configs)
@@ -204,7 +221,7 @@ contains
                         write(iulog,*)'history_write_files: New filename same as old file = ', trim(file_names(idx))
                         write(iulog,*)'Is there an error in your filename specifiers?'
                         write(iulog,*)'filename_spec(', file_idx, ') = ', trim(filename_spec)
-                        if ( prev_file_idx /= file_idx )then
+                        if (prev_file_idx /= file_idx) then
                            write(iulog,*)'filename_spec(', prev_file_idx, ') = ', trim(prev_filename_spec)
                         end if
                      end if
@@ -212,13 +229,15 @@ contains
                   end if
                end do
             end do
-            call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
+            call hist_configs(file_idx)%define_file(logname, host, model_doi_url)
          end if
-         call hist_configs(file_idx)%write_time_dependent_variables(restart)
+         call hist_configs(file_idx)%write_time_dependent_variables()
          if (nstep == 0) then
              ! Reset samples if nstep0 was written
              call hist_configs(file_idx)%reset_samples()
          end if
+         ! Flag that we've just written this volume
+         just_written(file_idx) = .true.
       end do
 
    end subroutine history_write_files
@@ -467,7 +486,7 @@ contains
       use cam_abortutils,      only: endrun, check_allocate
       use spmd_utils,          only: masterproc
       use string_utils,        only: stringify
-      use shr_kind_mod,        only: r8 => shr_kind_r8
+      use shr_kind_mod,        only: r8 => shr_kind_r8, cx => shr_kind_cx
 
       character(len=*), intent(in) :: diagnostic_name
       character(len=*), intent(in) :: standard_name
@@ -491,7 +510,7 @@ contains
       integer,          allocatable     :: field_shape(:)
       integer                           :: ierr, idx
       integer                           :: dimbounds(2,2)
-      character(len=512)                :: errmsg
+      character(len=cx)                 :: errmsg
       character(len=max_fldlen)         :: fname_tmp ! local copy of fname
       character(len=max_fldlen)         :: coord_name ! for cell_methods
       character(len=max_fldlen)         :: cell_methods
@@ -888,8 +907,63 @@ contains
 
 !#######################################################################
 
+   subroutine init_restart_history(restart_file)
+      use cam_hist_restart, only: hist_restart_init
+      use pio,              only: file_desc_t
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
+
+      ! Set up history restart variables in the restart file
+      ! We can skip this if we have no output for this run
+      if (max_num_fields > 0) then
+         call hist_restart_init(restart_file, size(hist_configs), max_num_fields)
+      end if
+
+      ! Create restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%define_restart_file(logname, host, model_doi_url)
+      end do
+
+   end subroutine init_restart_history
+
+!#######################################################################
+
+   subroutine write_restart_history(restart_file)
+      use pio,              only: file_desc_t
+      use cam_hist_restart, only: hist_restart_write
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+      ! Local variables
+      integer :: config_idx
+
+      if (max_num_fields == 0) then
+         ! Don't do anything if there aren't any history fields
+         return
+      end if
+
+      call hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
+
+      ! Write restart files for history configs if necessary (.rhX.)
+      do config_idx = 1, size(hist_configs)
+         ! Only write the rhX file if it has accumulated fields and has not just been written
+         if (.not. hist_configs(config_idx)%has_accumulated_fields() .or. just_written(config_idx)) then
+            cycle
+         end if
+         call hist_configs(config_idx)%write_restart_file()
+         call hist_configs(config_idx)%close_restart_file()
+      end do
+
+   end subroutine write_restart_history
+!#######################################################################
+
    recursive function get_entry_by_name(listentry, name) result(entry)
-     type(hist_field_info_t),  pointer :: listentry
+     type(hist_field_info_t), pointer :: listentry
      character(len=*), intent(in) :: name ! variable name
      type(hist_field_info_t), pointer :: entry
 

@@ -33,8 +33,8 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'mpi_communicator', 'mpi_root', 'mpi_rank',
                           'number_of_mpi_tasks'}
 # Variable input types
-_INPUT_TYPES = set(['in', 'inout'])
-_OUTPUT_TYPES = set(['out', 'inout'])
+_INPUT_TYPES = {'in', 'inout'}
+_OUTPUT_TYPES = {'out', 'inout'}
 # CCPP phases that run before the host calls physics_read_data (the host
 # calls it after the initialize phase and before timestep_initial), see
 # gather_set_before_use_vars:
@@ -148,12 +148,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database)
-
-    # Quit now if there are missing variables
-    if retmsg:
-        return retmsg
-    # end if
+    in_vars, out_vars, constituent_set = gather_ccpp_req_vars(cap_database)
 
     # Generate "phys_vars_init_check.F90" file:
     # -----------------------------------------
@@ -307,13 +302,10 @@ class CamInitWriteError(ValueError):
 def _find_and_add_host_variable(stdname, host_dict, var_dict):
     """Find <stdname> in <host_dict> and add it to <var_dict> if found and
           not of type, 'host'.
-       If not found, add <stdname> to <missing_vars>.
        If found and added to <var_dict>, also process the standard names of
           any intrinsic sub-elements of <stdname>.
-       Return the list of <missing_vars> (if any).
        Note: This function has a side effect (adding to <var_dict>).
     """
-    missing_vars = []
     hvar = host_dict.find_variable(stdname)
     if hvar and hvar.is_ddt() and not isinstance(hvar, VarDDT):
         # A whole-DDT host variable (e.g. a scheme argument of DDT type;
@@ -323,7 +315,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
         # Exclude it from generated read/check code. (Var.intrinsic_elements
         # would also raise a CCPPError for a DDT variable when called
         # without a DDT library, as done below.)
-        return missing_vars
+        return
     if hvar and (hvar.source.ptype != 'host'):
         var_dict[stdname] = hvar
         # Process elements (if any)
@@ -331,16 +323,10 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
         # List elements are the only ones we care about
         if isinstance(ielem, list):
             for sname in ielem:
-                smissing = _find_and_add_host_variable(sname, host_dict,
-                                                       var_dict)
-                missing_vars.extend(smissing)
+                _find_and_add_host_variable(sname, host_dict, var_dict)
             # end for
         # end if
     # end if
-    if not hvar:
-        missing_vars.append(stdname)
-    # end if
-    return missing_vars
 
 ##############################################################################
 def gather_ccpp_req_vars(cap_database):
@@ -349,20 +335,20 @@ def gather_ccpp_req_vars(cap_database):
     required by the CCPP physics suites potentially being used
     in this model run.
     <cap_database> is the database object returned by capgen.
-    It is an error if any physics suite variable is not accessible in
-       the host model.
+    Note: capgen has already checked that every physics suite input
+       variable is accessible in the host model (or has a default value,
+       in which case the suite manages it), so that is not re-checked here.
     Return several values:
-    - A list of host model variables
-    - An error message (blank for no error)
+    - A list of host model input variables
+    - A list of host model output variables
+    - A set of constituent standard names
     """
 
     # Dictionary of all 'in' and 'inout' suite variables.
     # Key is standard name, value is host-model or constituent variable
     in_vars = {}
     out_vars = {}
-    missing_vars = set()
     constituent_vars = set()
-    retmsg = ""
     # Host model dictionary
     host_dict = cap_database.host_model_dict()
 
@@ -386,29 +372,21 @@ def gather_ccpp_req_vars(cap_database):
                     # end if
                 else:
                     # We need to work with the host model version of this variable
-                    missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          in_vars)
-                    missing_vars.update(missing)
+                    _find_and_add_host_variable(stdname, host_dict, in_vars)
                 # end if
             # end if (only input variables)
             if ((intent in _OUTPUT_TYPES) and
                   (stdname not in out_vars) and
                   (stdname not in _EXCLUDED_STDNAMES)):
                 if not is_const:
-                    missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          out_vars)
-                    # do nothing with missing variables
+                    _find_and_add_host_variable(stdname, host_dict, out_vars)
                 # end if
             # end if (only output variables)
         # end for (loop over call list)
     # end for (loop over phases)
 
-    if missing_vars:
-        mvlist = ', '.join(sorted(missing_vars))
-        retmsg = f"Error: Missing required host variables: {mvlist}"
-    # end if
     # Return the required variables as a list
-    return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
+    return list(in_vars.values()), list(out_vars.values()), constituent_vars
 
 ##############################################################################
 def gather_set_before_use_vars(cap_database, host_vars, constituent_set):
@@ -821,7 +799,10 @@ def collect_host_var_imports(host_vars, host_dict, constituent_set):
 def write_use_statements(outfile, use_stmts, indent):
     """Output Fortran module use (import) statements listed in <use_stmts>.
     """
-
+    # Don't do anything if we don't have use statements!
+    if len(use_stmts) == 0:
+        return
+    # end if
     # The plus one is for a comma
     max_modname = max(len(x[0]) for x in use_stmts) + 1
     # max_modspace is the max chars of the module plus other 'use' statement

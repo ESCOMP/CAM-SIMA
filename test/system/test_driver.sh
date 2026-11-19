@@ -258,7 +258,7 @@ case $hostname in
     CAM_RESTART_THREADS=1
 
     mach_workspace="/glade/derecho/scratch"
-    default_bl_dir="/glade/campaign/cesm/community/amwg/sima_baselines/latest_${CAM_FC,,}"
+    default_bl_dir="/glade/campaign/cesm/amwg/soft_eng/sima_baselines/latest_${CAM_FC,,}"
 
     # Check for CESM baseline directory
     if [ -z "${BL_TESTDIR}" ] && [ "${baseline_default}" = true ]; then

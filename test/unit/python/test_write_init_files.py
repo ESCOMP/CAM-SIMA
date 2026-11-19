@@ -7,7 +7,7 @@
 #
 # Command line arguments: none
 #
-# Usage: python "write_init_unit_tests.py"         # run the unit tests
+# Usage: python "test_write_init_files.py"         # run the unit tests
 #-----------------------------------------------------------------------
 
 """Test write_init_files in write_init_files.py"""
@@ -25,6 +25,7 @@ __CCPP_DIR = os.path.join(_CAM_ROOT, "ccpp_framework", "scripts")
 __REGISTRY_DIR = os.path.join(_CAM_ROOT, "src", "data")
 _REG_SAMPLES_DIR = os.path.join(__TEST_DIR, "sample_files")
 _INIT_SAMPLES_DIR = os.path.join(_REG_SAMPLES_DIR, "write_init_files")
+_SHARED_DIR = os.path.join(_REG_SAMPLES_DIR, "shared_files")
 _PRE_TMP_DIR = os.path.join(__TEST_DIR, "tmp")
 _TMP_DIR = os.path.join(_PRE_TMP_DIR, "write_init_files")
 _SRC_MOD_DIR = os.path.join(_PRE_TMP_DIR, "SourceMods")
@@ -44,7 +45,7 @@ if not os.path.exists(__REGISTRY_DIR):
 if not os.path.exists(_REG_SAMPLES_DIR):
     raise ImportError("Cannot find sample files directory")
 
-if not os.path.exists(_INIT_SAMPLES_DIR):
+if not os.path.exists(_SHARED_DIR):
     raise ImportError("Cannot find 'write_init_files' sample files directory")
 
 #Add CCPP framework directory to python path to
@@ -125,15 +126,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
 
         host_files = [model_host, out_meta]
@@ -208,15 +209,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_cnst.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust_cnst.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_cnst.xml")
 
         host_files = [model_host, out_meta]
@@ -238,7 +239,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, constituents, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, constituents, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                           _SRC_MOD_DIR, _CAM_ROOT,
                                           loglevel=logging.ERROR,
                                           error_on_no_validate=True)
@@ -297,9 +298,9 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_simple.xml")
 
         host_files = [model_host, out_meta]
@@ -321,7 +322,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, _, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
                                                           _SRC_MOD_DIR, _CAM_ROOT,
                                                           loglevel=logging.ERROR,
                                                           error_on_no_validate=True)
@@ -374,15 +375,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "no_req_var_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "no_req_var_reg.xml")
         out_source_name = "physics_types_no_req_var"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_noreq.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust_noreq.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_req_var.xml")
 
         host_files = [model_host, out_meta]
@@ -462,9 +463,9 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_protected.xml")
 
         host_files = [model_host, out_meta]
@@ -486,7 +487,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -547,8 +548,8 @@ class WriteInitTest(unittest.TestCase):
 
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"host_var_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_host_var.xml")
 
         host_files = [model_host, out_meta]
@@ -631,8 +632,8 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR,
                                     "temp_adjust_no_horiz.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_no_horiz.xml")
@@ -655,7 +656,7 @@ class WriteInitTest(unittest.TestCase):
         remove_files([out_source, out_meta, cap_datafile, check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -705,8 +706,8 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR,
                                     "temp_adjust_scalar.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_scalar.xml")
@@ -730,7 +731,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -782,8 +783,8 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_4D.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_4D.xml")
 
@@ -807,7 +808,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                    _SRC_MOD_DIR, _CAM_ROOT,
                                    loglevel=logging.ERROR,
                                    error_on_no_validate=True)
@@ -853,15 +854,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "ddt_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "ddt_reg.xml")
         out_source_name = "physics_types_ddt"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt.xml")
 
         host_files = [model_host, out_meta]
@@ -933,15 +934,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "ddt2_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "ddt2_reg.xml")
         out_source_name = "physics_types_ddt2"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt2.xml")
 
         host_files = [model_host, out_meta]
@@ -963,7 +964,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, files, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, files, _, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                          _SRC_MOD_DIR, _CAM_ROOT,
                                          loglevel=logging.ERROR,
                                          error_on_no_validate=True)
@@ -1021,9 +1022,9 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_array.xml")
 
         host_files = [model_host, out_meta]
@@ -1044,7 +1045,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, _, _, _ = gen_registry(filename, 'se', _TMP_DIR, 3,
                                             _SRC_MOD_DIR, _CAM_ROOT,
                                             loglevel=logging.ERROR,
                                             error_on_no_validate=True)
@@ -1097,16 +1098,16 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR, "simple_host.meta")
+        model_host = os.path.join(_SHARED_DIR, "simple_host.meta")
         ddt_host_mod = os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_host_mod.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR, "suite_ddt_arg.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "ddt_arg_scheme.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_ddt_arg.xml")
 
@@ -1186,10 +1187,10 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
         model_mf_file = os.path.join(_INIT_SAMPLES_DIR,"ref_theta.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_mf.xml")
 
         host_files = [model_host, model_mf_file, out_meta]
@@ -1268,8 +1269,8 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_param.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_param.xml")
 
@@ -1352,8 +1353,8 @@ class WriteInitTest(unittest.TestCase):
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
         scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_bvd.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_bad_vertdim.xml")
 
@@ -1423,15 +1424,15 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg_constituent_dim.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg_constituent_dim.xml")
         out_source_name = "physics_types_simple_constituent_dim"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
 
         # Setup capgen inputs:
-        model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
-        sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_simple.xml")
-        scheme_files = os.path.join(_INIT_SAMPLES_DIR, "temp_adjust_constituent_dim.meta")
+        model_host = os.path.join(_SHARED_DIR,"simple_host.meta")
+        sdf = os.path.join(_SHARED_DIR,"suite_simple.xml")
+        scheme_files = os.path.join(_SHARED_DIR, "temp_adjust_constituent_dim.meta")
         cap_datafile = os.path.join(_TMP_DIR, "datatable_constituent_dim.xml")
 
         host_files = [model_host, out_meta]
@@ -1453,7 +1454,7 @@ class WriteInitTest(unittest.TestCase):
                       check_init_out, phys_input_out])
 
         # Generate registry files:
-        _, _, ic_names, constituents, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
+        _, _, ic_names, constituents, _, vars_init_value = gen_registry(filename, 'se', _TMP_DIR, 3,
                                           _SRC_MOD_DIR, _CAM_ROOT,
                                           loglevel=logging.ERROR,
                                           error_on_no_validate=True)
@@ -1510,7 +1511,7 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
@@ -1518,7 +1519,7 @@ class WriteInitTest(unittest.TestCase):
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_set_before_use.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_set_before_use.xml")
 
@@ -1597,7 +1598,7 @@ class WriteInitTest(unittest.TestCase):
         """
 
         # Setup registry inputs:
-        filename = os.path.join(_INIT_SAMPLES_DIR, "simple_reg.xml")
+        filename = os.path.join(_SHARED_DIR, "simple_reg.xml")
         out_source_name = "physics_types_simple"
         out_source = os.path.join(_TMP_DIR, out_source_name + '.F90')
         out_meta = os.path.join(_TMP_DIR, out_source_name + '.meta')
@@ -1605,7 +1606,7 @@ class WriteInitTest(unittest.TestCase):
         # Setup capgen inputs:
         model_host = os.path.join(_INIT_SAMPLES_DIR,"simple_host.meta")
         sdf = os.path.join(_INIT_SAMPLES_DIR,"suite_use_before_set.xml")
-        scheme_files = [os.path.join(_INIT_SAMPLES_DIR, "temp_adjust.meta"),
+        scheme_files = [os.path.join(_SHARED_DIR, "temp_adjust.meta"),
                         os.path.join(_INIT_SAMPLES_DIR, "tend_apply.meta")]
         cap_datafile = os.path.join(_TMP_DIR, "datatable_use_before_set.xml")
 
