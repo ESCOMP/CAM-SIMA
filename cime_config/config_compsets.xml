@@ -69,6 +69,11 @@
     <lname>2000_CAM40_SLND_SICE_DOCN%AQP3_SROF_SGLC_SWAV</lname>
   </compset>
 
+  <compset>
+    <alias>QP_MPASCP</alias>
+    <lname>2000_CAM%MPASCP_SLND_SICE_DOCN%AQP3_SROF_SGLC_SWAV</lname>
+  </compset>
+
   <!-- CAM simpler model compsets -->
 
   <compset>
@@ -101,13 +106,6 @@
   <!-- ****************************** -->
   <!-- CAM untested compsets -->
   <!-- ****************************** -->
-
-  <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
-  <!-- Temporarily using stub land model during development, but a real one will be required -->
-  <compset>
-    <alias>MPASCP</alias>
-    <lname>2000_CAM%MPASCP_SLND_SICE_SOCN_SROF_SGLC_SWAV</lname>
-  </compset>
 
   <!-- ENTRIES -->
 

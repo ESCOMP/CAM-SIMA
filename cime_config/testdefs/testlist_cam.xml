@@ -376,6 +376,29 @@
     </options>
   </test>
 
+  <!-- MPASCP physics tests -->
+  <test compset="QP_MPASCP" grid="mpasa480_mpasa480" name="SMS_Ln9" testmods="cam/outfrq_analy_ic_mpascp">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Aquaplanet MPASCP test with MPAS dycore at 480 km resolution</option>
+    </options>
+  </test>
+
+  <test compset="QP_MPASCP" grid="mpasa480_mpasa480" name="SMS_D_Ln9" testmods="cam/outfrq_analy_ic_mpascp">
+    <machines>
+      <machine name="derecho" compiler="intel" category="aux_sima"/>
+      <machine name="derecho" compiler="gnu" category="aux_sima"/>
+    </machines>
+    <options>
+      <option name="wallclock">00:10:00</option>
+      <option name="comment">Aquaplanet MPASCP test with MPAS dycore at 480 km resolution in debug mode</option>
+    </options>
+  </test>
+
   <!-- Restart tests -->
   <test compset="QPC4" grid="mpasa120_mpasa120" name="ERS_Ln9" testmods="cam/outfrq_analy_ic_cam4">
     <machines>

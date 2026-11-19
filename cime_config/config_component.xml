@@ -89,9 +89,8 @@
       <value compset="_DOCN%SOMAQP">--aquaplanet</value>
       <value compset="_DOCN%AQP"   >--aquaplanet</value>
 
-      <!-- CAM with MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
-      <!-- Temporarily using analytic initial condition during development -->
-      <value compset="CAM%MPASCP">--physics-suites convection_permitting --analytic-ic</value>
+      <!-- MPAS-like "convection-permitting" physics suite (EXPERIMENTAL) -->
+      <value compset="CAM%MPASCP">--physics-suites convection_permitting</value>
     </values>
     <group>build_component_cam</group>
     <file>env_build.xml</file>
