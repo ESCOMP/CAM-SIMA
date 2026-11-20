@@ -408,8 +408,10 @@ subroutine dyn_readnl(NLFileName)
       !
       if (se_nu_div>0) then
          write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu                       = ',se_nu
+      end if
       if (se_nu_div>0) then
          write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu_div                   = ',se_nu_div
+      end if
       if (se_nu_p>0) then
         write(iulog, '(a,e9.2)') 'dyn_readnl: se_nu_p                     = ',se_nu_p
         write(iulog, '(a)') 'Note that nu_q must be the same as nu_p for  mass / tracer inconsistency'
@@ -1507,7 +1509,7 @@ subroutine read_inidat(dyn_in)
       ! possible use in setting T and PS in the analytic IC code.
       allocate(phis_tmp(npsq,nelemd), stat=ierr, errmsg=errmsg)
       call check_allocate(ierr, subname, 'phis_tmp(npsq,nelemd)', &
-                          file=__FILE__, line=__LINE__, errmsg=ermsg)
+                          file=__FILE__, line=__LINE__, errmsg=errmsg)
 
       do ie = 1, nelemd
          k = 1
