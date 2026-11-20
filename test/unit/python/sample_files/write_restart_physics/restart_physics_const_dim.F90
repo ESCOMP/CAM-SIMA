@@ -191,7 +191,56 @@ contains
       end do
    end subroutine write_restart_physics
 
-   subroutine read_restart_physics()
+   subroutine read_restart_physics(file)
+      use pio,                       only: file_desc_t, io_desc_t, pio_write_darray, pio_double
+      use cam_ccpp_cap,              only: cam_model_const_properties, cam_constituents_array
+      use ccpp_kinds,                only: kind_phys
+      use physics_data,              only: read_field
+      use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+      use physics_grid,              only: num_global_phys_cols
+      use cam_grid_support,          only: cam_grid_id, cam_grid_write_dist_array
+      use physics_types, only: cool_cat_for_each_const
+      use physics_types, only: cool_default_cat_for_each_const
+      type(file_desc_t), intent(inout) :: file
+
+      integer :: timestep
+      integer :: constituent_idx
+      logical :: advected
+      character(len=256) :: const_diag_name
+      character(len=256) :: const_std_name
+      real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
+      type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+
+      ! Set timestep to 0; only one frame on the restart file
+      timestep = 0
+
+      const_props => cam_model_const_properties()
+
+      ! Handling for constituent-dimensioned variable 'cool_cat_for_each_const'
+      do constituent_idx = 1, size(const_props)
+         call const_props(constituent_idx)%diagnostic_name(const_diag_name)
+         call read_field(file, 'super_cool_cat_every_const', ['cool_cat_for_each_const_'//trim(const_diag_name)], timestep, &
+             cool_cat_for_each_const(:,constituent_idx), mark_as_read=.false.)
+      end do
+
+      ! Handling for constituent-dimensioned variable 'cool_default_cat_for_each_const'
+      do constituent_idx = 1, size(const_props)
+         call const_props(constituent_idx)%diagnostic_name(const_diag_name)
+         call read_field(file, 'super_cool_cat_with_default_every_const', ['cool_default_cat_for_each_const_'//trim(const_diag_name)], timestep, &
+             cool_default_cat_for_each_const(:,constituent_idx), mark_as_read=.false.)
+      end do
+
+      ! Handling for non-advected constituent vars (advected constituents handled by dynamics restart)
+      field_data_ptr => cam_constituents_array()
+      do constituent_idx = 1, size(const_props)
+         call const_props(constituent_idx)%is_advected(advected)
+         if (.not. advected) then
+            call const_props(constituent_idx)%diagnostic_name(const_diag_name)
+            call const_props(constituent_idx)%standard_name(const_std_name)
+            call read_field(file, trim(const_std_name), [trim(const_diag_name)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), &
+                mark_as_read=.false.)
+         end if
+      end do
    end subroutine read_restart_physics
 
 end module restart_physics_const_dim

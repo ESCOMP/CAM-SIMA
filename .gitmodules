@@ -7,7 +7,7 @@
 [submodule "history"]
 	path          = src/history/buffers
 	url           = https://github.com/ESMCI/history_output
-	fxtag         = history01_04
+	fxtag         = history01_05
 	fxrequired    = AlwaysRequired
 	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
@@ -68,7 +68,7 @@
 [submodule "cmeps"]
         path          = components/cmeps
         url           = https://github.com/ESCOMP/CMEPS.git
-        fxtag         = cmeps1.1.54
+        fxtag         = cmeps1.1.58
         fxrequired    = ToplevelRequired
 	fxDONOTUSEurl = https://github.com/ESCOMP/CMEPS.git
 [submodule "fms"]
