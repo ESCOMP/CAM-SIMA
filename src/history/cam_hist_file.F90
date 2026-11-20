@@ -1305,43 +1305,22 @@ contains
 
       ! Local variables
       class(hist_hashable_t),   pointer :: field_ptr_entry
-      integer                           :: field_idx
-      logical                           :: found_field
       character(len=*), parameter       :: subname = 'hist:find_in_field_list: '
 
       nullify(field_info)
       errmsg = ''
-      found_field = .false.
-      ! Loop over fields
-      do field_idx = 1, size(this%field_list)
-         if (trim(this%field_list(field_idx)%diag_name()) == trim(diagnostic_name)) then
-            ! Grab the associated accumulate flag
-            found_field = .true.
-         end if
-      end do
-      if (.not. found_field) then
-         ! Not an error - return with the null field_info pointer
-         return
-      end if
-      found_field = .false.
 
-      ! Grab the field info pointer from the hash table
       field_ptr_entry => this%field_list_hash_table%table_value(diagnostic_name)
+      if (.not. associated(field_ptr_entry)) then
+         return   ! field not on this file
+      end if
+
       select type(field_ptr_entry)
       type is (hist_field_info_t)
          field_info => field_ptr_entry
-         found_field = .true.
       class default
          write(errmsg,*) subname//'Unknown field type for "'//trim(diagnostic_name)//'"'
-         return
       end select
-
-      if (.not. found_field) then
-         ! Field not found - return an error
-         write(errmsg,*) subname//'Field not found in field list, "'//      &
-            trim(diagnostic_name)//'"'
-         return
-      end if
 
    end subroutine config_find_in_field_list
 
