@@ -148,7 +148,7 @@ CONTAINS
             if(.not. filefound) then
                write(iulog,*) 'INFO : rpointer file '//trim(rest_pfile)//' not found.'
                rest_pfile = 'rpointer.cam'//trim(inst_suffix)
-               write(iulog,*) '  Try looking for "//trim(rest_pfile)//" ...'
+               write(iulog,*) '  Try looking for "'//trim(rest_pfile)//'" ...'
                inquire(file=trim(rest_pfile),exist=filefound)
                if(.not. filefound) then
                   call endrun(subname//': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
