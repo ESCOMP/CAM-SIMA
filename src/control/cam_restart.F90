@@ -4,6 +4,7 @@ module cam_restart
   private
 
   public :: cam_write_restart
+  public :: cam_read_restart
 
 CONTAINS
   subroutine cam_write_restart(dyn_out, yr_spec, mon_spec, day_spec, sec_spec)
@@ -25,6 +26,7 @@ CONTAINS
     use cam_abortutils,   only: safe_endrun
     use shr_kind_mod,     only: cl=>shr_kind_cl
     use runtime_obj,      only: cam_runtime_opts
+    use tracer_data,      only: tracer_data_define_restart, tracer_data_write_restart
 
     ! Arguments
     type(dyn_export_t),      intent(in) :: dyn_out
@@ -69,6 +71,7 @@ CONTAINS
     if (errflg /= 0) then
        call safe_endrun(errmsg)
     end if
+    call tracer_data_define_restart(fh)
     call init_restart_history(fh)
 
     ierr = pio_put_att(fh, pio_global, 'caseid', caseid)
@@ -93,6 +96,9 @@ CONTAINS
        call safe_endrun(errmsg)
     end if
 
+    ! Write the state of prescribed (tracer) data files
+    call tracer_data_write_restart(fh)
+
     call write_restart_history(fh)
 
     ! Close the primary restart file
@@ -105,6 +111,39 @@ CONTAINS
 
   end subroutine cam_write_restart
 
+!========================================================================================
+
+  subroutine cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+    use dyn_comp,         only: dyn_import_t, dyn_export_t
+    use cam_initfiles,    only: initial_file_get_id
+    use pio,              only: file_desc_t
+    use cam_control_mod,  only: restart_run
+    use restart_physics,  only: read_restart_physics
+    use restart_dynamics, only: read_restart_dynamics
+    use cam_abortutils,   only: endrun
+    use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
+    use cam_history,      only: read_restart_history
+    type(dyn_import_t), intent(inout) :: dyn_in
+    type(dyn_export_t), intent(inout) :: dyn_out
+    integer,            intent(in)    :: stop_ymd
+    integer,            intent(in)    :: stop_tod
+    ! Local variables
+    type(file_desc_t), pointer :: fh_restart
+    integer                    :: grid_id
+    integer                    :: grid_dims(2)
+    integer                    :: nhdims
+
+    fh_restart => initial_file_get_id()
+
+    call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
+
+    call read_restart_physics(fh_restart)
+
+    if (restart_run) then
+       call read_restart_history(fh_restart)
+    end if
+
+  end subroutine cam_read_restart
 !========================================================================================
 
   subroutine write_rest_pfile(restart_file, yr_spec, mon_spec, day_spec, sec_spec)

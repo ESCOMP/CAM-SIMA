@@ -156,7 +156,7 @@ CONTAINS
 
    end subroutine print_input_field_info
 
-   integer function num_target_dims(num_field_dims, unstruct)
+   integer function num_target_dims(num_field_dims, unstruct) result(num_dims)
       ! Find the number of expected file dimensions (minus time) given
       ! field and grid information
 
@@ -164,12 +164,12 @@ CONTAINS
       integer, intent(in) :: num_field_dims
       logical, intent(in) :: unstruct
 
-      num_target_dims = num_field_dims ! Rank of data
+      num_dims = num_field_dims ! Rank of data
       if (unstruct) then
          ! File has one horizontal dimension
-         num_target_dims = num_target_dims - 1
+         num_dims = num_dims - 1
       end if
-      if (num_target_dims < 1) then
+      if (num_dims < 1) then
          call safe_endrun('num_target_dims, bad inputs')
       end if
    end function num_target_dims
@@ -576,12 +576,10 @@ CONTAINS
          arraydimsize(2) = (dim_bounds(2,2) - dim_bounds(2,1) + 1)
          do jndex = 1, 2
             if (arraydimsize(jndex) /= size(field, jndex)) then
-               write(errormsg, '(2(a,i0),3a,i0)')                             &
+               write(errormsg, '(2(a,i0),3a,i0)')                   &
                     ': Mismatch between array size (', arraydimsize(jndex),   &
                     ') and field size (', size(field, jndex), ') for ',       &
-                    trim(varname), ', dimension = ', jndex,                   &
-                    ', variable array bounds = ', arraydimsize(jndex),        &
-                    ', file field size = ', size(field, jndex)
+                    trim(varname), ', dimension = ', jndex
                call safe_endrun(subname//errormsg)
             end if
          end do
@@ -698,7 +696,7 @@ CONTAINS
       real(r8),          intent(inout)        :: field(:,:,:)
       ! readvar: true => variable is on initial dataset
       logical,                    intent(out) :: readvar
-      ! dim3name: Name of vertical dimension, if field reprsents a 3D quantity
+      ! dim3name: Name of vertical dimension, if field represents a 3D quantity
       character(len=*),           intent(in)  :: dim3name
       ! dim3_bnds: Bounds of vertical dimension, if field is 3D
       integer,                    intent(in)  :: dim3_bnds(2)

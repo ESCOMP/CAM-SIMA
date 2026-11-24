@@ -125,7 +125,7 @@ class RegistryTest(unittest.TestCase):
         filename = os.path.join(_SAMPLE_FILES_DIR, "reg_bad_xml.xml")
         out_name = "physics_types_bad"
         # Try to generate the registry
-        with self.assertRaises(CCPPError) as cerr:
+        with self.assertRaises(ValueError) as cerr:
             retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                              _SRC_MOD_DIR, _CAM_ROOT,
                                              loglevel=logging.ERROR,
@@ -681,7 +681,7 @@ class RegistryTest(unittest.TestCase):
         filename = os.path.join(_TMP_DIR, "test_registry_initial_value_tie.xml")
 
         # Attempt to generate registry:
-        with self.assertRaises(CCPPError) as cerr:
+        with self.assertRaises(ValueError) as cerr:
             retcode, files, _ = gen_registry(filename, 'se', _TMP_DIR, 2,
                                              _SRC_MOD_DIR, _CAM_ROOT,
                                              loglevel=logging.ERROR,
