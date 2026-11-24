@@ -110,30 +110,30 @@ CONTAINS
 
       call mpi_bcast(ncdata, len(ncdata), mpi_character, mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: ncdata")
+         call endrun(subname//': ERROR: mpi_bcast: ncdata')
       end if
       call mpi_bcast(bnd_topo, len(bnd_topo), mpi_character,                  &
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: bnd_topo")
+         call endrun(subname//': ERROR: mpi_bcast: bnd_topo')
       end if
       call mpi_bcast(pertlim, 1, mpi_real8, mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: pertlim")
+         call endrun(subname//': ERROR: mpi_bcast: pertlim')
       end if
       call mpi_bcast(cam_branch_file, len(cam_branch_file), mpi_character,    &
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: cam_branch_file")
+         call endrun(subname//': ERROR: mpi_bcast: cam_branch_file')
       end if
       call mpi_bcast(scale_dry_air_mass, 1, mpi_real8, mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: scale_dry_air_mass")
+         call endrun(subname//': ERROR: mpi_bcast: scale_dry_air_mass')
       endif
       call mpi_bcast(unset_path_str, len(unset_path_str), mpi_character,      &
            mstrid, mpicom, ierr)
       if (ierr /= 0) then
-         call endrun(subname//": ERROR: mpi_bcast: unset_path_str")
+         call endrun(subname//': ERROR: mpi_bcast: unset_path_str')
       end if
 
       ! Set pointer file name based on instance suffix
@@ -143,12 +143,12 @@ CONTAINS
       if (restart_run) then
          ! Read name of restart file from pointer file
          if (masterproc) then
-            rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
+            rest_pfile = interpret_filename_spec('rpointer.cam'//trim(inst_suffix)//'.%y-%m-%d-%s', prev=.true.)
             inquire(file=trim(rest_pfile),exist=filefound)
             if(.not. filefound) then
-               write(iulog,*) "INFO : rpointer file "//trim(rest_pfile)//" not found."
-               rest_pfile = "rpointer.cam"//trim(inst_suffix)
-               write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
+               write(iulog,*) 'INFO : rpointer file '//trim(rest_pfile)//' not found.'
+               rest_pfile = 'rpointer.cam'//trim(inst_suffix)
+               write(iulog,*) '  Try looking for "//trim(rest_pfile)//" ...'
                inquire(file=trim(rest_pfile),exist=filefound)
                if(.not. filefound) then
                   call endrun(subname//': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
@@ -156,7 +156,7 @@ CONTAINS
             endif
             open(newunit=unitn, action='read', file=trim(rest_pfile), status='old', iostat=ierr, iomsg=ioerrmsg)
             if (ierr /= 0) then
-               call endrun(subname//'" ERROR: opening rpointer file: '//trim(rest_pfile)//', error: '//trim(ioerrmsg))
+               call endrun(subname//' ERROR: opening rpointer file: '//trim(rest_pfile)//', error: '//trim(ioerrmsg))
             end if
             read (unitn, '(a)', iostat=ierr, iomsg=ioerrmsg) restart_file
             if (ierr /= 0) then
@@ -168,7 +168,7 @@ CONTAINS
          call mpi_bcast(restart_file, len(restart_file), mpi_character,       &
               mstrid, mpicom, ierr)
          if (ierr /= 0) then
-            call endrun(subname//": ERROR: mpi_bcast: restart_file")
+            call endrun(subname//': ERROR: mpi_bcast: restart_file')
          end if
 
       else if (branch_run) then

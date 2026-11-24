@@ -302,10 +302,6 @@ contains
          call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
       end if
 
-!!XXgoldyXX: v need to import this
-!      call bldfld ()  ! master field list (if branch, only does hash tables)
-!!XXgoldyXX: ^ need to import this
-
       call stepon_init(cam_runtime_opts, dyn_in, dyn_out)
 
       ! if (single_column) then
