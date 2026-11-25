@@ -5,6 +5,9 @@ debug_output=0
 ncdata_check_err = .true.
 min_difference = 2e-15
 pver=58
+! ZM snapshots are chunked and gathered columns depend on PE/chunk decomposition which will never match SIMA
+! since SIMA does not have chunking:
+ncdata_check_exclude = '*_for_deep_convection_for_convective_columns'
 ! ZM namelist as in the CAM7 snapshot run
 zmconv_c0_lnd=0.00549D0
 zmconv_c0_ocn=0.0300D0

@@ -21,3 +21,8 @@ build/
 .#*
 \#*#
 **/.vscode/
+
+# Ignore agent temporaries
+.sashiko
+.claude
+.agents
