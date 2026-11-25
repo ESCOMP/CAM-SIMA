@@ -1,0 +1,28 @@
+[ccpp-table-properties]
+  name = ddt_arg_scheme
+  type = scheme
+
+[ccpp-arg-table]
+  name = ddt_arg_scheme_run
+  type = scheme
+[ test_list ]
+  standard_name = test_list_for_ddt_argument
+  units = none
+  type = test_list_t
+  dimensions = (vertical_layer_dimension)
+  intent = in
+[ errmsg ]
+  standard_name = ccpp_error_message
+  long_name = Error message for error handling in CCPP
+  units = none
+  dimensions = ()
+  type = character
+  kind = len=512
+  intent = out
+[ errflg ]
+  standard_name = ccpp_error_code
+  long_name = Error flag for error handling in CCPP
+  units = 1
+  dimensions = ()
+  type = integer
+  intent = out

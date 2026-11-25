@@ -1,0 +1,6 @@
+hist_output_frequency: 2*nsteps
+hist_add_avg_fields: PS
+hist_add_avg_fields: T
+hist_write_nstep0: .false.
+hist_precision: REAL32
+hist_add_inst_fields: U, V

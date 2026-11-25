@@ -1,10 +1,10 @@
 <CAMBuildCache>
    TAG1
    <registry>
-      <generate_init_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="5b65f718cb93feb881f9cd98d343e21103f4a40b" />
+      <generate_init_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="7b03a6c9407e999e92c316fee6478511f1969106" />
       TAG2
-      <generate_registry_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="5b65f718cb93feb881f9cd98d343e21103f4a40b" />
-      <registry_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="5b65f718cb93feb881f9cd98d343e21103f4a40b" />
+      <generate_registry_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="7b03a6c9407e999e92c316fee6478511f1969106" />
+      <registry_file file_path="$TEST_SOURCE_MODS_DIR/simple_reg.xml" hash="7b03a6c9407e999e92c316fee6478511f1969106" />
       <dycore>none</dycore>
    </registry>
    <CCPP>

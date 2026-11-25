@@ -62,8 +62,8 @@ contains
     integer                       :: nSend,nRecv,nedges
     integer                       :: icycle
     integer           :: iSched
-    logical, parameter            :: VerbosePrint=.FALSE.
-    logical, parameter            :: Debug=.FALSE.
+    logical, parameter            :: VerbosePrint=.false.
+    logical, parameter            :: Debug=.false.
     character(len=*),       parameter :: subname = 'genEdgeSched (SE)'
     integer                           :: errorcode,errorlen
     character(len=shr_kind_cs)        :: errorstring
@@ -95,9 +95,9 @@ contains
     ! It looks like this is only used in this routine...
     ! so no need to put it in the schedule data-structure
     ! =====================================================
-    allocate(Global2Local(nelem), stat=ierr)
+    allocate(Global2Local(nelem), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'Global2Local(nelem)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     if(Debug) write(iulog,*)'genEdgeSched: point #1'
     iSched = PartNumber
@@ -114,40 +114,40 @@ contains
 
     !  Note the minus one is for the internal node
     nedges = MetaVertex%nedges
-    if(2*(nedges/2) .eq. nedges) then
+    if(2*(nedges/2) == nedges) then
        nedges = nedges/2
     else
        nedges = (nedges-1)/2
-    endif
+    end if
     LSchedule%nSendCycles = nedges
     LSchedule%nRecvCycles = nedges
     if(Debug) write(iulog,*)'genEdgeSched: point #5'
 
     ! Temporary array to calculate the Buffer Slot
-    allocate(tmpP(2,nedges+1), stat=ierr)
+    allocate(tmpP(2,nedges+1), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'tmpP(2,nedges+1)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(tmpS(2,nedges+1), stat=ierr)
+    allocate(tmpS(2,nedges+1), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'tmpS(2,nedges+1)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(tmpP_ghost(2,nedges+1), stat=ierr)
+    allocate(tmpP_ghost(2,nedges+1), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'tmpP_ghost(2,nedges+1)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     !  Allocate all the cycle structures
-    allocate(LSchedule%SendCycle(nedges), stat=ierr)
+    allocate(LSchedule%SendCycle(nedges), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%SendCycle(nedges)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(LSchedule%RecvCycle(nedges), stat=ierr)
+    allocate(LSchedule%RecvCycle(nedges), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%RecvCycle(nedges)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(LSchedule%MoveCycle(1), stat=ierr)
+    allocate(LSchedule%MoveCycle(1), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%MoveCycle(1)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     ! Initialize the schedules...
     LSchedule%MoveCycle(1)%ptrP = 0
@@ -158,17 +158,17 @@ contains
     !==================================================================
     !  Allocate and initalized the index translation arrays
     Global2Local = -1
-    allocate(LSchedule%Local2Global(nelemd0), stat=ierr)
+    allocate(LSchedule%Local2Global(nelemd0), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%Local2Global(nelemd0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(LSchedule%pIndx(max_neigh_edges*nelemd0), stat=ierr)
+    allocate(LSchedule%pIndx(max_neigh_edges*nelemd0), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%pIndx(max_neigh_edges*nelemd0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(LSchedule%gIndx(max_neigh_edges*nelemd0), stat=ierr)
+    allocate(LSchedule%gIndx(max_neigh_edges*nelemd0), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%gIndx(max_neigh_edges*nelemd0)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     LSchedule%pIndx(:)%elemId   = -1
     LSchedule%pIndx(:)%edgeId   = -1
@@ -199,8 +199,8 @@ contains
        elem(il)%desc%getmapS=-1
        elem(il)%desc%putmapP_ghost=-1
        elem(il)%desc%getmapP_ghost=-1
-       elem(il)%desc%reverse = .FALSE.
-    enddo
+       elem(il)%desc%reverse = .false.
+    end do
     !==================================================================
     if(Debug) write(iulog,*)'genEdgeSched: point #8'
 
@@ -225,7 +225,7 @@ contains
        lengthP_ghost     =  MetaVertex%edges(j)%wgtP_ghost
 
        if ((MetaVertex%edges(j)%TailVertex == PartNumber) .AND. &
-                (MetaVertex%edges(j)%HeadVertex .ne. PartNumber) ) then
+                (MetaVertex%edges(j)%HeadVertex /= PartNumber)) then
           inbr                            = MetaVertex%edges(j)%HeadVertex
           if(Debug) write(iulog,*)'genEdgeSched: point #11', par%rank
           LSchedule%SendCycle(is)%ptrP     = FindBufferSlot(inbr,lengthP,tmpP)
@@ -234,8 +234,8 @@ contains
           call SetCycle(par, elem, LSchedule,LSchedule%SendCycle(is),MetaVertex%edges(j), HME_CYCLE_SEND)
           if(Debug) write(iulog,*)'genEdgeSched: point #12',par%rank
           is = is+1
-       endif
-    enddo
+       end if
+    end do
 
     !
     ! Recv Cycle:  Note that by reinitializing the tmpP array we change the structure of the receive buffer
@@ -253,8 +253,8 @@ contains
        lengthS     =  MetaVertex%edges(j)%wgtS
        lengthP_ghost     =  MetaVertex%edges(j)%wgtP_ghost
 
-       if ( (MetaVertex%edges(j)%HeadVertex == PartNumber) .AND. &
-               (MetaVertex%edges(j)%TailVertex .ne. PartNumber) ) then
+       if ((MetaVertex%edges(j)%HeadVertex == PartNumber) .AND. &
+               (MetaVertex%edges(j)%TailVertex /= PartNumber)) then
           inbr                            = MetaVertex%edges(j)%TailVertex
           if(Debug) write(iulog,*)'genEdgeSched: point #13',par%rank
           LSchedule%RecvCycle(ir)%ptrP     = FindBufferSlot(inbr,lengthP,tmpP)
@@ -263,8 +263,8 @@ contains
           call SetCycle(par, elem, LSchedule,LSchedule%RecvCycle(ir),MetaVertex%edges(j),HME_CYCLE_RECV)
           if(Debug) write(iulog,*)'genEdgeSched: point #14',par%rank
           ir = ir+1
-       endif
-    enddo
+       end if
+    end do
 
     ! Put the move cycle at the end of the buffer.
     do j=1,ncycle
@@ -281,8 +281,8 @@ contains
           LSchedule%MoveCycle%ptrP_ghost   = FindBufferSlot(inbr,lengthP_ghost,tmpP_ghost)
           call SetCycle(par, elem, LSchedule,LSchedule%MoveCycle(1),MetaVertex%edges(j),HME_CYCLE_MOVE)
           if(Debug) write(iulog,*)'genEdgeSched: point #10',par%rank
-       endif
-    enddo
+       end if
+    end do
 
     deallocate(tmpP)
     deallocate(tmpS)
@@ -294,8 +294,8 @@ contains
        do i=1,max_neigh_edges
           if (elem(ie)%desc%globalID(i)>0) then
              elem(ie)%desc%actual_neigh_edges=elem(ie)%desc%actual_neigh_edges+1
-          endif
-       enddo
+          end if
+       end do
 
        ! normally, we loop over max_neigh_edges, checking if there is an edge
        ! let's create a mapping so that we can loop over actual_neigh_edges
@@ -309,9 +309,9 @@ contains
                 l1id=elem(ie)%desc%loc2buf(l2)
                 elem(ie)%desc%loc2buf(l2)=elem(ie)%desc%loc2buf(l1)
                 elem(ie)%desc%loc2buf(l1)=l1id
-             endif
-          enddo
-       enddo
+             end if
+          end do
+       end do
 
 
 
@@ -320,7 +320,7 @@ contains
        ig                  = MetaVertex%members(ie)%number
        elem(ie)%GlobalId   = ig
        elem(ie)%LocalId    = ie
-    enddo
+    end do
 
     deallocate(Global2Local)
 
@@ -333,17 +333,17 @@ contains
 
     nSend = nedges
     nRecv = nedges
-    allocate(Rrequest(nRecv), stat=ierr)
+    allocate(Rrequest(nRecv), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'Rrequest(nRecv)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(Srequest(nSend), stat=ierr)
+    allocate(Srequest(nSend), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'Srequest(nSend)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(status(MPI_STATUS_SIZE,nRecv), stat=ierr)
+    allocate(status(MPI_STATUS_SIZE,nRecv), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'status(MPI_STATUS_SIZE,nRecv)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     !===============================================================
     !   Number of communication points ... to be used later to
@@ -360,9 +360,9 @@ contains
    call MPI_Comm_size(par%intracomm, par%intracommsize, ierr)
    call MPI_Comm_rank(par%intracomm, par%intracommrank, ierr)
 
-   allocate(intracommranks(par%intracommsize), stat=ierr)
+   allocate(intracommranks(par%intracommsize), stat=ierr, errmsg=errorstring)
    call check_allocate(ierr, subname, 'intracommranks(par%intracommsize)', &
-                       file=__FILE__, line=__LINE__)
+                       file=__FILE__, line=__LINE__, errmsg=errorstring)
 
    call MPI_Allgather(par%rank,1,MPIinteger_t,intracommranks,1,MPIinteger_t,par%intracomm,ierr)
 
@@ -373,13 +373,13 @@ contains
       LSchedule%SendCycle(icycle)%onNode = onNode
       if(onNode) then
          numIntra=numIntra+1
-      endif
-   enddo
+      end if
+   end do
    do icycle=1,nRecv
       rank = LSchedule%RecvCycle(icycle)%source - 1
       onNode = isIntraComm(intracommranks,rank)
       LSchedule%RecvCycle(icycle)%onNode = onNode
-   enddo
+   end do
    numInter = nsend-numIntra
 
 
@@ -389,66 +389,66 @@ contains
    numInter = nSend
    ! Mark all communications as off-node by default
    do icycle=1,nSend
-      LSchedule%SendCycle(icycle)%onNode = .False.
-   enddo
+      LSchedule%SendCycle(icycle)%onNode = .false.
+   end do
    do icycle=1,nRecv
-      LSchedule%RecvCycle(icycle)%onNode = .False.
-   enddo
+      LSchedule%RecvCycle(icycle)%onNode = .false.
+   end do
 #endif
     LSchedule%nInter = numInter
     LSchedule%nIntra = numIntra
 
-    allocate(srcFull(nRecv), stat=ierr)
+    allocate(srcFull(nRecv), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'srcFull(nRecv)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(srcWeightFull(nRecv), stat=ierr)
+    allocate(srcWeightFull(nRecv), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'srcWeightFull(nRecv)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(destFull(nSend), stat=ierr)
+    allocate(destFull(nSend), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'destFull(nSend)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(destWeightFull(nSend), stat=ierr)
+    allocate(destWeightFull(nSend), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'destWeightFull(nSend)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     if(numInter>0) then
-       allocate(srcInter(numInter), stat=ierr)
+       allocate(srcInter(numInter), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'srcInter(numInter)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(srcWeightInter(numInter), stat=ierr)
+       allocate(srcWeightInter(numInter), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'srcWeightInter(numInter)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(destInter(numInter), stat=ierr)
+       allocate(destInter(numInter), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'destInter(numInter)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(destWeightInter(numInter), stat=ierr)
+       allocate(destWeightInter(numInter), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'destWeightInter(numInter)', &
-                           file=__FILE__, line=__LINE__)
-    endif
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
+    end if
 
     if(numIntra>0) then
-       allocate(srcIntra(numIntra), stat=ierr)
+       allocate(srcIntra(numIntra), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'srcIntra(numIntra)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(srcWeightIntra(numIntra), stat=ierr)
+       allocate(srcWeightIntra(numIntra), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'srcWeightIntra(numIntra)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(destIntra(numIntra), stat=ierr)
+       allocate(destIntra(numIntra), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'destIntra(numIntra)', &
-                           file=__FILE__, line=__LINE__)
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-       allocate(destWeightIntra(numIntra), stat=ierr)
+       allocate(destWeightIntra(numIntra), stat=ierr, errmsg=errorstring)
        call check_allocate(ierr, subname, 'destWeightIntra(numIntra)', &
-                           file=__FILE__, line=__LINE__)
-    endif
+                           file=__FILE__, line=__LINE__, errmsg=errorstring)
+    end if
 
     icIntra=0
     icInter=0
@@ -465,8 +465,8 @@ contains
           icInter=icInter+1
           destInter(icInter) = dest
           destWeightInter(icInter) = wgt
-       endif
-    enddo
+       end if
+    end do
 
     icIntra=0
     icInter=0
@@ -483,67 +483,67 @@ contains
           icInter=icInter+1
           srcInter(icInter) = src
           srcWeightInter(icInter) = wgt
-       endif
-    enddo
+       end if
+    end do
 
     ! construct the FULL communication graph
-    reorder=.FALSE.
+    reorder=.false.
     call MPI_Dist_graph_create_adjacent(par%comm, nRecv,srcFull,srcWeightFull, &
          nSend,destFull,destWeightFull,MPI_INFO_NULL,reorder,par%commGraphFull,ierr)
-    if(ierr .ne. MPI_SUCCESS) then
+    if(ierr /= MPI_SUCCESS) then
        errorcode=ierr
        call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
        print *,subname,': Error after call to MPI_dist_graph_create_adjacent(FULL) ',errorstring
-    endif
-    allocate(LSchedule%destFull(nSend), stat=ierr)
+    end if
+    allocate(LSchedule%destFull(nSend), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%destFull(nSend)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
-    allocate(LSchedule%srcFull(nRecv), stat=ierr)
+    allocate(LSchedule%srcFull(nRecv), stat=ierr, errmsg=errorstring)
     call check_allocate(ierr, subname, 'LSchedule%srcFull(nRecv)', &
-                        file=__FILE__, line=__LINE__)
+                        file=__FILE__, line=__LINE__, errmsg=errorstring)
 
     LSchedule%destFull(:) = destFull(:)
     LSchedule%srcFull(:)  = srcFull(:)
     ! construct the FULL communication -group- (for one-sided operations):
     call MPI_Comm_group(par%comm, groupFull, ierr)
     call MPI_group_incl(groupFull,nRecv,srcFull,par%groupGraphFull,ierr)
-    if (ierr .ne. MPI_SUCCESS) then
+    if (ierr /= MPI_SUCCESS) then
        errorcode=ierr
        call MPI_Error_String(errorcode, errorstring, errorlen, ierr)
        print *,subname, ': Error after call to MPI_Comm_group (groupGraphFull) ', errorstring
-    endif
+    end if
     call MPi_Group_size(par%groupGraphFull,sizeGroup,ierr)
     if(Debug) write (*,199) par%rank,sizeGroup,nSend,nRecv
 
 199 format ('RANK: ',i4,' genEdgeSched: size of groupGraphFUll is: ',i8,' nSend, nRecv: ',2(i4))
     deallocate(srcFull,srcWeightFull,destFull,destWeightFull)
 
-    ! construct the INTER communication graph 
-    reorder=.FALSE.
-    if(numInter>0) then 
+    ! construct the INTER communication graph
+    reorder=.false.
+    if(numInter>0) then
        call MPI_Dist_graph_create_adjacent(par%comm, numInter,srcInter,srcWeightInter, &
          numInter,destInter,destWeightInter,MPI_INFO_NULL,reorder,par%commGraphInter,ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           print *,subname,': Error after call to MPI_dist_graph_create_adjacent(INTER) ',errorstring
-       endif
+       end if
        deallocate(srcInter,srcWeightInter,destInter,destWeightInter)
-    endif
+    end if
 
-    ! construct the INTRA communication graph 
-    reorder=.FALSE.
-    if(numIntra>0) then 
+    ! construct the INTRA communication graph
+    reorder=.false.
+    if(numIntra>0) then
        call MPI_Dist_graph_create_adjacent(par%comm, numIntra,srcIntra,srcWeightIntra, &
          numIntra,destIntra,destWeightIntra,MPI_INFO_NULL,reorder,par%commGraphIntra,ierr)
-       if(ierr .ne. MPI_SUCCESS) then
+       if(ierr /= MPI_SUCCESS) then
           errorcode=ierr
           call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
           print *,subname,': Error after call to MPI_dist_graph_create_adjacent(INTRA) ',errorstring
-       endif
+       end if
        deallocate(srcIntra,srcWeightIntra,destIntra,destWeightIntra)
-    endif
+    end if
 
   200 format ('IAM: ',i4,': ', i2,' of',i2,' comms are interNode')
   201 format ('IAM: ',i4,': ', i2,' of',i2,' comms are intraNode')
@@ -552,21 +552,21 @@ contains
 
   end subroutine genEdgeSched
 
-  logical function isIntraComm(commranks,rank)
+  logical function isIntraComm(commranks,rank) result(is_intra_comm)
 
-   
     integer, intent(in) :: commranks(:)
     integer, intent(in) :: rank
+!    logical :: is_intra_comm
 
     integer :: i,nranks
 
     nranks = SIZE(commranks)
-    isIntraComm = .FALSE.
+    is_intra_comm = .false.
     do i=1,nranks
-        if(commranks(i) .eq. rank) then 
-           isIntraComm=.TRUE.
-        endif
-    enddo
+        if(commranks(i) == rank) then
+           is_intra_comm=.true.
+        end if
+    end do
 
   end function isIntraComm
 
@@ -581,7 +581,7 @@ contains
       pSchedule => Schedule(i)
       nbufferwords_1 = SUM(pSchedule%SendCycle(:)%lengthP)
       nbufferwords_2 = SUM(pSchedule%RecvCycle(:)%lengthP)
-      if(nbufferwords_1 .ne. nbufferwords_2) then
+      if(nbufferwords_1 /= nbufferwords_2) then
         write (iulog,100) i,nbufferwords_1, nbufferwords_2
       end if
     end do
@@ -601,33 +601,33 @@ contains
 
     nSched = SIZE(Schedule)
 
-    write(6,*) '------NEW SCHEDULE FORMAT---------------------'
+    write(iulog,*) '------NEW SCHEDULE FORMAT---------------------'
     do i=1,nSched
        pSchedule => Schedule(i)
-       write(6,*)
-       write(6,*) '----------------------------------------------'
-       write(6,90) i,pSchedule%ncycles
-       write(6,*) '----------------------------------------------'
-       write(6,*) '-----------SEND-------------------------------'
+       write(iulog,*)
+       write(iulog,*) '----------------------------------------------'
+       write(iulog,90) i,pSchedule%ncycles
+       write(iulog,*) '----------------------------------------------'
+       write(iulog,*) '-----------SEND-------------------------------'
        do j=1,pSchedule%nSendCycles
           pCycle => pSchedule%SendCycle(j)
           call PrintCycle(pCycle)
           call PrintGridEdge(pCycle%edge%members)
-       enddo
-       write(6,*) '-----------RECV-------------------------------'
+       end do
+       write(iulog,*) '-----------RECV-------------------------------'
        do j=1,pSchedule%nRecvCycles
           pCycle => pSchedule%RecvCycle(j)
           call PrintCycle(pCycle)
           call PrintGridEdge(pCycle%edge%members)
-       enddo
-       write(6,*) '-----------MOVE-------------------------------'
+       end do
+       write(iulog,*) '-----------MOVE-------------------------------'
        pCycle => pSchedule%MoveCycle(1)
        call PrintCycle(pCycle)
        call PrintGridEdge(pCycle%edge%members)
-    enddo
-    write(6,*) '-----------Put Index--------------------'
+    end do
+    write(iulog,*) '-----------Put Index--------------------'
     call PrintIndex(Schedule(1)%pIndx)
-    write(6,*) '-----------Get Index--------------------'
+    write(iulog,*) '-----------Get Index--------------------'
     call PrintIndex(Schedule(1)%gIndx)
 
 90  format('NODE # ',I2,2x,'NCYCLES ',I2)
@@ -639,7 +639,6 @@ contains
 
   subroutine PrintIndex(Indx)
   ! Debugging subroutine for the pgindex_t data-structure
-    
     !  type, public :: pgindex_t
     !     integer :: elemid
     !     integer :: edgeid
@@ -647,16 +646,16 @@ contains
     !     integer :: lenP,lenS
     !  end type pgindex_t
 
-    type (pgindex_t) :: Indx(:)
+    type (pgindex_t), intent(in) :: Indx(:)
 
     integer :: i, len
 
     len = SIZE(Indx)
 
-    write(6,*) ' elemID,  edgeID,  mesgID, lenP, lenS '
+    write(iulog,*) ' elemID,  edgeID,  mesgID, lenP, lenS '
     do i=1,len
-       write(6,1099) Indx(i)%elemid,Indx(i)%edgeid,Indx(i)%mesgid,Indx(i)%lenP,Indx(i)%lenS 
-    enddo
+       write(iulog,1099) Indx(i)%elemid,Indx(i)%edgeid,Indx(i)%mesgid,Indx(i)%lenP,Indx(i)%lenS
+    end do
 
 1099 format(I4,5X,I4,5X,I4,5X,I2,4X,I2)
 
@@ -666,7 +665,7 @@ contains
   ! debug subroutine for the cycle_t data-structure
     type (Cycle_t),intent(in),target  ::  Cycle
 
-    write(6,97) Cycle%edge%number,Cycle%type,Cycle%edge%nmembers, &
+    write(iulog,97) Cycle%edge%number,Cycle%type,Cycle%edge%nmembers, &
          Cycle%lengthP,Cycle%source, Cycle%dest,Cycle%ptrP
 
 97  format(5x,'METAEDGE #',I2,2x,'TYPE ',I1,2x,'G.EDGES',I4,2x,'WORDS ',I5,2x, &
@@ -695,7 +694,7 @@ contains
         il                     = Global2Local(Edge%members(i)%tail%number)
         face                   = Edge%members(i)%tail_face
         !need to convert the location of corner elements for getmap and putmap
-        if (face.ge.5) then ! if a corner element
+        if (face>=5) then ! if a corner element
           dir = Edge%members(i)%tail_dir
           loc = MOD(dir,max_corner_elem) !this is the location within that direction
           dir = (dir - loc)/max_corner_elem !this is the direction (1-8)
@@ -704,7 +703,7 @@ contains
           loc = face
         end if
 
-        if(il .gt. 0) then
+        if(il > 0) then
           elem(il)%desc%putmapP(loc) = Edge%edgeptrP(i) + Cycle%ptrP - 1  ! offset, so start at 0
           elem(il)%desc%putmapS(loc) = Edge%edgeptrS(i) + Cycle%ptrS - 1
           elem(il)%desc%putmapP_ghost(loc) = Edge%edgeptrP_ghost(i) + Cycle%ptrP_ghost  ! index, start at 1
@@ -714,11 +713,11 @@ contains
           schedule%pIndx(schedule%pPtr)%mesgid=Edge%HeadVertex-1  ! convert this to 0-based
           schedule%pIndx(schedule%pPtr)%lenP  =Edge%members(i)%wgtP
           schedule%pIndx(schedule%pPtr)%lenS  =Edge%members(i)%wgtS
-          if (face.ge.5) then 
+          if (face>=5) then
              schedule%pIndx(schedule%pPtr)%edgeType = HME_Ordinal
           else
              schedule%pIndx(schedule%pPtr)%edgeType = HME_Cardinal
-          endif
+          end if
           schedule%pPtr=schedule%pPtr+1
         end if
       end if
@@ -730,7 +729,7 @@ contains
         il                     = Global2Local(Edge%members(i)%head%number)
         face                   = Edge%members(i)%head_face
         !need to convert the location of corner elements for getmap and putmap
-        if (face.ge.5) then !its a corner
+        if (face>=5) then !its a corner
           dir = Edge%members(i)%head_dir
           loc = MOD(dir,max_corner_elem) !this is the location within that direction
           dir = (dir - loc)/max_corner_elem !this is the direction (1-8)
@@ -743,7 +742,7 @@ contains
           loc = face
         end if
 
-        if(il .gt. 0) then
+        if(il > 0) then
           elem(il)%desc%getmapP(loc) = Edge%edgeptrP(i) + Cycle%ptrP - 1
           elem(il)%desc%getmapS(loc) = Edge%edgeptrS(i) + Cycle%ptrS - 1
           elem(il)%desc%getmapP_ghost(loc) = Edge%edgeptrP_ghost(i) + Cycle%ptrP_ghost
@@ -753,11 +752,11 @@ contains
           schedule%gIndx(schedule%gPtr)%mesgid=Edge%TailVertex-1  ! convert this to 0-based
           schedule%gIndx(schedule%gPtr)%lenP  =Edge%members(i)%wgtP
           schedule%gIndx(schedule%gPtr)%lenS  =Edge%members(i)%wgtS
-          if (face.ge.5) then 
+          if (face>=5) then
              schedule%gIndx(schedule%gPtr)%edgeType = HME_Ordinal
           else
              schedule%gIndx(schedule%gPtr)%edgeType = HME_Cardinal
-          endif
+          end if
           schedule%gPtr=schedule%gPtr+1
         end if
       end if
@@ -785,18 +784,18 @@ contains
 
     ptr = 0
     do i=1,n
-       if( tmp(1,i) == inbr) then
+       if(tmp(1,i) == inbr) then
           ptr = tmp(2,i)
           return
-       endif
-       if( tmp(1,i) == -1 ) then
+       end if
+       if(tmp(1,i) == -1) then
           tmp(1,i) = inbr
-          if(i .eq. 1) tmp(2,i) = 1
+          if(i == 1) tmp(2,i) = 1
           ptr = tmp(2,i)
-          if(i .ne. n) tmp(2,i+1) = ptr +length
+          if(i /= n) tmp(2,i+1) = ptr +length
           return
-       endif
-    enddo
+       end if
+    end do
 
   end function FindBufferSlot
 

@@ -70,7 +70,7 @@
 
    end subroutine mark_as_read_from_file
 
-   logical function is_initialized(varname)
+   logical function is_initialized(varname) result(var_is_init)
 
       ! This function checks if the variable, <varname>, is already
       !    initialized according to the 'initialized_vars' array.
@@ -86,13 +86,13 @@
       logical                     :: found      ! Check that <varname> was found
       character(len=*), parameter :: subname = 'is_initialized: '
 
-      is_initialized = .false.
+      var_is_init = .false.
       found = .false.
 
       ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
          if (to_lower(trim(phys_var_stdnames(stdnam_idx))) == to_lower(trim(varname))) then
-            is_initialized = (initialized_vars(stdnam_idx) > UNINITIALIZED)
+            var_is_init = (initialized_vars(stdnam_idx) > UNINITIALIZED)
             found = .true.
             exit ! Exit loop once variable has been found and checked
          end if

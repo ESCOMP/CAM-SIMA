@@ -25,7 +25,7 @@ BASELINE ARCHIVED LOCATION
 
 	izumi:     /fs/cgd/csm/models/atm/sima/pretag_bl/TAGNAME_gnu
 	           /fs/cgd/csm/models/atm/sima/pretag_bl/TAGNAME_nag
-        derecho:  /glade/campaign/cesm/community/amwg/sima_baselines/TAGNAME
+        derecho:  /glade/campaign/cesm/amwg/soft_eng/sima_baselines/TAGNAME
 
 
 SYMLINK
@@ -103,7 +103,7 @@ case $hostname in
       CAM_FC="INTEL"
     fi
     cam_tag=${cam_tag}_${CAM_FC,,}
-    baselinedir="/glade/campaign/cesm/community/amwg/sima_baselines/$cam_tag"
+    baselinedir="/glade/campaign/cesm/amwg/soft_eng/sima_baselines/$cam_tag"
   ;;
 
   * ) echo "ERROR: machine $hostname not currently supported"; exit 1 ;;

@@ -151,7 +151,6 @@ contains
   ! ===================================================
 
   pure function distance_cart2D(cart1,cart2) result(dist)
-    implicit none
     type(cartesian2D_t), intent(in)           :: cart1
     type(cartesian2D_t), intent(in), optional :: cart2
     real(r8)   :: dist
@@ -167,7 +166,6 @@ contains
   end function distance_cart2D
 
   pure function distance_cart2D_v(cart1,cart2) result(dist)
-    implicit none
     type(cartesian2D_t), intent(in)           :: cart1(:)
     type(cartesian2D_t), intent(in), optional :: cart2(:)
     real(r8)                           :: dist(SIZE(cart1))
@@ -189,7 +187,6 @@ contains
   ! ===================================================
 
   pure function distance_cart3D(cart1,cart2) result(dist)
-    implicit none
     type(cartesian3D_t), intent(in)          :: cart1
     type(cartesian3D_t), intent(in),optional :: cart2
     real(r8)                          :: dist
@@ -206,7 +203,6 @@ contains
   end function distance_cart3D
 
   pure function distance_cart3D_v(cart1,cart2) result(dist)
-    implicit none
     type(cartesian3D_t), intent(in)          :: cart1(:)
     type(cartesian3D_t), intent(in),optional :: cart2(:)
     real(r8)                          :: dist(SIZE(cart1))
@@ -227,7 +223,6 @@ contains
   ! ===================================================================
 
   pure function spherical_to_cart(sphere) result (cart)
-    implicit none
     type(spherical_polar_t), intent(in) :: sphere
     type(cartesian3D_t)                 :: cart
 
@@ -244,7 +239,6 @@ contains
   ! ===================================================================
 
   pure function spherical_to_cart_v(sphere) result (cart)
-    implicit none
     type(spherical_polar_t), intent(in) :: sphere(:)
     type(cartesian3D_t)                 :: cart(SIZE(sphere))
 
@@ -287,7 +281,7 @@ contains
 !   so this was a bug:
 !    if (distance(cart) >= DIST_THRESHOLD) then
 
-    if ( abs(abs(sphere%lat)-PI/2)  >= DIST_THRESHOLD ) then
+    if (abs(abs(sphere%lat)-PI/2)  >= DIST_THRESHOLD) then
        sphere%lon=ATAN2(cart%y,cart%x)
        if (sphere%lon<0) then
           sphere%lon=sphere%lon + 2._r8*pi
@@ -297,7 +291,6 @@ contains
   end function cart_to_spherical
 
   pure function aray_to_spherical(coordinates) result (sphere)
-    implicit none
     real(kind=r8),  intent(in)    :: coordinates(3)
     type(spherical_polar_t)              :: sphere
     type(cartesian3D_t)                  :: cart
@@ -363,7 +356,7 @@ contains
 
     type (spherical_polar_t)             :: sphere
 
-    integer i,j
+    integer :: i,j
     real(kind=r8) :: r!, l_inf
 
 ! MNL: removing check that points are on the unit cube because we allow
@@ -375,7 +368,7 @@ contains
 !    end if
 
     sphere%r=one
-    r = SQRT( one + (cart%x)**2 + (cart%y)**2)
+    r = SQRT(one + (cart%x)**2 + (cart%y)**2)
     select case (face_no)
     case (1)
        sphere%lat=ASIN((cart%y)/r)
@@ -390,14 +383,14 @@ contains
        sphere%lat=ASIN((cart%y)/r)
        sphere%lon=ATAN2(-one,cart%x)
     case (5)
-       if (ABS(cart%y) > DIST_THRESHOLD .or. ABS(cart%x) > DIST_THRESHOLD ) then
+       if (ABS(cart%y) > DIST_THRESHOLD .or. ABS(cart%x) > DIST_THRESHOLD) then
           sphere%lon=ATAN2(cart%x, cart%y )
        else
           sphere%lon= 0.0_r8     ! longitude is meaningless at south pole set to 0.0
        end if
        sphere%lat=ASIN(-one/r)
     case (6)
-       if (ABS(cart%y) > DIST_THRESHOLD .or. ABS(cart%x) > DIST_THRESHOLD ) then
+       if (ABS(cart%y) > DIST_THRESHOLD .or. ABS(cart%x) > DIST_THRESHOLD) then
           sphere%lon = ATAN2(cart%x, -cart%y)
        else
           sphere%lon= 0.0_r8     ! longitude is meaningless at north pole set to 0.0
@@ -451,13 +444,12 @@ contains
 ! is the top edge of Face 1.  The right edge of Face 6 is the top of Face 2.  The
 ! top of 6 the top of 3 and the left of 6 the top of 4.
 
-    implicit none
     real(kind=r8), intent(in)     :: x,y   ! On face_no of a unit cube
     integer,              intent(in)     :: face_no
 
     type (spherical_polar_t)             :: sphere
 
-    integer i,j
+    integer :: i,j
     real(kind=r8) :: r!, l_inf
 
 ! MNL: removing check that points are on the unit cube because we allow
@@ -469,7 +461,7 @@ contains
 !    end if
 
     sphere%r=one
-    r = SQRT( one + x**2 + y**2)
+    r = SQRT(one + x**2 + y**2)
     select case (face_no)
     case (1)
        sphere%lat=ASIN(y/r)
@@ -484,14 +476,14 @@ contains
        sphere%lat=ASIN(y/r)
        sphere%lon=ATAN2(-one,x)
     case (5)
-       if (ABS(y) > DIST_THRESHOLD .or. ABS(x) > DIST_THRESHOLD ) then
-          sphere%lon=ATAN2(x, y )
+       if (ABS(y) > DIST_THRESHOLD .or. ABS(x) > DIST_THRESHOLD) then
+          sphere%lon=ATAN2(x, y)
        else
           sphere%lon= 0.0_r8     ! longitude is meaningless at south pole set to 0.0
        end if
        sphere%lat=ASIN(-one/r)
     case (6)
-       if (ABS(y) > DIST_THRESHOLD .or. ABS(x) > DIST_THRESHOLD ) then
+       if (ABS(y) > DIST_THRESHOLD .or. ABS(x) > DIST_THRESHOLD) then
           sphere%lon = ATAN2(x, -y)
        else
           sphere%lon= 0.0_r8     ! longitude is meaningless at north pole set to 0.0
@@ -521,7 +513,6 @@ contains
 ! This will be checked because unit_face_based_cube_to_unit_sphere checks the ranges.
 ! See unit_face_based_cube_to_unit_sphere for documentation.
 
-    implicit none
     type (cartesian2d_t), intent(in)     :: cartin
     integer,              intent(in)     :: face_no
     type (spherical_polar_t)             :: sphere
@@ -539,7 +530,6 @@ contains
   ! takes a 2D point on a face of the cube of size [-\pi/4, \pi/4] and projects it
   ! onto a 3D point on a cube of size [-1,1] in R^3
   function cubedsphere2cart(cartin, face_no) result(cart)
-    implicit none
     type (cartesian2d_t), intent(in)    :: cartin   ! assumed to be cartesian coordinates of cube
     integer,              intent(in)    :: face_no
 
@@ -553,7 +543,6 @@ contains
   ! onto a cube of size [-\pi/2,\pi/2] in R^3
   ! the spherical longitude can be either in [0,2\pi] or [-\pi,\pi]
   pure function sphere2cubedsphere (sphere, face_no) result(cart)
-    implicit none
     type(spherical_polar_t), intent(in) :: sphere
     integer,                 intent(in) :: face_no
 
@@ -623,7 +612,6 @@ contains
 !       Face 6 =>  Z positive constant face of cube
   pure function cart2cubedsphere(cart3D, face_no) result(cart)
 
-    implicit none
     type(cartesian3D_t),intent(in) :: cart3d
     integer,            intent(in) :: face_no
     type (cartesian2d_t)           :: cart
@@ -655,7 +643,7 @@ contains
   end function cart2cubedsphere
 
   function cart2cubedsphere_failsafe(cart3D, face_no) result(cart)
-    implicit none
+    use cam_logfile, only: iulog
     type(cartesian3D_t),intent(in) :: cart3d
     integer,            intent(in) :: face_no
     type (cartesian2d_t)           :: cart
@@ -712,7 +700,7 @@ contains
        x  =  cart3D%y/cart3D%z
        y  = -cart3D%x/cart3D%z
      case default
-       write(*,*) "face_no out out range ",face_no
+       write(iulog,*) 'face_no out out range ',face_no
     end select
     cart%x = ATAN(x)
     cart%y = ATAN(y)
@@ -726,7 +714,6 @@ contains
 ! if on a sphere or on a cube.
   pure function cube_face_number_from_cart(cart) result(face_no)
 
-    implicit none
     type(cartesian3D_t),intent(in) :: cart
     integer :: face_no
 
@@ -750,7 +737,7 @@ contains
          face_no=5 ! south pole
       else
          face_no = 1
-      endif
+      end if
    else if (y>x .and. y<-x) then  ! x<0
       if (z>-x) then
          face_no=6 ! north pole
@@ -758,7 +745,7 @@ contains
          face_no=5 ! south pole
       else
          face_no=3
-      endif
+      end if
    else if (y>x .and. y>-x) then  ! y>0
       if (z>y) then
          face_no=6 ! north pole
@@ -766,7 +753,7 @@ contains
         face_no = 5 ! south pole
       else
          face_no=2
-      endif
+      end if
    else if (y<x .and. y<-x) then  ! y<0
       if (z>-y) then
          face_no=6 ! north pole
@@ -774,7 +761,7 @@ contains
          face_no=5 ! south pole
       else
          face_no=4
-      endif
+      end if
    else
       ! abs(y) = abs(x).  point is on cube edge, or on face 5 or 6:
       if (abs(x)<z) then
@@ -789,8 +776,8 @@ contains
          face_no = 3
       else
          face_no = 4
-      endif
-   endif
+      end if
+   end if
 
    end function cube_face_number_from_cart
 
@@ -798,7 +785,6 @@ contains
 ! but call cube_face_number_from_cart just so that there is one place
 ! to do the conversions and they are all consistant.
   pure function cube_face_number_from_sphere(sphere) result(face_no)
-    implicit none
     type (spherical_polar_t), intent(in) :: sphere
     type (cartesian3d_t)                 :: cart
     integer                              :: face_no
@@ -841,7 +827,7 @@ end subroutine cart2cubedspherexy
 
 
 
-  subroutine sphere_tri_area( v1, v2, v3, area )
+  subroutine sphere_tri_area(v1, v2, v3, area)
   !  input: v1(3),v2(3),v3(3)  cartesian coordinates of triangle
   !  output: area
   !  based on formulas in STRI_QUAD:
@@ -853,40 +839,40 @@ end subroutine cart2cubedspherexy
   ! We should instead be using l'Huiller's formula,
   ! see:  http://williams.best.vwh.net/avform.htm
 
-  real(kind=r8) area
-  real(kind=r8) a,b,c,al,bl,cl,sina,sinb,sinc,sins,a1,b1,c1
-  type (cartesian3D_t) v1,v2,v3
+  real(kind=r8),       intent(out) :: area
+  type (cartesian3D_t), intent(in) :: v1,v2,v3
+  real(kind=r8) :: a,b,c,al,bl,cl,sina,sinb,sinc,sins,a1,b1,c1
 
   ! compute great circle lengths
-  al = acos( v2%x * v3%x + v2%y * v3%y + v2%z * v3%z )
-  bl = acos( v3%x * v1%x + v3%y * v1%y + v3%z * v1%z )
-  cl = acos( v1%x * v2%x + v1%y * v2%y + v1%z * v2%z )
+  al = acos(v2%x * v3%x + v2%y * v3%y + v2%z * v3%z)
+  bl = acos(v3%x * v1%x + v3%y * v1%y + v3%z * v1%z)
+  cl = acos(v1%x * v2%x + v1%y * v2%y + v1%z * v2%z)
 
   ! compute angles
-  sina = sin( (bl+cl-al)/2 )  ! sin(sl-al)
-  sinb = sin( (al+cl-bl)/2 )  ! sin(sl-bl)
-  sinc = sin( (al+bl-cl)/2 )
-  sins = sin( (al+bl+cl)/2 )
+  sina = sin((bl+cl-al)/2)  ! sin(sl-al)
+  sinb = sin((al+cl-bl)/2)  ! sin(sl-bl)
+  sinc = sin((al+bl-cl)/2)
+  sins = sin((al+bl+cl)/2)
 
   ! for small areas, formula above looses precision.
   ! 2atan(x) + 2atan(1/x) = pi
   ! 2atan(x) - pi = -2atan(1/x)
-  a = sqrt( (sinb*sinc) / (sins*sina) )
-  b = sqrt( (sina*sinc) / (sins*sinb) )
-  c = sqrt( (sina*sinb) / (sins*sinc) )
+  a = sqrt((sinb*sinc) / (sins*sina))
+  b = sqrt((sina*sinc) / (sins*sinb))
+  c = sqrt((sina*sinb) / (sins*sinc))
 
 
   a1 = 2*atan(a)
   b1 = 2*atan(b)
   c1 = 2*atan(c)
 
-  if (a.gt.b.and.a.gt.c) then
+  if (a>b.and.a>c) then
      a1 = -2*atan(1/a)
-  else if (b.gt.c) then
+  else if (b>c) then
      b1 = -2*atan(1/b)
   else
      c1 = -2*atan(1/c)
-  endif
+  end if
   ! apply Girard's theorem
   area = a1+b1+c1
 
@@ -896,7 +882,6 @@ end subroutine cart2cubedspherexy
 !INPUT: Points in xy cubed sphere coordinates, counterclockwise
 !OUTPUT: corresponding area on the sphere
 function surfareaxy(x1,x2,y1,y2) result(area)
-  implicit none
   real (kind=r8), intent(in)    :: x1, x2, y1, y2
   real (kind=r8)   :: area
   real (kind=r8)   :: a1,a2,a3,a4
@@ -911,7 +896,6 @@ function surfareaxy(x1,x2,y1,y2) result(area)
   a3 = acos(-sin(atan(x2))*sin(atan(y2)))
   a4 =-acos(-sin(atan(x1))*sin(atan(y2)))
   area = (a1+a2+a3+a4)
-  return
 end function surfareaxy
 
 

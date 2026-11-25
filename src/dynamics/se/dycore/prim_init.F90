@@ -30,7 +30,7 @@ contains
     use element_mod,            only: element_t, allocate_element_dims, allocate_element_desc
     use fvm_mod,                only: fvm_init1
     use mesh_mod,               only: MeshUseMeshFile
-    use time_mod,               only: timelevel_init, timelevel_t
+    use se_dyn_time_mod,        only: timelevel_init, timelevel_t
     use mass_matrix_mod,        only: mass_matrix
     use derivative_mod,         only: allocate_subcell_integration_matrix_cslam
     use derivative_mod,         only: allocate_subcell_integration_matrix_physgrid
@@ -332,25 +332,9 @@ contains
       elem(ie)%derived%FQ=0.0_r8
       elem(ie)%derived%FT=0.0_r8
       elem(ie)%derived%FDP=0.0_r8
-      elem(ie)%derived%pecnd=0.0_r8
 
       elem(ie)%derived%Omega=0
       elem(ie)%state%dp3d=0
-
-      elem(ie)%derived%etadot_prescribed = nan
-      elem(ie)%derived%u_met = nan
-      elem(ie)%derived%v_met = nan
-      elem(ie)%derived%dudt_met = nan
-      elem(ie)%derived%dvdt_met = nan
-      elem(ie)%derived%T_met = nan
-      elem(ie)%derived%dTdt_met = nan
-      elem(ie)%derived%ps_met = nan
-      elem(ie)%derived%dpsdt_met = nan
-      elem(ie)%derived%nudge_factor = nan
-
-      elem(ie)%derived%Utnd=0._r8
-      elem(ie)%derived%Vtnd=0._r8
-      elem(ie)%derived%Ttnd=0._r8
     end do
 
     ! ==========================================================

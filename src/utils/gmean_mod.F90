@@ -124,9 +124,8 @@ CONTAINS
       integer, parameter    :: nflds = 1
       real(r8)              :: gmean_array(nflds)
       real(r8)              :: array(pcols, nflds)
-      integer               :: ncols, lchnk
 
-      array(:ncols, 1) = arr(:ncols)
+      array(:, 1) = arr(:)
       call gmean_arr(array, gmean_array, nflds)
       gmean = gmean_array(1)
 
