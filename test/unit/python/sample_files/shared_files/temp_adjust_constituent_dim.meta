@@ -44,6 +44,13 @@
   type = real
   kind = kind_phys
   intent = in
+[ cool_cat_3d_for_each_const ]
+  standard_name = super_cool_cat_3d_every_const
+  units = kg kg-1
+  dimensions = (horizontal_loop_extent, vertical_layer_dimension, number_of_ccpp_constituents)
+  type = real
+  kind = kind_phys
+  intent = inout
 [ timestep ]
   standard_name = timestep_for_physics
   long_name = time step
