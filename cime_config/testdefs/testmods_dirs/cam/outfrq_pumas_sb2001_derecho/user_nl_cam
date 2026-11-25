@@ -1,0 +1,38 @@
+ncdata='/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam6_4_223_ne3pg3_qpc7_pumas_sb2001_snapshot_izumi_gnu_before_c20261118.nc'
+ncdata_check='/glade/campaign/cesm/amwg/soft_eng/sima_baselines/cam_sima_test_snapshots/cam6_4_223_ne3pg3_qpc7_pumas_sb2001_snapshot_izumi_gnu_after_c20261118.nc'
+ncdata_check_err=.true.
+debug_output=0
+pver=58
+user_defined_cpwv       = 1.846e3
+user_defined_gravit     = 9.79764
+user_defined_mwdry      = 28.96623324623746
+user_defined_mwh2o      = 18.01618112892741
+user_defined_rearth     = 6.37100e6
+user_defined_sday       = 86164.10063718943
+
+min_difference          = 2e-15
+
+warm_rain = 'sb2001'
+
+! All PUMAS diagnostics for warm_rain = 'sb2001', every step, double precision
+hist_output_frequency;h1: 1*nsteps
+hist_max_frames;h1: 2
+hist_precision;h1: REAL64
+hist_add_inst_fields;h1: CME, PRODPREC, EVAPPREC, EVAPSNOW, FICE, CLDFSNOW, ICWMRST, ICIMRST, QCSEVAP, QISEVAP
+hist_add_inst_fields;h1: QVRES, CMEIOUT, VTRMC, VTRMI, QCSEDTEN, QISEDTEN, PRAO, PRCO, MNUCCCO, MNUCCTO
+hist_add_inst_fields;h1: MNUCCDO, MNUCCDOhet, MSACWIO, PSACWSO, BERGSO, BERGO, MELTO, MELTSTOT, MNUDEPO, HOMOO
+hist_add_inst_fields;h1: QCRESO, PRCIO, PRAIO, QIRESO, MNUCCRO, MNUCCRIO, PRACSO, VAPDEPSO, MELTSDT, FRZRDT
+hist_add_inst_fields;h1: QRSEDTEN, QSSEDTEN, NNUCCCO, NNUCCTO, NNUCCDO, NNUDEPO, NHOMO, NNUCCRO, NNUCCRIO, NSACWIO
+hist_add_inst_fields;h1: NPRAO, NPSACWSO, NPRAIO, NPRACSO, NPRCO, NPRCIO, NCSEDTEN, NISEDTEN, NRSEDTEN, NSSEDTEN
+hist_add_inst_fields;h1: NMELTO, NMELTS, LAMC, LAMR, PGAM, N0R, NMELTG, NGSEDTEN, PSACRO, PRACGO
+hist_add_inst_fields;h1: PSACWGO, PGSACWO, PGRACSO, PRDGO, QMULTGO, QMULTRGO, QGSEDTEN, NPRACGO, NSCNGO, NGRACSO
+hist_add_inst_fields;h1: NMULTGO, NMULTRGO, NPSACWGO, CLDFGRAU, MELTGTOT, RBFRAC, RBFREQ, rbSZA, MPDT, MPDQ
+hist_add_inst_fields;h1: MPDLIQ, MPDICE, MPDNLIQ, MPDNICE, MPDW2V, MPDW2I, MPDW2P, MPDI2V, MPDI2W, MPDI2P
+hist_add_inst_fields;h1: ICWNC, ICINC, EFFLIQ_IND, CDNUMC, MPICLWPI, MPICIWPI, AWNC, AWNI, AREL, AREI
+hist_add_inst_fields;h1: FREQL, FREQI, ACTREL, ACTREI, ACTNL, ACTNI, FCTL, FCTI, FREQM, FREQSL
+hist_add_inst_fields;h1: FREQSLM, FCTM, FCTSL, FCTSLM, LS_FLXPRC, LS_FLXSNW, REL, REI, LS_REFFRAIN, LS_REFFSNOW
+hist_add_inst_fields;h1: CV_REFFLIQ, CV_REFFICE, MG_SADICE, MG_SADSNOW, QRAIN, QSNOW, NRAIN, NSNOW, RERCLD, DSNOW
+hist_add_inst_fields;h1: REFL, AREFL, FREFL, CSRFL, ACSRFL, FCSRFL, AREFLZ, REFL10CM, REFLZ10CM, NCAL
+hist_add_inst_fields;h1: NCAI, AQRAIN, AQSNOW, ANRAIN, ANSNOW, ADRAIN, ADSNOW, FREQR, FREQS, PE
+hist_add_inst_fields;h1: APRL, PEFRAC, VPRCO, VPRAO, RACAU, UMR, UMS, UMG, FREQG, LS_REFFGRAU
+hist_add_inst_fields;h1: AQGRAU, ANGRAU, QCRAT, qctend_SB2001, nctend_SB2001, qrtend_SB2001, nrtend_SB2001
