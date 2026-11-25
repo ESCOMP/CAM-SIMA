@@ -2144,7 +2144,8 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RNDST</ic_file_input_names>
     </variable>
-    <!-- Zhang McFarlane (ZM) Variables -->
+
+    <!-- Zhang-McFarlane (ZM) Variables -->
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"
@@ -2181,14 +2182,6 @@
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
     </variable>
-    <variable local_name="fracis"
-              standard_name="fraction_of_water_insoluble_convectively_transported_species"
-              units="fraction" type="real" kind="kind_phys"
-              allocatable="allocatable"
-              access="protected" >
-      <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
-      <initial_value>1._kind_phys</initial_value>
-    </variable>
     <variable local_name="ttend_dp"
               standard_name="tendency_of_air_temperature_due_to_deep_convection"
               units="K s-1" type="real" kind="kind_phys"
@@ -2196,6 +2189,77 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_TTEND_DP</ic_file_input_names>
+    </variable>
+
+    <!-- Zhang-McFarlane gathered convective-column arrays
+         for aerosol convective processing. -->
+    <!-- NOTE: these fields cannot be ncdata_check'd against snapshots
+         because they are "gathered columns, i.e. they depend on the PE and chunk decomposition,
+         unless the snapshots are taken with pcols=ncols and NTASKS=1 -->
+    <variable local_name="zm_eu"
+              standard_name="atmosphere_updraft_entrainment_convective_mass_flux_for_deep_convection_for_convective_columns"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_EU</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_du"
+              standard_name="atmosphere_detrainment_convective_mass_flux_for_deep_convection_for_convective_columns"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_DU</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_ed"
+              standard_name="atmosphere_downdraft_entrainment_convective_mass_flux_for_deep_convection_for_convective_columns"
+              units="s-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_ED</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_dp"
+              standard_name="pressure_thickness_for_deep_convection_for_convective_columns"
+              units="hPa" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_DP</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_jt_real"
+              standard_name="vertical_index_at_top_of_deep_convection_for_convective_columns_real"
+              units="index" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_JT</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_maxg_real"
+              standard_name="vertical_index_of_deep_convection_launch_level_for_convective_columns_real"
+              units="index" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_MAXG</ic_file_input_names>
+    </variable>
+    <variable local_name="zm_ideep_real"
+              standard_name="horizontal_index_of_convective_columns_for_deep_convection_for_convective_columns_real"
+              units="index" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>pbuf_ZM_IDEEP</ic_file_input_names>
+    </variable>
+    <variable local_name="fracis"
+              standard_name="fraction_of_water_insoluble_convectively_transported_species"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>1._kind_phys</initial_value>
+      <!-- Constituent-dimensioned snapshot read/check via per-constituent pbuf_FRACIS_(name) fields -->
+      <ic_file_input_names>pbuf_FRACIS</ic_file_input_names>
     </variable>
 
     <!-- dme_adjust Variables -->
